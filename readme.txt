@@ -3,7 +3,7 @@ Contributors: regionallyfamous
 Tags: blocks, gutenberg, layout, design, composer
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 1.9.2
+Stable tag: 1.0.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -125,82 +125,21 @@ An optional free-text field on the building screen that steers the layout model 
 
 == Changelog ==
 
-= 1.5.1 =
-* Fix: Token sanitisation now preserves colons — tokens like `cover:dark` and `columns:28-72` were being silently corrupted by `sanitize_key`, causing most non-anchor block types to produce empty output.
-* Fix: Pack Preview item limit raised from 20 to 80 — `packToItems()` produces ~60 items for a full pack, which was causing every preview request to fail validation.
-* Security: Added per-token allowlist validation against all known token strings.
-* Reliability: `handleRemove` animation timeout now cleared on component unmount.
-* Reliability: `savedItems` block attribute now syncs back to React state on undo/redo.
-* Reliability: `MixingScreen` slot state resets correctly when layouts change during a re-roll.
-* Reliability: Re-roll guard added for LLM mode when the inference engine is not yet initialised.
-* Code quality: `sample-data/index.js` redundant import+export pattern cleaned up.
-* Code quality: `savedItems` and session data now schema-validated before loading to prevent corrupted data from crashing the UI.
-* Performance: `packToItems()` now computed once per preview run instead of once per personality (8×).
-
-= 1.5.0 =
-* New: Content persistence — items survive block saves, page reloads, and editor sessions.
-* New: Style notes — optional free-text field that steers the layout model prompt.
-* New: Completeness hints — clickable pills show which content types would unlock more layout sections.
-* New: Per-card re-roll — regenerate a single layout slot without losing the others.
-* New: Token recipe strip — each layout card shows the structural block sequence it uses.
-* New: Saved sessions — save and reload named snapshots of content items via localStorage.
-* New: Mix & match — combine sections from different layouts into a custom arrangement.
-* API: `/assemble` endpoint now returns per-token `sections` array alongside `blocks` and `tokens`.
-
-= 1.4.1 =
-* Fix: Pack selector correctly uses `pack.label` and `pack.palette.image` after the pack data structure update.
-
-= 1.4.0 =
-* New: Pack Previews — five themed content packs (Roast, Meridian, Hearth, Plume, Grove) for instant, model-free layout previews.
-* New: Solid-color SVG image placeholders per pack — no external dependencies.
-* New: Pack selector toggle on the building screen.
-
-= 1.3.0 =
-* New: Eight redesigned layout personalities — Dispatch, Folio, Stratum, Broadside, Manifesto, Nocturne, Tribune, Overture.
-* New: All generated groups named in the WordPress List View.
-* Improved: Layout prompts now include `fullSequence` for more structured, exciting results.
-
-= 1.2.1 =
-* Improved: Quick-start presets (blog post, landing page, feature story, product pitch).
-* Improved: Drag-and-drop reordering of content items with animated transitions.
-* Improved: Exit animation on item removal.
-
-= 1.2.0 =
-* New: Layout card hover overlay with "Use this layout" action.
-* New: Block Preview thumbnails on layout cards.
-* New: Block editor sidebar personality toggles.
-* Improved: Error screen with structured headline + detail messaging.
-
-= 1.1.4 =
-* Improved: Loading message rotation with fade transition.
-* Improved: Retry logic with exponential back-off on generation errors.
-
-= 1.1.3 =
-* Improved: Fun, friendly copy throughout the editor UI.
-* Improved: "AI" renamed to "Aldus" in all user-facing text.
-
-= 1.1.2 =
-* Improved: Font sizes bumped up two steps across all editor UI text.
-* Improved: Minimal styles aligned with WordPress core conventions.
-
-= 1.1.1 =
-* Fix: Cover block markup now matches modern WP serialisation (position classes, dim-ratio classes).
-* Fix: TextControl deprecation warnings resolved.
-* Fix: Empty-layout error response changed from 502 to 422.
-
-= 1.1.0 =
-* Refreshed editor UI — minimal styles matching WP core conventions.
-* Updated copy throughout — friendlier, less robotic.
-
 = 1.0.0 =
-* Initial release.
-* 8 layout personalities with PHP-enforced structural anchors.
-* 7 content types: headline, subheading, paragraph, quote, image, cta, list.
-* In-browser WebLLM inference via WebGPU (SmolLM2-360M).
-* Dynamic theme color palette and font size integration.
-* Accessibility: ARIA labels, aria-live regions, focus management, prefers-reduced-motion.
+* Initial public release.
+* Hybrid architecture: client-side WebLLM (SmolLM2-360M) for probabilistic layout planning; server-side PHP for deterministic WordPress block assembly. No external services, no subscriptions.
+* 16 layout personalities: Dispatch, Folio, Stratum, Broadside, Manifesto, Nocturne, Tribune, Overture, Codex, Dusk, Broadsheet, Solstice, Mirage, Ledger, Mosaic, Prism.
+* 10 content types: headline, subheading, paragraph, quote, image, button/CTA, list, video, table, gallery.
+* 9 themed sample packs for instant model-free previews: Roast, Meridian, Hearth, Plume, Grove, Bazaar, Forge, Rally, Slim.
+* Block transforms from core/group, core/heading, core/paragraph, core/image, core/quote, core/list, core/buttons, core/embed, core/table, core/gallery.
+* Mix & match — combine sections from different personalities into one layout.
+* Per-card re-roll — regenerate a single layout slot without losing the rest.
+* Quick peek — instant personality previews using your own content, no model required.
+* Saved sessions with post title and ID context.
+* Live content preview drawer on the building screen.
+* Keyboard shortcuts: ⌘↵ generate, ⇧⌘Z undo, ⇧⌘R regenerate.
+* Style notes — free-text steering for the layout model.
+* Completeness hints — outcome-based suggestions for missing content types.
+* Full CI via GitHub Actions; Dependabot for npm and Actions updates.
 
 == Upgrade Notice ==
-
-= 1.5.1 =
-Critical fix: layout tokens were being silently corrupted by PHP sanitisation, causing most block types (media panels, column groups, full-width groups) to produce empty output. Upgrade immediately.
