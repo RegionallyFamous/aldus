@@ -1,0 +1,57 @@
+name: Release
+
+# Trigger by pushing a semver tag, e.g. `git tag v1.0.0 && git push --tags`
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: write   # required to create a GitHub Release
+
+jobs:
+  release:
+    name: Build & Publish Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+
+      - name: Derive version from tag
+        id: version
+        run: echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify tag matches in-code version
+        run: |
+          CODE_VER=$(node -e "const p=require('./package.json'); console.log(p.version);")
+          TAG_VER="${{ steps.version.outputs.value }}"
+          if [ "$CODE_VER" != "$TAG_VER" ]; then
+            echo "::error::Tag version ($TAG_VER) does not match package.json version ($CODE_VER). Bump the version with \`npm run release -- --bump patch|minor|major\` before tagging."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Package release zip
+        run: npm run release -- --skip-build
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Aldus ${{ steps.version.outputs.value }}"
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: releases/aldus-${{ steps.version.outputs.value }}.zip

@@ -1,0 +1,42 @@
+{
+	"name": "aldus",
+	"version": "1.0.0",
+	"description": "AI Block Compositor for WordPress",
+	"scripts": {
+		"build": "wp-scripts build",
+		"start": "wp-scripts start",
+		"lint:js": "wp-scripts lint-js",
+		"lint:css": "wp-scripts lint-style",
+		"lint:php": "find . -name '*.php' -not -path './node_modules/*' -not -path './build/*' | xargs php -l",
+		"lint": "npm run lint:js && npm run lint:css && npm run lint:php",
+		"release": "node scripts/release.js",
+		"release:patch": "node scripts/release.js --bump patch",
+		"release:minor": "node scripts/release.js --bump minor",
+		"release:major": "node scripts/release.js --bump major",
+		"i18n:pot": "wp i18n make-pot . languages/aldus.pot --exclude=node_modules,build",
+		"i18n:json": "wp i18n make-json languages/aldus.pot --no-purge"
+	},
+	"devDependencies": {
+		"@wordpress/icons": "^12.0.0",
+		"@wordpress/scripts": "*"
+	},
+	"dependencies": {
+		"@mlc-ai/web-llm": "^0.2.82"
+	},
+	"peerDependencies": {
+		"@wordpress/a11y": "*",
+		"@wordpress/api-fetch": "*",
+		"@wordpress/block-editor": "*",
+		"@wordpress/blocks": "*",
+		"@wordpress/components": "*",
+		"@wordpress/compose": "*",
+		"@wordpress/data": "*",
+		"@wordpress/date": "*",
+		"@wordpress/element": "*",
+		"@wordpress/hooks": "*",
+		"@wordpress/i18n": "*",
+		"@wordpress/keyboard-shortcuts": "*",
+		"@wordpress/notices": "*",
+		"@wordpress/preferences": "*"
+	}
+}
