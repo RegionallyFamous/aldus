@@ -12,23 +12,11 @@ import { meridian } from './meridian.js';
 import { hearth } from './hearth.js';
 import { plume } from './plume.js';
 import { grove } from './grove.js';
-import { forge } from './forge.js';
-import { bazaar } from './bazaar.js';
-import { rally } from './rally.js';
-import { slim } from './slim.js';
+import { loot } from './loot.js';
+import { signal } from './signal.js';
 
-export { roast, meridian, hearth, plume, grove, forge, bazaar, rally, slim };
-export const PACKS = [
-	roast,
-	meridian,
-	hearth,
-	plume,
-	grove,
-	forge,
-	bazaar,
-	rally,
-	slim,
-];
+export { roast, meridian, hearth, plume, grove, loot, signal };
+export const PACKS = [ roast, meridian, hearth, plume, grove, loot, signal ];
 
 // ---------------------------------------------------------------------------
 // SVG placeholder helper — two-tone gradient 4:3 rectangle as a data URL.

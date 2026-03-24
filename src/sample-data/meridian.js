@@ -1,9 +1,9 @@
-/** Meridian — developer tools & SaaS. Clean, confident, technical. */
+/** Meridian — developer deployment platform. Confident, dry, built by engineers who lived the pain. */
 export const meridian = {
 	id: 'meridian',
 	label: 'Meridian',
 	emoji: '⚡',
-	description: 'Developer tools & SaaS',
+	description: 'Developer tools & deployment',
 	palette: {
 		primary: '#0D1B2A',
 		secondary: '#1B3A5C',
@@ -13,159 +13,174 @@ export const meridian = {
 	},
 	content: {
 		'heading:h1': [
-			'Ship Infrastructure. Not Glue Code.',
-			'The Deployment Platform Your Team Will Actually Use.',
+			'Ship Product. Not YAML.',
+			"The Deployment Platform That Doesn't Need a Dedicated Person to Babysit It.",
 		],
 		'heading:h2': [
-			'Built for Engineering Teams',
-			'From Zero to Production',
-			'Why Teams Switch to Meridian',
+			'Built for Teams That Ship',
+			'From Localhost to Production in Under 3 Minutes',
+			'Why Engineering Leads Switch and Never Look Back',
 		],
 		'heading:h3': [
-			'Zero Config Deploys',
-			'Observability Built In',
-			'SOC 2 Type II Certified',
+			'Zero-Config Deploys',
+			"Observability That's Already On",
+			'SOC 2 Certified (Yes, Really)',
 		],
 		paragraph: [
-			'Meridian removes the operational overhead that slows down engineering teams. Connect your repo, define your environments, and let the platform handle provisioning, scaling, and rollbacks. Your engineers ship features, not YAML.',
-			'Most deployment platforms optimize for the happy path. Meridian optimizes for 3am. Instant rollbacks, structured logging, distributed tracing, and anomaly alerts that page the right person — not everyone.',
-			"We built Meridian after spending years inside fast-growing companies that kept reinventing the same internal deployment tooling. The problem wasn't engineering talent. It was undifferentiated infrastructure work stealing time from product.",
+			"Meridian exists because we got tired of watching senior engineers spend their Thursdays debugging Terraform instead of building product. Connect your repo. Define your environments. Push. That's it. Everything else is our problem now.",
+			'Most deployment platforms work great on the happy path. Meridian optimizes for 3 AM on a Saturday. Instant rollbacks, structured logging, and anomaly alerts that page the on-call engineer — not the entire Slack channel, because nobody needs that kind of energy at 3 AM.',
+			"We didn't set out to build a deployment platform. We set out to stop building the same internal deployment tooling at every company we joined. The fourth time you solve the same problem, you either start a company or start therapy. We chose both.",
 		],
 		'paragraph:dropcap': [
-			"Every engineering team eventually hits the same wall: the tooling that got you to ten engineers breaks at fifty. Meridian is built for the team you're becoming, not the one you are today.",
-			'Complexity is debt. Every abstraction layer you build in-house is a surface area you own forever. Meridian exists to shrink that surface area to zero.',
+			"Every engineering team hits the same wall at around fifty engineers: the tooling that got you here starts actively fighting you. Meridian is built for the team you're growing into, not the one you duct-taped together at Series A.",
+			"Complexity is debt, and every internal abstraction layer is a surface area you maintain forever. We exist to make that surface area someone else's problem. (Ours. It's our problem. We're fine with this.)",
 		],
 		quote: [
-			'"We cut deployment time from 40 minutes to under 3. Our engineers stopped dreading releases and started shipping twice as often." — CTO, Series B fintech',
-			'"Meridian replaced four internal tools we\'d been maintaining for years. The migration took a weekend." — Staff Engineer, enterprise SaaS',
+			'"We cut deploy time from 40 minutes to 2.4. Our engineers stopped dreading Fridays and started deploying on Fridays. On purpose." — CTO, Series B fintech',
+			'"Meridian replaced four internal tools we\'d been maintaining since 2019. The migration took a weekend. I\'m still upset about all the weekends I lost to those tools." — Staff Engineer, enterprise SaaS',
 		],
 		'pullquote:wide': [
-			'The best infrastructure is the infrastructure you never have to think about.',
-			"Your engineers didn't join your company to write Terraform. Give them their time back.",
+			'The best infrastructure is the infrastructure nobody has to think about.',
+			"Your engineers didn't accept your offer letter to write Terraform. Give them their weekends back.",
 		],
 		'pullquote:full-solid': [
-			'Mean time to deploy: 2.4 minutes. Mean time to rollback: 11 seconds.',
-			"Zero-downtime deploys shouldn't require a dedicated platform engineer.",
+			'Mean time to deploy: 2.4 minutes. Mean time to rollback: 11 seconds. Mean time to regret: zero.',
+			'Zero-downtime deploys should not require a "deployment czar." That\'s not a real job.',
 		],
 		list: [
 			[
-				'Git-push deploys to any cloud provider',
-				'Automatic preview environments on every PR',
-				'Built-in secrets management with audit logging',
-				'One-click rollback to any previous deployment',
+				'Git-push deploys to any cloud provider (yes, even that one)',
+				'Automatic preview environments on every PR — share a URL, not a Loom',
+				'Built-in secrets management with audit logging your security team will actually like',
+				'One-click rollback to any previous deploy — time travel, but for infrastructure',
 			],
 			[
-				'Multi-region active-active out of the box',
-				'Cost anomaly detection with spend forecasting',
-				'SAML SSO and fine-grained RBAC on all plans',
-				'SLA-backed uptime with dedicated support on Enterprise',
+				'Multi-region active-active with zero configuration (we mean it)',
+				'Cost anomaly detection that emails you before your CFO does',
+				'SAML SSO and fine-grained RBAC on all plans, including free',
+				'SLA-backed uptime with an on-call team that picks up the phone',
 			],
 		],
 		'buttons:cta': [
-			'Start Free — No Credit Card',
-			'Book an Engineering Demo',
+			'Start Free — No Credit Card, No "Let\'s Schedule a Demo" Email',
+			"Book an Engineering Demo (We'll Show You, Not Pitch You)",
 		],
-		separator: true,
-		'spacer:large': true,
 		'image:wide': [
-			{ alt: 'Meridian deployment dashboard', colorIndex: 0 },
-			{ alt: 'Pipeline visualization', colorIndex: 1 },
-		],
-		'image:full': [
-			{ alt: 'Infrastructure diagram', colorIndex: 2 },
-			{ alt: 'Observability console', colorIndex: 3 },
-		],
-		'media-text:left': [
 			{
-				heading: 'Instant Preview Environments',
-				body: 'Every pull request gets its own fully-provisioned environment. Share a URL with design, product, and QA before a single line merges to main. No more "works on my machine."',
+				alt: 'Meridian dashboard showing a successful deploy',
 				colorIndex: 0,
 			},
 			{
-				heading: 'Intelligent Cost Controls',
-				body: 'Meridian tracks spend at the service level and alerts you before surprises hit your bill. Auto-scale down during off-peak hours without touching a config file.',
+				alt: 'Pipeline visualization with green checkmarks everywhere',
+				colorIndex: 1,
+			},
+		],
+		'image:full': [
+			{
+				alt: 'Infrastructure topology map — nodes and edges, beautifully',
+				colorIndex: 2,
+			},
+			{
+				alt: 'Observability console with traces flowing in real time',
+				colorIndex: 3,
+			},
+		],
+		'media-text:left': [
+			{
+				heading: 'Preview Environments That Actually Work',
+				body: 'Every PR gets its own environment with its own URL. Share it with design. Share it with product. Share it with your mom. No more "works on my machine" because it literally works on a machine we gave you.',
+				colorIndex: 0,
+			},
+			{
+				heading: 'Cost Controls for Grown-Ups',
+				body: "Meridian tracks spend at the service level and alerts you before the surprise hits. Auto-scales down during off-peak. You'll know exactly why your bill is what it is, which is more than we can say for our phone plans.",
 				colorIndex: 1,
 			},
 		],
 		'media-text:right': [
 			{
-				heading: 'Observability Without Setup',
-				body: 'Structured logs, distributed traces, and custom metrics are available from the first deploy. No agents to install, no dashboards to configure. Open your app, see everything.',
+				heading: 'Observability Without the Setup Weekend',
+				body: 'Logs, traces, and metrics from your first deploy. No agents. No config files. No weekend lost to "just getting Datadog working." Open the dashboard and everything\'s already there. Like magic, except it\'s engineering.',
 				colorIndex: 2,
 			},
 			{
-				heading: 'Compliance on Day One',
-				body: "SOC 2 Type II, HIPAA-ready infrastructure, and audit logs that satisfy your security team. Enterprise deals close faster when compliance isn't a six-month project.",
+				heading: 'Compliance on Day One, Not Month Six',
+				body: "SOC 2 Type II, HIPAA-ready, and audit logs that make your security team smile. (We've seen it happen.) Enterprise deals close faster when compliance isn't a six-month side quest.",
 				colorIndex: 3,
 			},
 		],
 		'columns:28-72': [
 			{
 				label: 'Deploy',
-				body: 'Push to your branch, Meridian handles the rest. Automated smoke tests, canary rollouts, and instant rollbacks mean no more deployment anxiety.',
+				body: "Push to your branch. Go get coffee. By the time you're back, your code is in production with automated smoke tests, canary rollouts, and a rollback button you'll hopefully never need.",
 			},
 			{
 				label: 'Observe',
-				body: 'Logs, traces, metrics, and alerts — unified in one place. Correlate a spike in error rate with a specific deployment in seconds, not hours.',
+				body: 'Logs, traces, and metrics in one place. Correlate a spike in errors with the exact deploy that caused it. In seconds, not hours. Without convening a war room.',
 			},
 			{
 				label: 'Scale',
-				body: 'Horizontal auto-scaling responds to real traffic in under 60 seconds. Define your scaling policy in five lines; Meridian executes it across every region.',
+				body: 'Horizontal auto-scaling responds to real traffic in under 60 seconds. Define your policy in five lines. We handle the rest across every region. Even the ones with weird latency.',
 			},
 		],
 		'columns:3-equal': [
 			[
 				{
 					heading: '2.4 min',
-					body: 'Average time from git push to live deployment across all Meridian customers.',
+					body: 'Average deploy time across all Meridian customers. Some of them are faster. They know who they are.',
 				},
 				{
 					heading: '99.997%',
-					body: 'Platform uptime over the past 24 months, across all regions and availability zones.',
+					body: "Platform uptime over 24 months. The 0.003% was a Tuesday in April. We don't talk about that Tuesday.",
 				},
 				{
 					heading: '4,200+',
-					body: 'Engineering teams that have replaced their internal deployment tooling with Meridian.',
+					body: 'Engineering teams that have deleted their internal deployment scripts. The interns were thrilled.',
 				},
 			],
 		],
 		'group:dark-full': [
 			{
-				heading:
-					'Enterprise-Grade Infrastructure. Startup-Speed Setup.',
-				body: 'SOC 2 Type II certified. HIPAA-ready. SAML SSO. Fine-grained RBAC. Everything your security team needs, ready before your first deploy.',
+				heading: 'Enterprise Infrastructure. Startup Impatience.',
+				body: 'SOC 2. HIPAA. SAML. RBAC. Every acronym your security team requires, ready before your first deploy. No six-month procurement process required (but we can do that too if it makes someone feel better).',
 				cta: 'Talk to Enterprise Sales',
 			},
 		],
 		'group:accent-full': [
 			{
-				heading: 'Free Migration from Your Current Platform',
-				body: "Our engineering team handles the migration. You're in production on Meridian in under a week, or we extend your trial free.",
+				heading: "We'll Migrate You. For Free. This Week.",
+				body: "Our engineering team handles the migration from your current platform. You'll be in production on Meridian in under a week, or we extend your trial until we get it right. That's not a promotion — that's the standard offer.",
 				cta: 'Claim Your Migration',
 			},
 		],
 		'group:light-full': [
 			{
-				heading: 'Trusted by Teams at Every Stage',
-				body: 'From pre-launch startups to publicly-traded companies, Meridian scales with the infrastructure complexity your growth demands.',
+				heading: "Trusted by Teams Who've Been Burned Before",
+				body: 'From pre-seed startups shipping their first feature to public companies managing traffic spikes on earnings day. We scale with whatever your growth throws at us. Yes, even that Black Friday thing.',
 			},
 		],
 		table: [
 			{
-				caption: 'Plan comparison',
+				caption: 'Meridian vs. the Competition',
 				rows: [
-					[ 'Feature', 'Starter', 'Growth', 'Enterprise' ],
+					[ 'Feature', 'Meridian', 'Heroku', 'Fly.io', 'Render' ],
+					[ 'Deploy time', '2.4 min', '8 min', '4 min', '5 min' ],
 					[
-						'Monthly active users',
-						'10,000',
-						'250,000',
-						'Unlimited',
+						'Preview envs',
+						'Every PR',
+						'Manual',
+						'Manual',
+						'Manual',
 					],
-					[ 'API calls / month', '500K', '10M', 'Unlimited' ],
-					[ 'SLA uptime', '99.5%', '99.9%', '99.99%' ],
-					[ 'Custom domains', '1', '5', 'Unlimited' ],
-					[ 'SSO / SAML', 'No', 'Yes', 'Yes' ],
-					[ 'Priority support', 'No', 'Email', 'Dedicated CSM' ],
+					[ 'Rollback', '11 sec', '3 min', '2 min', '2 min' ],
+					[
+						'SOC 2 (all plans)',
+						'✓',
+						'Enterprise',
+						'✓',
+						'Enterprise',
+					],
+					[ 'Free tier', '✓', '✗', '✓', '✓' ],
 				],
 			},
 		],
