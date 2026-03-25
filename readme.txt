@@ -3,7 +3,7 @@ Contributors: regionallyfamous
 Tags: blocks, gutenberg, layout, design, composer
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 1.10.0
+Stable tag: 1.10.1
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -126,6 +126,10 @@ Five themed content packs (Roast — specialty coffee; Meridian — B2B SaaS; He
 An optional free-text field on the building screen that steers the layout model — for example "lead with the image", "keep it minimal", or "bold CTA up top". It's passed directly into the model prompt.
 
 == Changelog ==
+
+= 1.10.1 =
+* Fixed a fatal error that caused the block to appear blank or show placeholder content on sites where the editor scripts weren't included in the distributed zip.
+* Removed the automatic block insertion that was silently adding an Aldus block to every post and template — Aldus now only appears where you place it.
 
 = 1.9.0 =
 * New "Redesign with Aldus" option in the block Options menu: select any heading, paragraph, image, or similar block and convert it straight into an Aldus layout without starting from scratch.

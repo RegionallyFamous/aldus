@@ -1,6 +1,6 @@
 {
 	"name": "aldus",
-	"version": "1.10.0",
+	"version": "1.10.1",
 	"description": "AI Block Compositor for WordPress",
 	"scripts": {
 		"build": "wp-scripts build",

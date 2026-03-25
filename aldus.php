@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Plugin Name:       Aldus — Block Compositor
  * Plugin URI:        https://github.com/RegionallyFamous/aldus
  * Description:       You write it. Aldus designs it. Sixteen layout styles for your content — pick the one that fits, and it becomes real WordPress blocks.
- * Version:           1.10.0
+ * Version:           1.10.1
  * Requires at least: 6.4
  * Requires PHP:      8.0
  * Author:            Regionally Famous
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'ALDUS_VERSION', '1.10.0' );
+define( 'ALDUS_VERSION', '1.10.1' );
 define( 'ALDUS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ALDUS_URL', plugin_dir_url( __FILE__ ) );
 
