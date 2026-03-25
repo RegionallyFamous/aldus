@@ -7,10 +7,9 @@
 // discard the theme.json data before Aldus's filter can apply its additions.
 
 // The block renders as an empty string on the front end (render.php returns
-// ''). Hide any residual wrapper that a cache layer might emit.
-.wp-block-aldus-layout-generator {
-	display: none;
-}
+// ''), so there is normally no wrapper to hide. Avoid a blanket hide rule here:
+// WordPress can also load block styles inside the editor canvas/iframe, and a
+// frontend-only selector can still end up hiding the block while editing.
 
 // CSS custom properties used by Aldus-generated layouts.
 // Values here mirror the defaults injected by aldus_inject_theme_json().

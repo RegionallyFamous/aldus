@@ -69,6 +69,13 @@ export function useAldusGeneration( {
 	// isGenerating === false before the first setIsGenerating(true) propagates).
 	const isGeneratingRef = useRef( false );
 
+	// Auto-retry: on first llm_parse_failed, silently retry with the same
+	// params before surfacing the error to the UI.
+	const autoRetryDoneRef = useRef( false );
+	// Self-reference so the catch block can call runGenerate recursively
+	// without circular-dependency issues in useCallback's dep array.
+	const runGenerateRef = useRef( null );
+
 	// Tracks how many times each personality has been re-rolled so the PHP
 	// variant picker produces different results even when the token sequence is identical.
 	const rerollCountsRef = useRef( {} );
@@ -102,6 +109,7 @@ export function useAldusGeneration( {
 			}
 			isGeneratingRef.current = true;
 			setIsGenerating( true );
+			let retrying = false;
 
 			// Build the content manifest (type → count).
 			const manifest = {};
@@ -381,6 +389,29 @@ export function useAldusGeneration( {
 					code = 'api_error';
 				}
 
+				// Auto-retry once on llm_parse_failed — the model occasionally emits
+				// malformed JSON on the first attempt; a silent retry usually succeeds.
+				// The autoRetryDoneRef guard prevents infinite retry loops.
+				if (
+					code === 'llm_parse_failed' &&
+					! autoRetryDoneRef.current
+				) {
+					autoRetryDoneRef.current = true;
+					retrying = true;
+					isGeneratingRef.current = false; // allow re-entry for the retry
+					runGenerateRef.current?.( {
+						items,
+						styleNote,
+						postContext,
+						enabledLabels,
+						pinned,
+						useBindings,
+						customStyles,
+						postId,
+					} );
+					return;
+				}
+
 				onErrorDetail?.( err );
 				onError( code );
 				speak(
@@ -401,8 +432,12 @@ export function useAldusGeneration( {
 					);
 				}
 			} finally {
-				isGeneratingRef.current = false;
-				setIsGenerating( false );
+				// Skip cleanup when we are about to self-retry — the retry call
+				// manages its own isGenerating lifecycle.
+				if ( ! retrying ) {
+					isGeneratingRef.current = false;
+					setIsGenerating( false );
+				}
 			}
 		},
 		[
@@ -428,16 +463,30 @@ export function useAldusGeneration( {
 		]
 	);
 
+	// Keep self-reference current so the auto-retry branch can call runGenerate
+	// without circular deps in the useCallback dep array.
+	runGenerateRef.current = runGenerate;
+
 	/**
 	 * Increments the re-roll counter for a personality so repeated re-rolls
 	 * with the same token sequence produce different block variant picks.
 	 *
 	 * @param {string} label Personality name.
+	 * @return {number} The new count after incrementing.
 	 */
 	const incrementRerollCount = useCallback( ( label ) => {
 		rerollCountsRef.current[ label ] =
 			( rerollCountsRef.current[ label ] ?? 0 ) + 1;
+		return rerollCountsRef.current[ label ];
 	}, [] );
 
-	return { runGenerate, isGenerating, incrementRerollCount };
+	/**
+	 * Resets the auto-retry guard. Call before each user-triggered generation
+	 * so the one-retry allowance is restored.
+	 */
+	const resetRetry = useCallback( () => {
+		autoRetryDoneRef.current = false;
+	}, [] );
+
+	return { runGenerate, isGenerating, incrementRerollCount, resetRetry };
 }

@@ -109,13 +109,13 @@ import {
 	loadPackContent,
 } from './sample-data/index.js';
 import { safeIcon } from './utils/safeIcon';
-// Hooks imported here; will replace inline logic in a future refactor pass.
-// eslint-disable-next-line no-unused-vars
 import { useAldusEngine } from './hooks/useAldusEngine.js';
-// eslint-disable-next-line no-unused-vars
 import { useAldusGeneration } from './hooks/useAldusGeneration.js';
-// eslint-disable-next-line no-unused-vars
 import { useAldusItems } from './hooks/useAldusItems.js';
+import { DownloadingScreen } from './screens/DownloadingScreen.js';
+import { LoadingScreen } from './screens/LoadingScreen.js';
+import { ErrorScreen } from './screens/ErrorScreen.js';
+import { MixingScreen } from './screens/MixScreen.js';
 
 // Named constant for the default pack index to avoid magic numbers at call sites.
 const DEFAULT_PACK_INDEX = 0;
@@ -2050,70 +2050,7 @@ const LOADING_MESSAGES = [
 	__( 'Mosaic keeps asking if there are more images.', 'aldus' ),
 ];
 
-// Pass 9: structured error messages with headline + detail
-const ERROR_MESSAGES = {
-	connection_failed: {
-		headline: __( "Couldn't connect.", 'aldus' ),
-		detail: __( 'Check your network and give it another shot.', 'aldus' ),
-	},
-	timeout: {
-		headline: __( 'That took way too long.', 'aldus' ),
-		detail: __( 'Try trimming your content a bit.', 'aldus' ),
-	},
-	parse_failed: {
-		headline: __( 'Something got scrambled.', 'aldus' ),
-		detail: __(
-			'Worth trying once more — it usually sorts itself out.',
-			'aldus'
-		),
-	},
-	llm_parse_failed: {
-		headline: __( 'The model went sideways.', 'aldus' ),
-		detail: __(
-			'Try regenerating — the small model sometimes stumbles on the first pass.',
-			'aldus'
-		),
-	},
-	api_error: {
-		headline: __( 'The layout assembler hit an issue.', 'aldus' ),
-		detail: __(
-			'Check your content items for any unusual characters, then try again.',
-			'aldus'
-		),
-	},
-	wasm_compile_failed: {
-		headline: __( 'GPU compilation failed.', 'aldus' ),
-		detail: __(
-			"Your GPU doesn't support the model format. Browse sample layouts in the Personalities tab instead.",
-			'aldus'
-		),
-	},
-	gpu_device_lost: {
-		headline: __( 'The GPU disconnected.', 'aldus' ),
-		detail: __(
-			'This sometimes happens when the tab is backgrounded. Clicking "Try again" usually works.',
-			'aldus'
-		),
-	},
-	out_of_memory: {
-		headline: __( 'Not enough GPU memory.', 'aldus' ),
-		detail: __(
-			'Close some other browser tabs and try again. The model needs around 500 MB of free memory.',
-			'aldus'
-		),
-	},
-	rate_limited: {
-		headline: __( 'Too many requests.', 'aldus' ),
-		detail: __( 'Wait a moment, then try again.', 'aldus' ),
-	},
-	no_layouts: {
-		headline: __( 'None of the personalities clicked.', 'aldus' ),
-		detail: __(
-			'Try adding a headline and at least one paragraph — that gives every style something to work with.',
-			'aldus'
-		),
-	},
-};
+// ERROR_MESSAGES moved to src/screens/ErrorScreen.js
 
 const uid = () => {
 	if (
@@ -2283,48 +2220,7 @@ function tokenShortLabel( token ) {
 	return labels[ token ] ?? token;
 }
 
-const TOKEN_HUMAN_LABELS = {
-	'cover:dark': 'Dark hero',
-	'cover:light': 'Light hero',
-	'cover:minimal': 'Minimal hero',
-	'cover:split': 'Split hero',
-	'columns:2-equal': 'Two columns',
-	'columns:28-72': 'Sidebar columns',
-	'columns:3-equal': 'Three columns',
-	'columns:4-equal': 'Four columns',
-	'media-text:left': 'Image left',
-	'media-text:right': 'Image right',
-	'group:dark-full': 'Dark section',
-	'group:accent-full': 'Accent section',
-	'group:light-full': 'Light section',
-	'group:border-box': 'Bordered section',
-	'group:gradient-full': 'Gradient section',
-	'pullquote:wide': 'Pull quote',
-	'pullquote:full-solid': 'Bold pull quote',
-	'pullquote:centered': 'Centered quote',
-	'heading:h1': 'Heading 1',
-	'heading:h2': 'Heading 2',
-	'heading:h3': 'Heading 3',
-	'heading:display': 'Display heading',
-	'heading:kicker': 'Kicker heading',
-	paragraph: 'Paragraph',
-	'paragraph:dropcap': 'Drop cap paragraph',
-	'image:wide': 'Wide image',
-	'image:full': 'Full-width image',
-	quote: 'Quote',
-	'quote:attributed': 'Attributed quote',
-	'buttons:cta': 'Call to action',
-	'spacer:small': 'Small spacer',
-	'spacer:large': 'Spacer',
-	'spacer:xlarge': 'Large spacer',
-	separator: 'Separator',
-	list: 'List',
-	'fallback:generic': 'Fallback layout',
-};
-
-function tokenHumanLabel( token ) {
-	return TOKEN_HUMAN_LABELS[ token ] ?? token;
-}
+// TOKEN_HUMAN_LABELS and tokenHumanLabel moved to src/screens/MixScreen.js
 
 // ---------------------------------------------------------------------------
 // WebLLM helpers
@@ -2531,19 +2427,14 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 
 	// State machine: 'building' | 'downloading' | 'loading' | 'results' | 'confirming' | 'mixing' | 'inserted' | 'error' | 'no-gpu'
 	const [ screen, setScreen ] = useState( 'building' );
-	const [ items, setItems ] = useState( () =>
-		validateSavedItems( savedItems )
-	);
 	const [ layouts, setLayouts ] = useState( [] );
 	const [ errorCode, setErrorCode ] = useState( '' );
 	const [ errorDetail, setErrorDetail ] = useState( null ); // raw error for technical details
 	const [ retryCount, setRetryCount ] = useState( 0 );
-	const autoRetryDoneRef = useRef( false ); // prevent infinite auto-retry loops
 	const [ msgIndex, setMsgIndex ] = useState( 0 );
 	const [ msgVisible, setMsgVisible ] = useState( true );
 	const [ dlProgress, setDlProgress ] = useState( { progress: 0, text: '' } );
 	const [ dlStalled, setDlStalled ] = useState( false );
-	const [ isGenerating, setIsGenerating ] = useState( false );
 	const [ buildingMode, setBuildingMode ] = useState( 'content' ); // 'content' | 'preview'
 	const [ isPreview, setIsPreview ] = useState( false );
 	const [ activePreviewPack, setActivePreviewPack ] = useState( null );
@@ -2589,12 +2480,6 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		} );
 	}, [] );
 
-	const engineRef = useRef( null );
-	const abortRef = useRef( null );
-	const itemsRef = useRef( items );
-	useEffect( () => {
-		itemsRef.current = items;
-	} );
 	const lastFocusRef = useRef( null );
 	const lastPackRef = useRef( null ); // stores last pack used for preview re-roll
 	// Always-current refs so the confirming useEffect reads the latest values even
@@ -2608,9 +2493,6 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		wrapperModeRef.current = wrapperMode;
 	} );
 	const personalityWarningTimerRef = useRef( null );
-	// Tracks how many times each personality layout has been re-rolled so the PHP
-	// variant picker produces different results even when the token sequence is identical.
-	const rerollCountsRef = useRef( {} );
 	const rerollErrorTimersRef = useRef( {} ); // label → timer id, so stale timers are cleared
 	const {
 		replaceBlocks,
@@ -2698,27 +2580,122 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 
 	const noWebGPU = ! hasWebGPU();
 
-	// Track whether the next savedItems attribute change comes from us (not undo/redo).
-	const selfWriteRef = useRef( false );
+	// ---------------------------------------------------------------------------
+	// Hook: items CRUD, attribute persistence, undo/redo sync
+	// ---------------------------------------------------------------------------
 
-	// Persist items in block attributes so they survive saves and page reloads.
-	useEffect( () => {
-		selfWriteRef.current = true;
-		setAttributes( { savedItems: items } );
-		// Reset flag after the attribute write has propagated.
-		const id = setTimeout( () => {
-			selfWriteRef.current = false;
-		}, 0 );
-		return () => clearTimeout( id );
-	}, [ items ] ); // eslint-disable-line react-hooks/exhaustive-deps
+	const {
+		items,
+		itemsRef,
+		setItems,
+		addItem,
+		updateItem,
+		removeItem,
+		reorderItems,
+		moveItem,
+		loadPreset: loadPresetItems,
+	} = useAldusItems( {
+		savedItems,
+		setAttributes,
+		markAldusUsed,
+		lastFocusRef,
+	} );
 
-	// Pull attribute changes back into state when undo/redo fires externally.
-	useEffect( () => {
-		if ( selfWriteRef.current ) {
-			return;
-		}
-		setItems( validateSavedItems( savedItems ) );
-	}, [ savedItems ] ); // eslint-disable-line react-hooks/exhaustive-deps
+	// Wrap the hook's loadPreset to also transition back to the building screen.
+	const loadPreset = useCallback(
+		( preset ) => {
+			loadPresetItems( preset );
+			setScreen( 'building' );
+		},
+		[ loadPresetItems ]
+	);
+
+	// ---------------------------------------------------------------------------
+	// Hook: WebLLM engine lifecycle
+	// ---------------------------------------------------------------------------
+
+	const onDownloadStart = useCallback( () => {
+		setScreen( 'downloading' );
+		setDlProgress( { progress: 0, text: '' } );
+		setDlStalled( false );
+	}, [] );
+
+	const onDownloadProgress = useCallback(
+		( { progress, text } ) => setDlProgress( { progress, text } ),
+		[]
+	);
+
+	const onModelDownloaded = useCallback( () => {
+		wpDispatch( preferencesStore ).set(
+			'aldus',
+			'hasDownloadedModel',
+			true
+		);
+	}, [] );
+
+	const onDownloadStall = useCallback( () => setDlStalled( true ), [] );
+
+	const { engineRef, abortRef, initEngine, destroyEngine } = useAldusEngine( {
+		onDownloadStart,
+		onDownloadProgress,
+		onModelDownloaded,
+		onDownloadStall,
+	} );
+
+	// ---------------------------------------------------------------------------
+	// Hook: generation pipeline
+	// ---------------------------------------------------------------------------
+
+	const onLayoutsReady = useCallback(
+		( assembled ) => setLayouts( assembled ),
+		[]
+	);
+	const onGenProgress = useCallback(
+		( { done, total, lastLabel } ) =>
+			setGenProgress( { done, total, lastLabel } ),
+		[]
+	);
+	const onStyleDetected = useCallback(
+		( style ) => setAutoStyle( style ),
+		[]
+	);
+	const onRecommendationsReady = useCallback(
+		( recs ) => setRecommendedPersonalities( recs ),
+		[]
+	);
+	const onHintsReady = useCallback(
+		( hints ) => setContentHints( hints ),
+		[]
+	);
+	const onErrorDetail = useCallback( ( err ) => setErrorDetail( err ), [] );
+	const onGenerationError = useCallback( ( code ) => {
+		setErrorCode( code );
+		setRetryCount( ( c ) => c + 1 );
+		setScreen( 'error' );
+	}, [] );
+
+	const { runGenerate, isGenerating, incrementRerollCount, resetRetry } =
+		useAldusGeneration( {
+			initEngine,
+			destroyEngine,
+			inferTokens,
+			enforceAnchors,
+			inferStyleDirection,
+			scoreCoverage,
+			inferLayoutDescription,
+			inferSectionLabel,
+			recommendPersonalities,
+			analyzeContentHints,
+			activePersonalities: ACTIVE_PERSONALITIES,
+			onScreenChange: setScreen,
+			onLayoutsReady,
+			onProgress: onGenProgress,
+			onError: onGenerationError,
+			onErrorDetail,
+			onStyleDetected,
+			onRecommendationsReady,
+			onHintsReady,
+		} );
 
 	const setStyleNote = useCallback(
 		( val ) => setAttributes( { styleNote: val } ),
@@ -2915,495 +2892,6 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		setScreen( 'error' );
 	}, [ screen ] ); // eslint-disable-line react-hooks/exhaustive-deps
 
-	// ---------------------------------------------------------------------------
-	// Item CRUD + reorder
-	// ---------------------------------------------------------------------------
-
-	const addItem = useCallback(
-		( type ) => {
-			const id = uid();
-			setItems( ( prev ) => [
-				...prev,
-				{ id, type, content: '', url: '' },
-			] );
-			lastFocusRef.current = id;
-			markAldusUsed();
-		},
-		[ markAldusUsed ]
-	);
-
-	const updateItem = useCallback(
-		( id, patch ) =>
-			setItems( ( prev ) =>
-				prev.map( ( i ) => ( i.id === id ? { ...i, ...patch } : i ) )
-			),
-		[]
-	);
-
-	const removeItem = useCallback(
-		( id ) => setItems( ( prev ) => prev.filter( ( i ) => i.id !== id ) ),
-		[]
-	);
-
-	const reorderItems = useCallback( ( fromId, toId ) => {
-		setItems( ( prev ) => {
-			const from = prev.findIndex( ( i ) => i.id === fromId );
-			const to = prev.findIndex( ( i ) => i.id === toId );
-			if ( from < 0 || to < 0 || from === to ) {
-				return prev;
-			}
-			const next = [ ...prev ];
-			const [ moved ] = next.splice( from, 1 );
-			next.splice( to, 0, moved );
-			return next;
-		} );
-	}, [] );
-
-	const moveItem = useCallback( ( id, dir ) => {
-		setItems( ( prev ) => {
-			const idx = prev.findIndex( ( i ) => i.id === id );
-			if ( idx < 0 ) {
-				return prev;
-			}
-			const swap = idx + dir;
-			if ( swap < 0 || swap >= prev.length ) {
-				return prev;
-			}
-			const next = [ ...prev ];
-			[ next[ idx ], next[ swap ] ] = [ next[ swap ], next[ idx ] ];
-			return next;
-		} );
-	}, [] );
-
-	// Pass 8: load a quick-start preset
-	const loadPreset = useCallback( ( preset ) => {
-		setItems(
-			preset.items.map( ( i ) => ( {
-				id: uid(),
-				content: '',
-				url: '',
-				...i,
-			} ) )
-		);
-		setScreen( 'building' );
-	}, [] );
-
-	// ---------------------------------------------------------------------------
-	// Generation (WebLLM path)
-	// ---------------------------------------------------------------------------
-
-	const runGenerate = useCallback(
-		async (
-			currentItems,
-			activePersonalities,
-			currentStyleNote = '',
-			currentPostContext = null
-		) => {
-			if ( ! hasWebGPU() ) {
-				setScreen( 'no-gpu' );
-				setIsGenerating( false );
-				return;
-			}
-
-			setIsGenerating( false ); // screen change takes over
-			setLayouts( [] );
-			setMsgIndex( 0 );
-			setMsgVisible( true );
-
-			const manifest = {};
-			for ( const item of currentItems ) {
-				manifest[ item.type ] = ( manifest[ item.type ] ?? 0 ) + 1;
-			}
-
-			// Tracks whether the LLM engine was usable before any error was thrown.
-			// If true, the engine itself is fine — only the inference or assemble
-			// call failed, so we keep it alive for the next attempt.
-			let engineWasReady = false;
-
-			try {
-				if ( ! engineRef.current ) {
-					setScreen( 'downloading' );
-					setDlProgress( { progress: 0, text: '' } );
-					setDlStalled( false );
-
-					const { CreateMLCEngine } = await import(
-						'@mlc-ai/web-llm'
-					);
-
-					const dlController = new AbortController();
-					abortRef.current = () => dlController.abort();
-
-					// Stall detection: if download progress does not advance for
-					// 30 s, show a dismissible notice.
-					let dlLastProgress = -1;
-					let dlLastProgressTime = Date.now();
-					let dlStallFired = false;
-
-					const engineOptions = {
-						signal: dlController.signal,
-						initProgressCallback: ( info ) => {
-							const now = Date.now();
-							const pct = info.progress ?? 0;
-
-							if ( pct > dlLastProgress ) {
-								dlLastProgress = pct;
-								dlLastProgressTime = now;
-							} else if (
-								! dlStallFired &&
-								now - dlLastProgressTime > 30_000
-							) {
-								dlStallFired = true;
-								setDlStalled( true );
-							}
-
-							setDlProgress( {
-								progress: pct,
-								text: info.text ?? '',
-							} );
-						},
-					};
-
-					// First attempt; retry once on transient GPU device-lost.
-					try {
-						engineRef.current = await CreateMLCEngine(
-							'SmolLM2-360M-Instruct-q4f16_1-MLC',
-							engineOptions
-						);
-					} catch ( firstEngineErr ) {
-						const isTransient =
-							firstEngineErr?.message
-								?.toLowerCase()
-								.includes( 'device lost' ) ||
-							firstEngineErr?.message
-								?.toLowerCase()
-								.includes( 'gpudevice' );
-						if ( ! isTransient ) {
-							throw firstEngineErr;
-						}
-						// Wait 2 s for the browser to reallocate the GPU context.
-						await new Promise( ( r ) => setTimeout( r, 2000 ) );
-						engineRef.current = await CreateMLCEngine(
-							'SmolLM2-360M-Instruct-q4f16_1-MLC',
-							engineOptions
-						);
-					}
-
-					abortRef.current = null;
-					// Mark that the model has been downloaded so the first-time hint disappears.
-					wpDispatch( preferencesStore ).set(
-						'aldus',
-						'hasDownloadedModel',
-						true
-					);
-				}
-
-				// Engine is live — errors from here on should not destroy it.
-				engineWasReady = true;
-
-				setScreen( 'loading' );
-
-				const personalities = ACTIVE_PERSONALITIES.filter( ( p ) =>
-					activePersonalities.includes( p.name )
-				);
-
-				// Pre-generation intelligence: style direction, personality
-				// recommendations, and content hints run in parallel.
-				// Failures produce safe empty defaults — never block generation.
-				const [ styleResult, recommendResult, hintsResult ] =
-					await Promise.allSettled( [
-						inferStyleDirection(
-							engineRef.current,
-							manifest,
-							currentItems
-						),
-						recommendPersonalities(
-							engineRef.current,
-							manifest,
-							personalities
-						),
-						analyzeContentHints(
-							engineRef.current,
-							manifest,
-							currentItems
-						),
-					] );
-
-				const detectedStyle =
-					styleResult.status === 'fulfilled'
-						? styleResult.value?.style ?? ''
-						: '';
-				setAutoStyle( detectedStyle );
-				setRecommendedPersonalities(
-					recommendResult.status === 'fulfilled'
-						? recommendResult.value?.recommended ?? []
-						: []
-				);
-				setContentHints(
-					hintsResult.status === 'fulfilled'
-						? hintsResult.value?.hints ?? []
-						: []
-				);
-
-				// Prepend auto-detected style direction to any user-supplied note.
-				const effectiveStyleNote = [ detectedStyle, currentStyleNote ]
-					.filter( Boolean )
-					.join( ', ' );
-
-				// For each personality after the first, pass the example sequences of
-				// prior personalities as diversity hints. This runs in parallel while
-				// still nudging the model toward structural variety.
-				const tokenSettled = await Promise.allSettled(
-					personalities.map( ( p, idx ) => {
-						const previousSequences = personalities
-							.slice( 0, idx )
-							.map(
-								( prev ) =>
-									( prev.exampleSequences ?? [
-										prev.anchors,
-									] )[ 0 ]
-							);
-						return inferTokens(
-							engineRef.current,
-							p,
-							manifest,
-							effectiveStyleNote,
-							currentPostContext,
-							currentItems,
-							previousSequences
-						);
-					} )
-				);
-
-				const tokenResults = tokenSettled.map( ( result, i ) =>
-					result.status === 'fulfilled'
-						? result.value
-						: enforceAnchors( personalities[ i ], [] )
-				);
-
-				// Post-generation intelligence: coverage scoring, layout
-				// descriptions, and Folio section labels — all in parallel.
-				const [ coverageSettled, descriptionSettled, labelSettled ] =
-					await Promise.all( [
-						Promise.allSettled(
-							tokenResults.map( ( tokens ) =>
-								scoreCoverage(
-									engineRef.current,
-									manifest,
-									tokens
-								)
-							)
-						),
-						Promise.allSettled(
-							tokenResults.map( ( tokens, i ) =>
-								inferLayoutDescription(
-									engineRef.current,
-									personalities[ i ],
-									tokens
-								)
-							)
-						),
-						// Section label for columns:28-72 (Folio's narrow label column).
-						// Only fired when that token is present and a paragraph exists;
-						// resolves immediately with '' otherwise.
-						Promise.allSettled(
-							tokenResults.map( ( tokens ) => {
-								if ( ! tokens.includes( 'columns:28-72' ) ) {
-									return Promise.resolve( { label: '' } );
-								}
-								const firstPara = currentItems.find(
-									( it ) => it.type === 'paragraph'
-								);
-								if ( ! firstPara ) {
-									return Promise.resolve( { label: '' } );
-								}
-								const preview = ( firstPara.content ?? '' )
-									.trim()
-									.split( /\s+/ )
-									.slice( 0, 10 )
-									.join( ' ' );
-								return inferSectionLabel(
-									engineRef.current,
-									preview
-								);
-							} )
-						),
-					] );
-
-				setGenProgress( {
-					done: 0,
-					total: personalities.length,
-					lastLabel: null,
-				} );
-
-				const assembleJobs = tokenResults.map( ( tokens, i ) => ( {
-					label: personalities[ i ].name,
-					data: {
-						items: currentItems,
-						personality: personalities[ i ].name,
-						tokens,
-						use_bindings: useMeta,
-						custom_styles: customBlockStyles,
-						post_id: postId || 0,
-						section_label:
-							labelSettled[ i ]?.status === 'fulfilled'
-								? labelSettled[ i ].value?.label ?? ''
-								: '',
-					},
-				} ) );
-
-				const assembleResponses = await batchAssemble(
-					assembleJobs,
-					( done, total, lastLabel ) =>
-						setGenProgress( { done, total, lastLabel } )
-				);
-
-				const assembled = assembleResponses
-					.filter( isValidAssembleResponse )
-					.map( ( r ) => {
-						const pIdx = personalities.findIndex(
-							( p ) => p.name === r.label
-						);
-						return {
-							label: r.label,
-							blocks: r.blocks,
-							tokens: r.tokens ?? [],
-							sections: r.sections ?? [],
-							unusedTypes:
-								pIdx >= 0 &&
-								coverageSettled[ pIdx ]?.status === 'fulfilled'
-									? coverageSettled[ pIdx ].value?.unused ??
-									  []
-									: [],
-							description:
-								pIdx >= 0 &&
-								descriptionSettled[ pIdx ]?.status ===
-									'fulfilled'
-									? descriptionSettled[ pIdx ].value
-											?.description ?? ''
-									: '',
-						};
-					} );
-
-				if ( assembled.length === 0 ) {
-					setErrorCode( 'no_layouts' );
-					setRetryCount( ( c ) => c + 1 );
-					setScreen( 'error' );
-					speak(
-						__(
-							'No layouts generated. Try adding more content.',
-							'aldus'
-						),
-						'assertive'
-					);
-					return;
-				}
-
-				setLayouts( assembled );
-				setScreen( 'results' );
-				speak(
-					sprintf(
-						/* translators: %d: number of generated layouts */
-						__( '%d layouts ready.', 'aldus' ),
-						assembled.length
-					),
-					'assertive'
-				);
-				// Remove any lingering connection error notice on success.
-				wpDispatch( 'core/notices' ).removeNotice(
-					'aldus-connection-error'
-				);
-			} catch ( err ) {
-				// If the engine was ready before this error, keep it alive —
-				// the failure was in inference or the assemble call, not the engine.
-				if ( ! engineWasReady ) {
-					engineRef.current = null;
-				}
-
-				// Distinguish error sources for better user guidance.
-				// GPU OOM → out_of_memory.
-				// GPU device-lost → gpu_device_lost.
-				// WASM CompileError → wasm_compile_failed.
-				// HTTP 429 → rate_limited.
-				// HTTP 4xx/5xx from the REST API → api_error.
-				// Network/service errors → connection_failed or timeout.
-				// Model-side failures (JSON parse, token hallucination) → llm_parse_failed.
-				let code = 'llm_parse_failed';
-				if (
-					err?.message?.toLowerCase().includes( 'out of memory' ) ||
-					err?.message?.toLowerCase().includes( 'oom' )
-				) {
-					code = 'out_of_memory';
-				} else if (
-					err?.message?.toLowerCase().includes( 'device lost' ) ||
-					err?.message?.toLowerCase().includes( 'gpudevice' )
-				) {
-					code = 'gpu_device_lost';
-				} else if (
-					// CompileError is a browser global — thrown when WASM compilation fails.
-					// eslint-disable-next-line no-undef
-					err instanceof CompileError ||
-					err?.message?.toLowerCase().includes( 'webassembly' )
-				) {
-					code = 'wasm_compile_failed';
-				} else if ( err?.data?.status === 429 ) {
-					code = 'rate_limited';
-				} else if (
-					err?.data?.status === 503 ||
-					err?.code === 'fetch_error'
-				) {
-					code = 'connection_failed';
-				} else if ( err?.data?.status === 504 ) {
-					code = 'timeout';
-				} else if (
-					err?.data?.status >= 400 &&
-					err?.data?.status < 600
-				) {
-					code = 'api_error';
-				}
-				setErrorDetail( err );
-
-				// Auto-retry once on llm_parse_failed — the model occasionally
-				// outputs malformed JSON on the first attempt. A second run with
-				// a fresh call usually succeeds. The autoRetryDoneRef guard
-				// prevents an infinite retry loop.
-				if (
-					code === 'llm_parse_failed' &&
-					! autoRetryDoneRef.current
-				) {
-					autoRetryDoneRef.current = true;
-					runGenerate(
-						currentItems,
-						activePersonalities,
-						currentStyleNote,
-						currentPostContext
-					);
-					return;
-				}
-
-				autoRetryDoneRef.current = false;
-				setErrorCode( code );
-				setRetryCount( ( c ) => c + 1 );
-				setScreen( 'error' );
-				speak(
-					__( 'Layout generation failed.', 'aldus' ),
-					'assertive'
-				);
-
-				// Only fire a global editor notice for genuinely unrecoverable errors.
-				if ( code === 'connection_failed' ) {
-					wpDispatch( 'core/notices' ).createErrorNotice(
-						__(
-							'Aldus: could not reach the server. Check your connection and try again.',
-							'aldus'
-						),
-						{ id: 'aldus-connection-error', isDismissible: true }
-					);
-				}
-			}
-		},
-		[ useMeta ] // eslint-disable-line react-hooks/exhaustive-deps
-	);
-
 	// Preview path — skips LLM entirely; uses personality.fullSequence directly.
 	const runPreview = useCallback(
 		async ( pack ) => {
@@ -3517,9 +3005,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 			setRerollingLabel( label );
 			// Increment per-personality reroll counter so variant picks change even
 			// when the token sequence is identical to the previous roll.
-			rerollCountsRef.current[ label ] =
-				( rerollCountsRef.current[ label ] ?? 0 ) + 1;
-			const rerollCount = rerollCountsRef.current[ label ];
+			const rerollCount = incrementRerollCount( label );
 			try {
 				let result;
 				if ( isPreview && lastPackRef.current ) {
@@ -3628,12 +3114,18 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 				setRerollingLabel( null );
 			}
 		},
-		[ isPreview, items, styleNote, useMeta, postId ] // eslint-disable-line react-hooks/exhaustive-deps
+		[ isPreview, items, styleNote, useMeta, postId, incrementRerollCount ] // eslint-disable-line react-hooks/exhaustive-deps
 	);
 
 	const generate = useCallback( () => {
-		autoRetryDoneRef.current = false; // reset auto-retry flag for each new user-triggered generation
-		setIsGenerating( true );
+		if ( ! hasWebGPU() ) {
+			setScreen( 'no-gpu' );
+			return;
+		}
+		resetRetry(); // restore the one-retry allowance for each user-triggered generation
+		setLayouts( [] );
+		setMsgIndex( 0 );
+		setMsgVisible( true );
 		const siteName = window.__aldusSite?.name ?? '';
 		const siteDesc = window.__aldusSite?.description ?? '';
 		const siteStr = siteName
@@ -3658,7 +3150,15 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 				),
 			];
 		}
-		runGenerate( items, orderedPersonalities, styleNote, context );
+		runGenerate( {
+			items,
+			styleNote,
+			postContext: context,
+			enabledLabels: orderedPersonalities,
+			useBindings: useMeta,
+			customStyles: customBlockStyles,
+			postId: postId || 0,
+		} );
 	}, [
 		items,
 		enabledPersonalities,
@@ -3666,7 +3166,11 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		styleNote,
 		postTitle,
 		postType,
+		useMeta,
+		customBlockStyles,
+		postId,
 		runGenerate,
+		resetRetry,
 	] );
 
 	const regenerate = generate;
@@ -3721,7 +3225,6 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 	const startOver = useCallback( () => {
 		setScreen( 'building' );
 		setLayouts( [] );
-		setIsGenerating( false );
 		setPinnedPersonality( null );
 		setIsPreview( false );
 		setBuildingMode( 'content' );
@@ -3762,10 +3265,9 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 			abortRef.current();
 			abortRef.current = null;
 		}
-		engineRef.current = null;
-		setIsGenerating( false );
+		destroyEngine();
 		setScreen( 'building' );
-	}, [] );
+	}, [ destroyEngine ] ); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const startMixing = useCallback( () => setScreen( 'mixing' ), [] );
 
@@ -6516,197 +6018,6 @@ const GalleryInput = forwardRef( function GalleryInput(
 // Generation steps breadcrumb — shown during downloading and loading screens
 // ---------------------------------------------------------------------------
 
-/**
- * Renders a minimal 3-dot step indicator showing where we are in the generation flow.
- *
- * @param {Object} props
- * @param {number} props.step 0 = downloading model, 1 = generating layouts, 2 = done.
- * @return {Element} The step indicator.
- */
-function GenerationSteps( { step } ) {
-	const steps = [
-		__( 'Model ready', 'aldus' ),
-		__( 'Generating', 'aldus' ),
-		__( 'Done', 'aldus' ),
-	];
-	return (
-		<div className="aldus-gen-steps" aria-hidden="true">
-			{ steps.map( ( label, i ) => (
-				<div
-					key={ i }
-					className={ [
-						'aldus-gen-step',
-						i < step ? 'is-done' : '',
-						i === step ? 'is-active' : '',
-					]
-						.filter( Boolean )
-						.join( ' ' ) }
-				>
-					<span className="aldus-gen-step-dot" />
-					<span className="aldus-gen-step-label">{ label }</span>
-				</div>
-			) ) }
-		</div>
-	);
-}
-
-// ---------------------------------------------------------------------------
-// Screen: Downloading model (Pass 4 — staged progress)
-// ---------------------------------------------------------------------------
-
-function DownloadingScreen( { progress, onAbort } ) {
-	const pct = Math.round( ( progress.progress ?? 0 ) * 100 );
-	const progressText = ( progress.text ?? '' ).toLowerCase();
-
-	// Detect stage from WebLLM progress text
-	let stage = 0;
-	if ( progressText.includes( 'finish' ) || pct >= 100 ) {
-		stage = 2;
-	} else if (
-		progressText.includes( 'fetch' ) ||
-		progressText.includes( 'loading' ) ||
-		pct > 5
-	) {
-		stage = 1;
-	}
-
-	const stages = [
-		__( 'Preparing', 'aldus' ),
-		__( 'Downloading', 'aldus' ),
-		__( 'Starting up', 'aldus' ),
-	];
-
-	return (
-		<div className="aldus-downloading" role="status" aria-live="polite">
-			<GenerationSteps step={ 0 } />
-			<span className="aldus-stamp aldus-stamp--hero" aria-hidden="true">
-				aldus
-			</span>
-			<div className="aldus-stages" aria-hidden="true">
-				{ stages.map( ( label, i ) => (
-					<div
-						key={ i }
-						className={ [
-							'aldus-stage',
-							i < stage ? 'is-done' : '',
-							i === stage ? 'is-active' : '',
-						]
-							.filter( Boolean )
-							.join( ' ' ) }
-					>
-						<span className="aldus-stage-dot" />
-						<span className="aldus-stage-label">{ label }</span>
-					</div>
-				) ) }
-			</div>
-			<div
-				className="aldus-progress-bar"
-				role="progressbar"
-				aria-valuenow={ pct }
-				aria-valuemin={ 0 }
-				aria-valuemax={ 100 }
-				aria-label={ sprintf(
-					/* translators: %d is download progress as a percentage, e.g. 42. */
-					__( 'Downloading AI model: %d%%', 'aldus' ),
-					pct
-				) }
-			>
-				<div
-					className="aldus-progress-fill"
-					style={ { width: `${ pct }%` } }
-				/>
-			</div>
-			{ pct < 100 && (
-				<p className="aldus-downloading-sub">
-					{ pct > 0
-						? sprintf(
-								/* translators: %d is a download percentage number, e.g. 42. */
-								__(
-									'%d%% · One-time download — lives in your browser forever after',
-									'aldus'
-								),
-								pct
-						  )
-						: __( 'Starting download…', 'aldus' ) }
-				</p>
-			) }
-			{ onAbort && (
-				<Button
-					__next40pxDefaultSize
-					variant="tertiary"
-					className="aldus-abort-btn"
-					onClick={ onAbort }
-				>
-					{ __( 'Cancel', 'aldus' ) }
-				</Button>
-			) }
-		</div>
-	);
-}
-
-// ---------------------------------------------------------------------------
-// Screen: Loading (Pass 4 — pulsing stamp + fade messages)
-// ---------------------------------------------------------------------------
-
-function LoadingScreen( { message, msgVisible, onAbort, genProgress } ) {
-	return (
-		<div className="aldus-loading" role="status" aria-live="polite">
-			<span
-				className="aldus-stamp aldus-stamp--hero aldus-stamp--pulse"
-				aria-hidden="true"
-			>
-				aldus
-			</span>
-			<p
-				className={ `aldus-loading-msg ${
-					msgVisible ? 'is-visible' : 'is-hidden'
-				}` }
-			>
-				{ message }
-			</p>
-			{ genProgress?.total > 0 && (
-				<div
-					className="aldus-gen-progress"
-					role="progressbar"
-					aria-valuenow={ genProgress.done }
-					aria-valuemin={ 0 }
-					aria-valuemax={ genProgress.total }
-					aria-label={ sprintf(
-						/* translators: 1: number of layouts built so far, 2: total number of layouts */
-						__( 'Building layouts: %1$d of %2$d', 'aldus' ),
-						genProgress.done,
-						genProgress.total
-					) }
-				>
-					<p>
-						{ sprintf(
-							/* translators: 1: number of layouts built so far, 2: total number of layouts */
-							__( 'Building %1$d of %2$d layouts…', 'aldus' ),
-							genProgress.done,
-							genProgress.total
-						) }
-						{ genProgress?.lastLabel && (
-							<span className="aldus-gen-progress-label">
-								{ genProgress.lastLabel }
-							</span>
-						) }
-					</p>
-				</div>
-			) }
-			{ onAbort && (
-				<Button
-					__next40pxDefaultSize
-					variant="tertiary"
-					className="aldus-abort-btn"
-					onClick={ onAbort }
-				>
-					{ __( 'Cancel', 'aldus' ) }
-				</Button>
-			) }
-		</div>
-	);
-}
-
 // ---------------------------------------------------------------------------
 // Screen: No WebGPU (Pass 9 — redesigned)
 // ---------------------------------------------------------------------------
@@ -7428,266 +6739,6 @@ function ConfirmingScreen( { label } ) {
 					<span>{ __( 'Dropping it in…', 'aldus' ) }</span>
 				</>
 			) }
-		</div>
-	);
-}
-
-// Renders a single alternative section button with a block preview thumbnail.
-function MixAltButton( { section, isSelected, onSwap } ) {
-	const previewBlocks = useMemo( () => {
-		try {
-			return parseBlocks( section.blocks ?? '' ).filter(
-				( b ) => b?.name
-			);
-		} catch ( e ) {
-			return [];
-		}
-	}, [ section.blocks ] );
-	return (
-		<button
-			className={ `aldus-mix-alt${ isSelected ? ' is-selected' : '' }` }
-			onClick={ onSwap }
-		>
-			<div className="aldus-mix-alt-preview" aria-hidden="true">
-				<BlockPreview blocks={ previewBlocks } viewportWidth={ 300 } />
-			</div>
-			<strong>{ section._label }</strong>
-		</button>
-	);
-}
-
-// ---------------------------------------------------------------------------
-// Screen: Mix sections — combine sections from different layouts
-// ---------------------------------------------------------------------------
-
-function MixingScreen( { layouts, onInsert, onBack } ) {
-	// Use the layout with the most sections as the starting mix.
-	const baseLayout = useMemo(
-		() =>
-			[ ...layouts ].sort(
-				( a, b ) =>
-					( b.sections?.length ?? 0 ) - ( a.sections?.length ?? 0 )
-			)[ 0 ],
-		[ layouts ]
-	);
-
-	const buildSlots = ( layout ) =>
-		( layout?.sections ?? [] ).map( ( s ) => ( {
-			...s,
-			_label: layout.label,
-		} ) );
-
-	const [ mixSlots, setMixSlots ] = useState( () =>
-		buildSlots( baseLayout )
-	);
-	const [ activeSlot, setActiveSlot ] = useState( 0 );
-
-	// Reset slots if layouts changes (e.g. a re-roll fires while on this screen).
-	const prevBaseRef = useRef( baseLayout );
-	useEffect( () => {
-		if ( baseLayout !== prevBaseRef.current ) {
-			prevBaseRef.current = baseLayout;
-			setMixSlots( buildSlots( baseLayout ) );
-			setActiveSlot( 0 );
-		}
-	}, [ baseLayout ] ); // eslint-disable-line react-hooks/exhaustive-deps
-
-	// Build a lookup of all sections per token type across all layouts.
-	const sectionsByToken = useMemo( () => {
-		const map = {};
-		for ( const layout of layouts ) {
-			for ( const section of layout.sections ?? [] ) {
-				if ( ! map[ section.token ] ) {
-					map[ section.token ] = [];
-				}
-				map[ section.token ].push( {
-					...section,
-					_label: layout.label,
-				} );
-			}
-		}
-		return map;
-	}, [ layouts ] );
-
-	const activeSection = mixSlots[ activeSlot ];
-	const alternatives = activeSection
-		? sectionsByToken[ activeSection.token ] ?? []
-		: [];
-
-	const swapSlot = ( slotIdx, section ) => {
-		setMixSlots( ( prev ) => {
-			const next = [ ...prev ];
-			next[ slotIdx ] = section;
-			return next;
-		} );
-	};
-
-	const handleInsert = () => {
-		const combined = mixSlots.map( ( s ) => s.blocks ).join( '\n' );
-		onInsert( combined );
-	};
-
-	return (
-		<div className="aldus-mixing">
-			<Flex
-				align="center"
-				justify="space-between"
-				className="aldus-mixing-header"
-			>
-				<div>
-					<span className="aldus-results-title">
-						{ __( 'Mix sections', 'aldus' ) }
-					</span>
-					<span className="aldus-results-count">
-						{ sprintf(
-							/* translators: 1: number of sections, 2: number of layouts */
-							__( '%1$d sections from %2$d layouts', 'aldus' ),
-							mixSlots.length,
-							new Set( mixSlots.map( ( s ) => s._label ) ).size
-						) }
-					</span>
-				</div>
-				<Flex gap={ 2 }>
-					<Button
-						variant="primary"
-						size="small"
-						onClick={ handleInsert }
-					>
-						{ __( 'Insert this mix', 'aldus' ) }
-					</Button>
-					<Button variant="tertiary" size="small" onClick={ onBack }>
-						{ __( 'Back to layouts', 'aldus' ) }
-					</Button>
-				</Flex>
-			</Flex>
-
-			{ /* Item 16: Recipe strip showing personality:token per slot */ }
-			<div
-				className="aldus-mix-recipe-strip"
-				aria-label={ __( 'Current mix recipe', 'aldus' ) }
-			>
-				{ mixSlots.map( ( section, i ) => (
-					<button
-						key={ i }
-						className={ `aldus-mix-recipe-pill${
-							activeSlot === i ? ' is-active' : ''
-						}` }
-						onClick={ () => setActiveSlot( i ) }
-					>
-						<span className="aldus-mix-recipe-source">
-							{ section._label }
-						</span>
-						<span className="aldus-mix-recipe-token">
-							{ tokenHumanLabel( section.token ) }
-						</span>
-					</button>
-				) ) }
-			</div>
-
-			{ /* Item 17: Alternatives grid below the recipe strip */ }
-			<div className="aldus-mixing-alts-section">
-				<p className="aldus-section-label">
-					{ activeSection
-						? sprintf(
-								/* translators: %s is a human-readable section name like "Dark hero" */
-								__(
-									'Replace "%s" with a version from…',
-									'aldus'
-								),
-								tokenHumanLabel( activeSection.token )
-						  )
-						: __( 'Select a section above to swap it', 'aldus' ) }
-				</p>
-				<div className="aldus-mix-alts-grid">
-					{ alternatives.map( ( section, i ) => {
-						const isSelected =
-							mixSlots[ activeSlot ]?._label === section._label;
-						return (
-							<MixAltButton
-								key={ i }
-								section={ section }
-								isSelected={ isSelected }
-								onSwap={ () => swapSlot( activeSlot, section ) }
-							/>
-						);
-					} ) }
-				</div>
-			</div>
-		</div>
-	);
-}
-
-// ---------------------------------------------------------------------------
-// Screen: Error (structured messages + retry hint)
-// ---------------------------------------------------------------------------
-
-function ErrorScreen( {
-	code,
-	retryCount,
-	errorDetail,
-	onRetry,
-	onRegenerate,
-} ) {
-	const msg = ERROR_MESSAGES[ code ] ?? ERROR_MESSAGES.parse_failed;
-	const canRegenerate = code !== 'connection_failed';
-
-	const technicalInfo = errorDetail
-		? JSON.stringify(
-				{
-					code,
-					message: errorDetail?.message,
-					status: errorDetail?.data?.status,
-					detail: errorDetail?.data,
-				},
-				null,
-				2
-		  )
-		: null;
-
-	return (
-		<div className="aldus-error">
-			<div className="aldus-error-body">
-				<strong className="aldus-error-headline">
-					{ msg.headline }
-				</strong>
-				<p className="aldus-error-detail">{ msg.detail }</p>
-				{ retryCount >= 2 && (
-					<p className="aldus-retry-hint">
-						{ __(
-							'Still stuck? Try the Quick start presets in the sidebar.',
-							'aldus'
-						) }
-					</p>
-				) }
-				{ technicalInfo && (
-					<details className="aldus-error-details">
-						<summary>
-							{ __( 'Technical details', 'aldus' ) }
-						</summary>
-						<pre className="aldus-error-details-pre">
-							{ technicalInfo }
-						</pre>
-					</details>
-				) }
-			</div>
-			<Flex gap={ 2 } className="aldus-error-actions">
-				{ canRegenerate && (
-					<Button
-						__next40pxDefaultSize
-						variant="primary"
-						onClick={ onRegenerate }
-					>
-						{ __( 'Go for it again', 'aldus' ) }
-					</Button>
-				) }
-				<Button
-					__next40pxDefaultSize
-					variant="secondary"
-					onClick={ onRetry }
-				>
-					{ __( 'Edit my content', 'aldus' ) }
-				</Button>
-			</Flex>
 		</div>
 	);
 }

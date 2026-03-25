@@ -291,7 +291,6 @@
 		"reusable": false,
 		"lock": false
 	},
-	"style": "file:./frontend.css",
 	"viewScriptModule": "file:./frontend-interactivity.js",
 	"editorScript": "file:./index.js",
 	"editorStyle": "file:./index.css"

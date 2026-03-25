@@ -18,6 +18,13 @@
 	}
 }
 
+// Frontend block styles may also be loaded inside the editor canvas/iframe.
+// Force the Aldus wrapper to remain visible in editor contexts.
+.editor-styles-wrapper .wp-block-aldus-layout-generator,
+.block-editor-block-list__block.wp-block-aldus-layout-generator {
+	display: block !important;
+}
+
 // ---------------------------------------------------------------------------
 // Pass 6: Screen fade-in
 // ---------------------------------------------------------------------------

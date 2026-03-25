@@ -30,6 +30,14 @@ $aldus_wrapper_mode = ! empty( $attributes['wrapperMode'] );
 $aldus_content      = trim( $content );
 
 if ( ! $aldus_wrapper_mode || '' === $aldus_content ) {
+	// Editor-only fallback: if the JS edit UI fails to mount for any reason,
+	// avoid rendering an entirely invisible block in the editor canvas.
+	if ( is_admin() ) {
+		return sprintf(
+			'<div class="wp-block-aldus-layout-generator"><p>%s</p></div>',
+			esc_html__( 'Aldus block inserted. If the full editor UI does not appear, refresh the editor.', 'aldus' )
+		);
+	}
 	return '';
 }
 
