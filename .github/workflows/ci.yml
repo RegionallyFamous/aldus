@@ -240,17 +240,23 @@ jobs:
             bin
             scripts
             docs
-          # plugin_review_phpcs  — we run PHPCS separately with stricter standards.
-          # i18n_usage           — JS translations are handled by our own i18n pipeline.
-          # application_detected — composer/npm/webpack files live in the source tree
-          #                        but are stripped by bin/release-zip.sh on distribution.
-          # hidden_files         — .gitignore, .editorconfig etc. are dev tooling only.
-          # github_directory     — .github/ is excluded from the release zip.
-          # unexpected_markdown_file — HOOKS.md is developer docs, excluded from zip.
+          # Check names to skip entirely:
+          #   plugin_review_phpcs — we run PHPCS separately with stricter standards.
+          #   i18n_usage          — JS translations are handled by our own i18n pipeline.
+          #   plugin_updater      — Update URI: header is intentional for GitHub
+          #                         distribution; not applicable for wordpress.org.
           exclude-checks: |
             plugin_review_phpcs
             i18n_usage
-            application_detected
+            plugin_updater
+          # Error/warning codes to suppress:
+          #   hidden_files / github_directory / unexpected_markdown_file —
+          #     dev-tree artefacts (.gitignore, .github/, HOOKS.md) that are
+          #     stripped by bin/release-zip.sh before distribution.
+          #   application_detected — composer/npm/webpack root files are dev-only,
+          #     excluded from the release zip.
+          ignore-codes: |
             hidden_files
             github_directory
             unexpected_markdown_file
+            application_detected
