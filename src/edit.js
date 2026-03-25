@@ -3795,6 +3795,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 					initialOpen={ false }
 				>
 					<ToggleControl
+						__nextHasNoMarginBottom
 						label={ __( 'Persistent wrapper', 'aldus' ) }
 						help={
 							wrapperMode
@@ -4011,6 +4012,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 					initialOpen={ false }
 				>
 					<ToggleControl
+						__nextHasNoMarginBottom
 						label={ __( 'Store items in post meta', 'aldus' ) }
 						help={ __(
 							'Saves your content items alongside the layout so you can update them later without re-running generation.',
@@ -5870,6 +5872,7 @@ function ContentItem( {
 				{ meta.input === 'textarea' && item.type !== 'list' && (
 					<TextareaControl
 						ref={ inputRef }
+						__nextHasNoMarginBottom
 						label={ meta.label }
 						hideLabelFromVision
 						value={ item.content }
@@ -6137,7 +6140,7 @@ const ImageInput = forwardRef( function ImageInput(
 	// when no image has been chosen yet.
 	const recentMedia = useSelect(
 		( select ) =>
-			select( 'core' ).getMediaItems( {
+			select( 'core' ).getEntityRecords( 'postType', 'attachment', {
 				per_page: 8,
 				orderby: 'date',
 				order: 'desc',
