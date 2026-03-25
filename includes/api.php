@@ -239,6 +239,14 @@ class Aldus_REST_Controller extends WP_REST_Controller {
 					return $out;
 				},
 			),
+			'section_label' => array(
+				'required'          => false,
+				'type'              => 'string',
+				'default'           => '',
+				'maxLength'         => 60,
+				'description'       => 'AI-generated 1–3 word label for the narrow column of columns:28-72 when no subheading is available.',
+				'sanitize_callback' => 'sanitize_text_field',
+			),
 		);
 	}
 
@@ -580,13 +588,14 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 
 	$use_bindings  = (bool) $request->get_param( 'use_bindings' );
 	$custom_styles = (array) $request->get_param( 'custom_styles' );
+	$section_label = sanitize_text_field( (string) $request->get_param( 'section_label' ) );
 
 	// Check assembly cache before doing any heavy rendering work.
 	// TTL: 5 minutes. Key includes all inputs that affect the output.
 	$cache_key = 'aldus_asm_' . substr(
 		md5(
 			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize
-			serialize( compact( 'tokens', 'items', 'personality', 'reroll_count', 'use_bindings', 'custom_styles' ) )
+			serialize( compact( 'tokens', 'items', 'personality', 'reroll_count', 'use_bindings', 'custom_styles', 'section_label' ) )
 		),
 		0,
 		20
@@ -609,6 +618,7 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 		'use_bindings'  => $use_bindings,
 		'custom_styles' => $custom_styles,
 		'post_id'       => $post_id,
+		'section_label' => $section_label,
 	);
 
 	$markup     = '';

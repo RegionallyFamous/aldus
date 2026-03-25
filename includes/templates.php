@@ -476,11 +476,12 @@ function aldus_render_block_token(
 ): string {
 	// Unpack precomputed theme values; fall back to live computation for
 	// backward compatibility when called without a context.
-	$theme        = $context['theme'] ?? array();
-	$style        = $context['style'] ?? array();
-	$rhythm       = $context['rhythm'] ?? array();
-	$manifest     = $context['manifest'] ?? array();
-	$use_bindings = (bool) ( $context['use_bindings'] ?? false );
+	$theme         = $context['theme'] ?? array();
+	$style         = $context['style'] ?? array();
+	$rhythm        = $context['rhythm'] ?? array();
+	$manifest      = $context['manifest'] ?? array();
+	$use_bindings  = (bool) ( $context['use_bindings'] ?? false );
+	$section_label = isset( $context['section_label'] ) ? (string) $context['section_label'] : '';
 
 	$dark     = $theme['dark'] ?? aldus_pick_dark( $palette );
 	$light    = $theme['light'] ?? aldus_pick_light( $palette );
@@ -613,7 +614,7 @@ function aldus_render_block_token(
 		case 'columns:28-72':
 			// Alternate label side deterministically per occurrence using position + seed.
 			$flip = (bool) aldus_variant_pick( $layout_seed, "28-72-flip:{$index}", 2 );
-			return aldus_block_columns_asymmetric( $dist, $flip, 'Sidebar Layout', $variant3 );
+			return aldus_block_columns_asymmetric( $dist, $flip, 'Sidebar Layout', $variant3, $section_label );
 
 		case 'columns:3-equal':
 			return aldus_block_columns_three( $dist, $accent, 'Three Columns', $light );
@@ -1163,7 +1164,7 @@ function aldus_block_cover(
  * @param string                    $name     Optional block name shown in the editor List View.
  * @param int                       $variant  0 = heading/dropcap (default), 1 = list/paragraph, 2 = heading+paragraph/image.
  */
-function aldus_block_columns_asymmetric( Aldus_Content_Distributor $dist, bool $flip = false, string $name = '', int $variant = 0 ): string {
+function aldus_block_columns_asymmetric( Aldus_Content_Distributor $dist, bool $flip = false, string $name = '', int $variant = 0, string $section_label = '' ): string {
 	$narrow_width = 28;
 	$wide_width   = 72;
 	$cols_attrs   = array( 'isStackedOnMobile' => true );
@@ -1235,6 +1236,18 @@ function aldus_block_columns_asymmetric( Aldus_Content_Distributor $dist, bool $
 				'innerContent' => array( '<h2 class="wp-block-heading">' . esc_html( $heading['content'] ) . '</h2>' ),
 			)
 		) . "\n" : '';
+		// Fallback: when no heading was available, fill the narrow label column
+		// with the AI-generated section label (1-3 words, rendered as h6).
+		if ( '' === $left_content && '' !== $section_label ) {
+			$left_content = serialize_block(
+				array(
+					'blockName'    => 'core/heading',
+					'attrs'        => array( 'level' => 6, 'fontSize' => 'small' ),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<h6 class="wp-block-heading">' . esc_html( $section_label ) . '</h6>' ),
+				)
+			) . "\n";
+		}
 		$right_content = $para ? serialize_block(
 			array(
 				'blockName'    => 'core/paragraph',

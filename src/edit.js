@@ -24,6 +24,7 @@ import {
 	inferLayoutDescription,
 	recommendPersonalities,
 	analyzeContentHints,
+	inferSectionLabel,
 } from './lib/intelligence.js';
 import { robustParse } from './lib/robustParse.js';
 import { batchAssemble } from './lib/batchAssemble.js';
@@ -3201,29 +3202,54 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 						: enforceAnchors( personalities[ i ], [] )
 				);
 
-				// Post-generation intelligence: coverage scoring and layout
-				// descriptions per personality, both in parallel.
-				const [ coverageSettled, descriptionSettled ] =
-					await Promise.all( [
-						Promise.allSettled(
-							tokenResults.map( ( tokens ) =>
-								scoreCoverage(
-									engineRef.current,
-									manifest,
-									tokens
-								)
+			// Post-generation intelligence: coverage scoring, layout
+			// descriptions, and Folio section labels — all in parallel.
+			const [ coverageSettled, descriptionSettled, labelSettled ] =
+				await Promise.all( [
+					Promise.allSettled(
+						tokenResults.map( ( tokens ) =>
+							scoreCoverage(
+								engineRef.current,
+								manifest,
+								tokens
 							)
-						),
-						Promise.allSettled(
-							tokenResults.map( ( tokens, i ) =>
-								inferLayoutDescription(
-									engineRef.current,
-									personalities[ i ],
-									tokens
-								)
+						)
+					),
+					Promise.allSettled(
+						tokenResults.map( ( tokens, i ) =>
+							inferLayoutDescription(
+								engineRef.current,
+								personalities[ i ],
+								tokens
 							)
-						),
-					] );
+						)
+					),
+					// Section label for columns:28-72 (Folio's narrow label column).
+					// Only fired when that token is present and a paragraph exists;
+					// resolves immediately with '' otherwise.
+					Promise.allSettled(
+						tokenResults.map( ( tokens ) => {
+							if ( ! tokens.includes( 'columns:28-72' ) ) {
+								return Promise.resolve( { label: '' } );
+							}
+							const firstPara = currentItems.find(
+								( it ) => it.type === 'paragraph'
+							);
+							if ( ! firstPara ) {
+								return Promise.resolve( { label: '' } );
+							}
+							const preview = ( firstPara.content ?? '' )
+								.trim()
+								.split( /\s+/ )
+								.slice( 0, 10 )
+								.join( ' ' );
+							return inferSectionLabel(
+								engineRef.current,
+								preview
+							);
+						} )
+					),
+				] );
 
 				setGenProgress( {
 					done: 0,
@@ -3231,17 +3257,21 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 					lastLabel: null,
 				} );
 
-				const assembleJobs = tokenResults.map( ( tokens, i ) => ( {
-					label: personalities[ i ].name,
-					data: {
-						items: currentItems,
-						personality: personalities[ i ].name,
-						tokens,
-						use_bindings: useMeta,
-						custom_styles: customBlockStyles,
-						post_id: postId || 0,
-					},
-				} ) );
+			const assembleJobs = tokenResults.map( ( tokens, i ) => ( {
+				label: personalities[ i ].name,
+				data: {
+					items: currentItems,
+					personality: personalities[ i ].name,
+					tokens,
+					use_bindings: useMeta,
+					custom_styles: customBlockStyles,
+					post_id: postId || 0,
+					section_label:
+						labelSettled[ i ]?.status === 'fulfilled'
+							? ( labelSettled[ i ].value?.label ?? '' )
+							: '',
+				},
+			} ) );
 
 				const assembleResponses = await batchAssemble(
 					assembleJobs,

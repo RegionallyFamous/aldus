@@ -239,7 +239,37 @@ Respond with valid JSON only: {"recommended": ["Name1", "Name2", "Name3"]}`;
 }
 
 // ---------------------------------------------------------------------------
-// 5. analyzeContentHints
+// 5. inferSectionLabel
+// ---------------------------------------------------------------------------
+
+/**
+ * Generates a short 1–3 word section label for the narrow column of a
+ * `columns:28-72` layout when no subheading or headline item is available.
+ *
+ * The prompt is grounded in a concrete paragraph preview (first 10 words),
+ * so the model is doing pattern narration rather than open-ended generation —
+ * well within 360M capability.
+ *
+ * @param {Object} engine           WebLLM engine instance.
+ * @param {string} paragraphPreview First ~10 words of the paragraph to label.
+ * @return {Promise<{label: string}>}  label is '' on failure.
+ */
+export async function inferSectionLabel( engine, paragraphPreview ) {
+	const prompt = `Magazine layout: the next section opens with this text:
+"${ paragraphPreview }"
+Write a 1-3 word section label (e.g. "Our Process", "The Approach", "Origin Story").
+Respond with valid JSON only: {"label": "..."}`;
+
+	const result = await runInference( engine, prompt, 0.6, 16 );
+	const label =
+		typeof result.label === 'string' && result.label.trim().length >= 2
+			? result.label.trim().slice( 0, 40 )
+			: '';
+	return { label };
+}
+
+// ---------------------------------------------------------------------------
+// 6. analyzeContentHints
 // ---------------------------------------------------------------------------
 
 /**
