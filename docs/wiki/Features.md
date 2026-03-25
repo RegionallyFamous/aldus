@@ -184,3 +184,112 @@ Both options appear below a divider in the empty state, beneath the content type
 ## Post context
 
 When you generate layouts from inside a post, Aldus can read the post title, post type, and excerpt to improve the model's layout decisions. This is done automatically — no action needed. The post context is part of the manifest that shapes the token sequence without exposing your actual content text to any external server.
+
+---
+
+## Transform to Aldus
+
+If you already have blocks on your page — a heading, a paragraph, an image — you can convert them directly into Aldus content items without starting over.
+
+**How to use it:**
+1. Select two or more blocks in the editor (shift-click or drag-select)
+2. Open the block toolbar and click **Transform** → **Aldus**
+3. The selected blocks are converted into Aldus content items and generation begins automatically
+
+Aldus extracts what it can from each block: text from headings and paragraphs becomes Headline, Subheading, or Paragraph items; image URLs become Image items; list content becomes a List item; quote text becomes a Quote item; and so on.
+
+After the transform, generation starts automatically after a 300 ms delay — you go straight from "I have blocks" to seeing sixteen layouts without any extra clicks.
+
+---
+
+## Content-Only Structure Lock
+
+After you pick a layout and insert it, Aldus automatically locks the structural container blocks — Groups, Columns, Covers, and Media-Text panels — to **content-only editing mode**. This means you can freely edit all text, swap images, and change links without accidentally dragging, deleting, or rearranging the layout structure.
+
+A snackbar notice appears at the bottom of the editor with two actions:
+
+| Action | What it does |
+|---|---|
+| **Unlock structure** | Removes the lock and restores full editing on all containers |
+| **Undo** | Reverts the entire insertion via the editor's undo stack |
+
+The lock applies only to container blocks — individual paragraph, heading, image, and button blocks inside them are always fully editable.
+
+---
+
+## Persistent Wrapper Mode
+
+By default, Aldus replaces itself with plain WordPress blocks after you pick a layout. In **Persistent Wrapper** mode, the blocks are inserted *inside* the Aldus block instead — it stays in the editor tree as a named container, and you can redesign or swap personalities at any time without losing your content.
+
+**How to enable it:**
+
+Open the **Insertion mode** panel in the block sidebar (Inspector Controls) and toggle **Persistent wrapper** on before generating.
+
+**After insertion in wrapper mode:**
+
+The editor shows the generated blocks inline and editable. A toolbar appears on the Aldus block with two buttons:
+
+| Button | What it does |
+|---|---|
+| **Redesign with Aldus** | Returns to the results screen so you can pick a different personality |
+| **Detach from Aldus** | Removes the Aldus wrapper and leaves the blocks in place as plain blocks |
+
+On the front end, the wrapper renders as `<div class="aldus-layout" data-personality="[name]">` — a transparent container that carries no visual weight (`display: contents`).
+
+---
+
+## Block Style Variations
+
+Every personality you see in Aldus is also available as a **named block style** for core blocks site-wide. Select any Cover, Group, Pullquote, or Columns block, open the **Styles** panel (the paintbrush icon), and you'll find six Aldus personality styles to apply:
+
+| Style | Visual character |
+|---|---|
+| Aldus: Dispatch | High-contrast dark background, bold weight headings, urgent press energy |
+| Aldus: Folio | Left border accent, editorial asymmetry, generous whitespace |
+| Aldus: Nocturne | Near-black background, muted light text, cinematic atmosphere |
+| Aldus: Codex | Restrained max-width container, light heading weight, typographic calm |
+| Aldus: Solstice | Warm off-white surface, clean radius, luminous minimal feel |
+| Aldus: Dusk | Deep gradient background (navy to teal), atmospheric dark palette |
+
+These styles are registered globally — they work on any Cover or Group block on your site, whether it was created by Aldus or manually.
+
+---
+
+## Layout Intelligence
+
+Starting in 1.10.0, Aldus runs additional lightweight inference passes before and after the main token generation to provide smarter context.
+
+### Style detection
+
+Before generating, Aldus reads your content manifest and infers a suggested style direction — for example "text-heavy editorial" or "minimal product". This auto-style is prepended to your Style Notes and influences the token sequence. A small hint line appears at the top of the results screen showing what Aldus detected.
+
+### Personality recommendations
+
+Based on your content mix, Aldus identifies the three personalities most likely to produce a complete layout. These are marked with a **Recommended** badge in the Personalities panel sidebar.
+
+### Content coverage badges
+
+After generation, each personality card shows an amber badge if any of your content items will not appear in that layout — for example "1 item unused". This tells you before insertion which layouts make full use of your content.
+
+### Layout narration
+
+Each personality card shows a dynamic description of the actual layout that was generated for your content, rather than a static tagline. The description reflects the real token sequence — "Your headline opens as a dark hero, followed by a full-bleed image, then a pullquote surfaces your quote."
+
+### Content hints
+
+While the model is loading, Aldus may display dismissible hint pills if it detects content that is likely to cause problems — for example a headline that is too long for cover sections, or no image when image-dependent layouts would benefit from one. These are advisory; you can dismiss them and generate anyway.
+
+---
+
+## Front-End Animations
+
+Layouts generated by personalities that use the `parallax`, `reveal`, or `countup` interactivity styles include subtle front-end animations powered by the WordPress Interactivity API (WP 6.5+). No JavaScript library is required — the animations use a small native Script Module loaded only on pages containing Aldus-generated blocks.
+
+| Effect | Where it appears | Personalities |
+|---|---|---|
+| Parallax | Cover block backgrounds shift at 15% of scroll speed | Dispatch, Nocturne, Dusk, Manifesto |
+| Reveal on scroll | Full-width sections fade in and translate up as they enter the viewport | Most personalities |
+| Count-up | Stat numbers in `row:stats` sections animate from 0 to their final value | Tribune |
+| Accordion | Details/accordion blocks animate open and close with a smooth max-height transition | All personalities |
+
+Animations respect the user's `prefers-reduced-motion` preference — all transitions are disabled for users who have requested reduced motion in their operating system settings.

@@ -141,9 +141,12 @@ If you're on the latest version and still seeing these warnings, [open an issue]
 
 ### Aldus replaced itself with blocks — how do I get back to the Aldus interface?
 
-You can't undo the insertion via Aldus itself, but you can undo it via the editor's standard Undo (`⌘Z` / `Ctrl+Z`). This restores the Aldus block with your content intact so you can choose a different layout.
+In **classic mode** (the default), Aldus removes itself after insertion. You have a few options to get back:
 
-Alternatively, delete the inserted blocks and add a new Aldus block. If you saved a session before inserting, reload it from the Sessions panel.
+- **Undo** (`⌘Z` / `Ctrl+Z`) restores the Aldus block with your content intact so you can choose a different layout.
+- Delete the inserted blocks and add a new Aldus block. If you saved a session before inserting, reload it from the Sessions panel.
+
+In **Persistent Wrapper mode** you never lose access — the Aldus block stays in the tree and the toolbar always shows **Redesign** and **Detach** buttons. To opt in, toggle **Persistent wrapper** in the **Insertion mode** Inspector panel before you generate. See [Features → Persistent Wrapper Mode](Features#persistent-wrapper-mode).
 
 ### Can I use Aldus multiple times on the same page?
 

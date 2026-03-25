@@ -85,7 +85,13 @@ The results screen shows sixteen cards, one per personality. Each card displays:
 
 ### Step 4: Edit as usual
 
-Aldus replaces itself with standard WordPress blocks. Everything it inserts is fully editable — just like blocks you placed yourself. You can rearrange sections, change copy, swap images, adjust colors, and do anything else the block editor supports.
+Aldus replaces itself with standard WordPress blocks. Everything it inserts is fully editable — just like blocks you placed yourself.
+
+By default, Aldus automatically locks the structural container blocks (Groups, Columns, Covers) to **content-only editing mode** after insertion. This means you can edit all text, images, and links freely, but can't accidentally drag or delete a layout container. A snackbar at the bottom of the editor lets you **Unlock structure** if you want full access, or **Undo** the entire insertion.
+
+**Want to keep the Aldus block around?** Enable **Persistent wrapper** in the **Insertion mode** panel in the block sidebar before generating. In this mode, the generated blocks become inner blocks inside the Aldus container — and a toolbar lets you **Redesign** (pick a new layout any time) or **Detach** (remove the Aldus wrapper and leave plain blocks). See [Features → Persistent Wrapper Mode](Features#persistent-wrapper-mode) for details.
+
+**Already have blocks?** Select any two or more blocks, click **Transform** in the block toolbar, and choose **Aldus**. Your existing blocks are imported as content items and generation starts automatically. See [Features → Transform to Aldus](Features#transform-to-aldus).
 
 ---
 
