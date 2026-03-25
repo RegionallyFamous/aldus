@@ -4,6 +4,9 @@ import {
 	registerBlockVariation,
 } from '@wordpress/blocks';
 import { __ } from '@wordpress/i18n';
+import { useSelect, useDispatch } from '@wordpress/data';
+import { registerPlugin } from '@wordpress/plugins';
+import { PluginBlockSettingsMenuItem } from '@wordpress/editor';
 import metadata from './block.json';
 import Edit from './edit';
 import save from './save';
@@ -570,3 +573,80 @@ registerBlockVariation( metadata.name, {
 		enabledPersonalities: [ 'Ledger', 'Tribune', 'Broadsheet', 'Solstice' ],
 	},
 } );
+
+// ---------------------------------------------------------------------------
+// "Redesign with Aldus" — block settings menu item
+//
+// Appears in the Options (⋮) menu of any compatible block when that block can
+// be meaningfully converted into Aldus content items. Selecting it replaces
+// the block(s) with a new Aldus block pre-loaded with the extracted items.
+// ---------------------------------------------------------------------------
+
+/** Block types whose content can be extracted into Aldus items. */
+const REDESIGNABLE_BLOCKS = new Set( [
+	'core/heading',
+	'core/paragraph',
+	'core/image',
+	'core/quote',
+	'core/list',
+	'core/buttons',
+	'core/embed',
+	'core/table',
+	'core/gallery',
+	'core/code',
+	'core/preformatted',
+	'core/verse',
+	'core/details',
+	'core/group',
+	'core/columns',
+] );
+
+function RedesignWithAldusMenuItem() {
+	const { selectedBlocks } = useSelect( ( select ) => {
+		const { getSelectedBlock, getMultiSelectedBlocks } =
+			select( 'core/block-editor' );
+		const multi = getMultiSelectedBlocks();
+		const single = getSelectedBlock();
+		let blocks = multi;
+		if ( multi.length === 0 ) {
+			blocks = single ? [ single ] : [];
+		}
+		return { selectedBlocks: blocks };
+	}, [] );
+
+	const { replaceBlocks } = useDispatch( 'core/block-editor' );
+
+	// Only show the menu item for compatible, non-Aldus blocks.
+	const eligible = selectedBlocks.filter(
+		( b ) => b && REDESIGNABLE_BLOCKS.has( b.name )
+	);
+	if (
+		eligible.length === 0 ||
+		selectedBlocks.some( ( b ) => b?.name === metadata.name )
+	) {
+		return null;
+	}
+
+	function handleRedesign() {
+		const items = eligible
+			.flatMap( ( b ) => extractItemFromBlock( b ) )
+			.filter( Boolean );
+		const aldusBlock = createBlock( metadata.name, {
+			savedItems: items,
+		} );
+		replaceBlocks(
+			eligible.map( ( b ) => b.clientId ),
+			[ aldusBlock ]
+		);
+	}
+
+	return (
+		<PluginBlockSettingsMenuItem
+			label={ __( 'Redesign with Aldus', 'aldus' ) }
+			icon="art"
+			onClick={ handleRedesign }
+		/>
+	);
+}
+
+registerPlugin( 'aldus-redesign', { render: RedesignWithAldusMenuItem } );

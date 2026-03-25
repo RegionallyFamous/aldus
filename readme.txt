@@ -3,7 +3,7 @@ Contributors: regionallyfamous
 Tags: blocks, gutenberg, layout, design, composer
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 1.8.0
+Stable tag: 1.9.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -127,6 +127,12 @@ An optional free-text field on the building screen that steers the layout model 
 
 == Changelog ==
 
+= 1.9.0 =
+* New "Redesign with Aldus" option in the block Options menu: select any heading, paragraph, image, or similar block and convert it straight into an Aldus layout without starting from scratch.
+* A new ✦ column on the Posts and Pages list screens shows at a glance which posts use the Aldus block — useful when you're managing a large site.
+* Added `npm run release:zip` to package a clean distribution zip ready for WordPress.org or manual installs.
+* Block inserter search now surfaces Aldus for terms like "ai", "generate", "builder", and "template".
+
 = 1.8.0 =
 * Keyboard and screen-reader users now land on the first inserted block immediately after choosing a layout — no need to hunt for where focus went.
 * The plugin now works correctly in Windows High Contrast Mode: cards, buttons, tooltips, and error panels all use system color keywords so nothing disappears against the background.
@@ -171,7 +177,7 @@ An optional free-text field on the building screen that steers the layout model 
 
 == Upgrade Notice ==
 
-= 1.8.0 =
+= 1.9.0 =
 Automatic retry on LLM parse failures reduces error rates. Assembled layout caching for repeat requests.
 
 = 1.6.0 =

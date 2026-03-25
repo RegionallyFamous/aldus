@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Plugin Name:       Aldus — Block Compositor
  * Plugin URI:        https://github.com/RegionallyFamous/aldus
  * Description:       You write it. Aldus designs it. Sixteen layout styles for your content — pick the one that fits, and it becomes real WordPress blocks.
- * Version:           1.8.0
+ * Version:           1.9.0
  * Requires at least: 6.4
  * Requires PHP:      8.0
  * Author:            Regionally Famous
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'ALDUS_VERSION', '1.8.0' );
+define( 'ALDUS_VERSION', '1.9.0' );
 define( 'ALDUS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ALDUS_URL', plugin_dir_url( __FILE__ ) );
 
@@ -101,6 +101,12 @@ function aldus_init(): void {
 
 	// Declare privacy policy content for the Tools > Privacy screen.
 	add_action( 'admin_init', 'aldus_add_privacy_policy_content' );
+
+	// Posts / pages list column showing Aldus usage.
+	add_filter( 'manage_posts_columns', 'aldus_add_posts_column' );
+	add_filter( 'manage_pages_columns', 'aldus_add_posts_column' );
+	add_action( 'manage_posts_custom_column', 'aldus_render_posts_column', 10, 2 );
+	add_action( 'manage_pages_custom_column', 'aldus_render_posts_column', 10, 2 );
 }
 
 /**
@@ -318,6 +324,38 @@ function aldus_flush_theme_cache(): void {
 	wp_cache_delete( 'aldus_palette_' . ALDUS_VERSION, 'aldus' );
 	wp_cache_delete( 'aldus_font_sizes_' . ALDUS_VERSION, 'aldus' );
 	wp_cache_delete( 'aldus_gradients_' . ALDUS_VERSION, 'aldus' );
+}
+
+/**
+ * Adds an "Aldus" indicator column to the Posts and Pages admin list screens.
+ *
+ * @param array<string, string> $columns Existing columns.
+ * @return array<string, string>
+ */
+function aldus_add_posts_column( array $columns ): array {
+	$columns['aldus_used'] = '<span title="' . esc_attr__( 'Uses Aldus', 'aldus' ) . '" aria-label="' . esc_attr__( 'Uses Aldus', 'aldus' ) . '">✦</span>';
+	return $columns;
+}
+
+/**
+ * Renders the Aldus column cell for a given post.
+ *
+ * @param string $column  The current column ID.
+ * @param int    $post_id The post ID for this row.
+ */
+function aldus_render_posts_column( string $column, int $post_id ): void {
+	if ( 'aldus_used' !== $column ) {
+		return;
+	}
+	$post = get_post( $post_id );
+	if ( ! $post instanceof \WP_Post ) {
+		return;
+	}
+	if ( has_block( 'aldus/layout-generator', $post ) ) {
+		echo '<span style="color:#0073aa;font-size:16px;" aria-label="' . esc_attr__( 'Uses Aldus', 'aldus' ) . '" title="' . esc_attr__( 'This post uses the Aldus block.', 'aldus' ) . '">✦</span>';
+	} else {
+		echo '<span style="color:#ccc;" aria-hidden="true">—</span>';
+	}
 }
 
 /**

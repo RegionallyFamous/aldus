@@ -1,6 +1,6 @@
 {
 	"name": "aldus",
-	"version": "1.8.0",
+	"version": "1.9.0",
 	"description": "AI Block Compositor for WordPress",
 	"scripts": {
 		"build": "wp-scripts build",
@@ -40,6 +40,7 @@
 		"release:patch": "node scripts/release.js --bump patch",
 		"release:minor": "node scripts/release.js --bump minor",
 		"release:major": "node scripts/release.js --bump major",
+		"release:zip": "bash bin/release-zip.sh",
 
 		"i18n:pot": "wp i18n make-pot . languages/aldus.pot --exclude=node_modules,build,vendor,tests",
 		"i18n:json": "wp-scripts i18n-make-json languages --no-purge"
@@ -49,7 +50,7 @@
 		"@wordpress/e2e-test-utils-playwright": "^1.42.0",
 		"@wordpress/env": "^11.2.0",
 		"@wordpress/icons": "^12.0.0",
-		"@wordpress/scripts": "^31.8.0"
+		"@wordpress/scripts": "^31.9.0"
 	},
 	"dependencies": {
 		"@mlc-ai/web-llm": "^0.2.82"
@@ -63,11 +64,13 @@
 		"@wordpress/compose": "*",
 		"@wordpress/data": "*",
 		"@wordpress/date": "*",
+		"@wordpress/editor": "*",
 		"@wordpress/element": "*",
 		"@wordpress/hooks": "*",
 		"@wordpress/i18n": "*",
 		"@wordpress/keyboard-shortcuts": "*",
 		"@wordpress/notices": "*",
+		"@wordpress/plugins": "*",
 		"@wordpress/preferences": "*"
 	}
 }

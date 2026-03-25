@@ -13,7 +13,14 @@
 		"aldus",
 		"design",
 		"arrange",
-		"compositor"
+		"compositor",
+		"ai",
+		"generate",
+		"content",
+		"builder",
+		"template",
+		"redesign",
+		"style"
 	],
 	"textdomain": "aldus",
 	"usesContext": [ "postId", "postType" ],
