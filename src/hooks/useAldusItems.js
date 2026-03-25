@@ -26,25 +26,9 @@
 import { useState, useEffect, useRef, useCallback } from '@wordpress/element';
 
 // ---------------------------------------------------------------------------
-// Helpers (duplicated from module scope in edit.js; kept local so the hook
-// is self-contained and can be unit-tested without the full edit.js bundle)
-// ---------------------------------------------------------------------------
+import { uid } from '../lib/uid.js';
 
-const uid = () => {
-	if (
-		typeof crypto !== 'undefined' &&
-		typeof crypto.randomUUID === 'function'
-	) {
-		return crypto.randomUUID();
-	}
-	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace( /[xy]/g, ( c ) => {
-		const r = Math.floor( Math.random() * 16 );
-		const v = c === 'x' ? r : ( r % 4 ) + 8;
-		return v.toString( 16 );
-	} );
-};
-
-const VALID_ITEM_TYPES = new Set( [
+export const VALID_ITEM_TYPES = new Set( [
 	'headline',
 	'subheading',
 	'paragraph',
@@ -66,7 +50,7 @@ const VALID_ITEM_TYPES = new Set( [
  * @param {unknown} raw Value from savedItems attribute or a stored session.
  * @return {Array} Validated, normalised item array.
  */
-function validateSavedItems( raw ) {
+export function validateSavedItems( raw ) {
 	if ( ! Array.isArray( raw ) ) {
 		return [];
 	}

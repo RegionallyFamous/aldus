@@ -1242,7 +1242,10 @@ function aldus_block_columns_asymmetric( Aldus_Content_Distributor $dist, bool $
 			$left_content = serialize_block(
 				array(
 					'blockName'    => 'core/heading',
-					'attrs'        => array( 'level' => 6, 'fontSize' => 'small' ),
+					'attrs'        => array(
+						'level'    => 6,
+						'fontSize' => 'small',
+					),
 					'innerBlocks'  => array(),
 					'innerContent' => array( '<h6 class="wp-block-heading">' . esc_html( $section_label ) . '</h6>' ),
 				)
