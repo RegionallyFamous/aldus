@@ -26,12 +26,6 @@ Before you install Aldus, make sure you have:
 3. Choose the zip file and click **Install Now**
 4. Click **Activate Plugin**
 
-### Via WP-CLI
-
-```bash
-wp plugin install aldus --activate
-```
-
 ### Manual upload
 
 Upload the unzipped `aldus` folder to `/wp-content/plugins/aldus/` via FTP or SFTP, then activate from **Plugins → Installed Plugins**.
@@ -90,7 +84,7 @@ Aldus replaces itself with standard WordPress blocks. Everything it inserts is f
 If you just want to see what Aldus looks like, use a **Sample Pack**:
 
 1. Click the **Try a sample** link in the empty block state, or open the **Pack Previews** panel in the block sidebar
-2. Choose one of the nine themed packs (Roast, Meridian, Hearth, Plume, Grove, Forge, Bazaar, Rally, Slim)
+2. Choose one of the seven themed packs (Roast, Meridian, Hearth, Plume, Grove, Loot, Signal)
 3. Aldus fills in sample content for that industry and shows all personalities instantly — no model download needed
 
 See [Sample Packs](Sample-Packs) for details on each pack.

@@ -134,10 +134,10 @@ Classic themes with limited block support will still produce valid, functional l
 
 This warning means WordPress is having trouble validating a block that Aldus inserted. It typically happens because:
 
-1. **You're on an older version of the plugin.** Versions before 1.9.2 had known block validation issues that were fixed in 1.9.2. Update the plugin.
+1. **You're on an older version of the plugin.** Make sure you're running the latest release from the [Releases page](../../releases).
 2. **Your theme's block markup expectations differ from defaults.** This is rare. You can use the **Attempt Block Recovery** option that WordPress offers in the validation warning to let the editor reparse the blocks.
 
-If you're on 1.9.2 or later and still seeing these warnings, [open an issue](../../issues) with details about your WordPress version and theme.
+If you're on the latest version and still seeing these warnings, [open an issue](../../issues) with details about your WordPress version and theme.
 
 ### Aldus replaced itself with blocks — how do I get back to the Aldus interface?
 

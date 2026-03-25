@@ -17,7 +17,7 @@ Each pack is themed around a specific industry or content type. When you load a 
 
 ---
 
-## The nine packs
+## The seven packs
 
 ### Roast — Specialty Coffee Brand
 
@@ -59,35 +59,19 @@ Earthy, seasonal content for a sustainable food brand or farm-to-table restauran
 
 ---
 
-### Forge — Creative Agency & Portfolio
+### Loot — Indie Board Game & TTRPG Shop
 
-Bold, confident content for a creative agency or design studio. Copy is direct and outcome-focused. Palette tones are near-black, charcoal, and sharp white.
+Enthusiastic, nerdy, and deeply specific content for a hobby game store. Copy leans into community, opinion, and love of the hobby. Palette tones are deep purple, warm violet, and vivid orange-red.
 
-**Ideal for exploring:** Dispatch, Manifesto, Dusk, Broadside
-
----
-
-### Bazaar — E-Commerce Product Launch
-
-Vibrant, benefit-driven, conversion-first content for an e-commerce product launch. Copy emphasizes features, benefits, and urgency. Palette tones are deep purple, vivid magenta, and bright yellow.
-
-**Ideal for exploring:** Broadside, Overture, Tribune, Dispatch
+**Ideal for exploring:** Tribune, Broadsheet, Manifesto, Dispatch
 
 ---
 
-### Rally — Event & Conference
+### Signal — Privacy-First Email App
 
-Energetic, inspiring, action-oriented content for an event or conference. Copy motivates attendance and participation. Palette tones are deep navy and vibrant orange-red.
+Dry, principled, sardonic content for a privacy-focused software product. Copy is confident and pointed about what the product doesn't do. Palette tones are near-black, dark charcoal, and sharp green.
 
-**Ideal for exploring:** Manifesto, Broadsheet, Tribune, Dispatch
-
----
-
-### Slim — Minimal Content Showcase
-
-A deliberately sparse pack with only six content items — a headline, a subheading, a paragraph, a quote, a button, and an image. Shows how each personality handles minimal input and which ones are designed to work with lean content.
-
-**Ideal for exploring:** Codex, Solstice, Nocturne, Dispatch
+**Ideal for exploring:** Codex, Solstice, Manifesto, Broadside
 
 ---
 
@@ -110,5 +94,5 @@ The multiple variants per type are important — when a personality uses two med
 ## Tips for using packs
 
 - **Compare personalities side by side** using the same pack. The differences become clear when the content is held constant.
-- **Try Slim last.** After seeing the richness you get from content-heavy packs like Bazaar or Rally, running Slim shows you the minimum viable content for each personality.
+- **Try Signal last.** Its lean, minimal content shows you exactly how each personality handles a sparse input — which ones thrive and which ones want more to work with.
 - **Switch packs without regenerating.** Selecting a different pack immediately updates all sixteen preview cards with the new pack's content.

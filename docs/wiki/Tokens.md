@@ -279,15 +279,15 @@ A `core/separator` block. A horizontal rule that creates a visual pause between 
 
 ### `spacer:small`
 
-A `core/spacer` with a small height (24px). Creates minimal breathing room.
+A `core/spacer` with a small height (32px). Creates minimal breathing room.
 
 ### `spacer:large`
 
-A `core/spacer` with a larger height (60px). Creates deliberate section spacing.
+A `core/spacer` with a larger height (64px). Creates deliberate section spacing.
 
 ### `spacer:xlarge`
 
-A `core/spacer` with extra-large height (120px). Creates dramatic section spacing for cinematic-feeling layouts.
+A `core/spacer` with extra-large height (96px). Creates dramatic section spacing for cinematic-feeling layouts.
 
 ### `buttons:cta`
 
@@ -340,7 +340,7 @@ A `core/gallery` block with three columns. The defining section of Mosaic and Pr
 After generation, each layout card shows a **token strip** below the personality name — a compressed visual recipe of the proposed sequence, for example:
 
 ```
-cover:dark  →  pullquote  →  para:dropcap  →  image  →  group:accent  →  cta
+cover:dark  →  pullquote:full-solid  →  paragraph:dropcap  →  image:full  →  group:accent-full  →  buttons:cta
 ```
 
 This lets you compare layouts at a glance before clicking into any card.

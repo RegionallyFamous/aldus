@@ -85,10 +85,10 @@ Instead of building your content list from scratch, you can load a preset that f
 
 | Preset | What it includes |
 |---|---|
-| Blog Post | Headline, 2 Paragraphs, Image |
-| Landing Page | Headline, Subheading, 2 Paragraphs, Image, Button |
-| Feature Story | Headline, 2 Paragraphs, Quote, Image |
-| Product Pitch | Headline, Subheading, Paragraph, List, Image, Button |
+| Blog post | Headline, 2 Paragraphs, Image |
+| Landing page | Headline, Subheading, Button |
+| Feature story | Headline, Quote, 2 Paragraphs, Image |
+| Product pitch | Headline, List, Button |
 
 To use a preset, open the **Quick Start** panel in the block sidebar and click the preset name. Aldus populates the content input with the preset's content types â€” you then fill in your actual text, images, and links.
 
@@ -100,7 +100,7 @@ Pack Previews let you see all sixteen personalities with themed sample content â
 
 **How to use it:**
 1. Open the **Pack Previews** panel in the block sidebar (or click **Try a sample** in the empty block state)
-2. Choose one of the nine themed packs
+2. Choose one of the seven themed packs
 3. Aldus instantly generates all sixteen layouts using the pack's content
 
 You can browse the results, expand cards, and get a feel for each personality before using your own content.
