@@ -22,7 +22,7 @@ const SRC_DIR = path.resolve( __dirname, '..' );
  * name used in the package and `local` is the alias used in the file.
  *
  * @param {string} filePath
- * @return {{ exported: string, local: string }[]}
+ * @return {{ exported: string, local: string }[]} Array of import pairs.
  */
 function extractIconImports( filePath ) {
 	const source = fs.readFileSync( filePath, 'utf8' );
@@ -66,7 +66,9 @@ const sourceFiles = fs
 describe( '@wordpress/icons — all named imports must exist in the package', () => {
 	for ( const filePath of sourceFiles ) {
 		const icons = extractIconImports( filePath );
-		if ( icons.length === 0 ) continue;
+		if ( icons.length === 0 ) {
+			continue;
+		}
 
 		const relPath = path.relative(
 			path.resolve( __dirname, '../..' ),
@@ -75,7 +77,9 @@ describe( '@wordpress/icons — all named imports must exist in the package', ()
 
 		describe( relPath, () => {
 			for ( const { exported, local } of icons ) {
-				it( `${ exported }${ local !== exported ? ` (as ${ local })` : '' }`, () => {
+				it( `${ exported }${
+					local !== exported ? ` (as ${ local })` : ''
+				}`, () => {
 					expect( WPIcons[ exported ] ).toBeDefined();
 				} );
 			}

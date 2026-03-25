@@ -122,13 +122,21 @@ import './editor.scss';
  *   - `label` not a string (used in UI rendering)
  *
  * @param {*} data
- * @return {boolean}
+ * @return {boolean} Whether the response is valid and safe to use.
  */
 function isValidAssembleResponse( data ) {
-	if ( ! data || typeof data !== 'object' ) return false;
-	if ( ! data.success ) return false;
-	if ( typeof data.blocks !== 'string' || data.blocks.trim() === '' ) return false;
-	if ( typeof data.label !== 'string' ) return false;
+	if ( ! data || typeof data !== 'object' ) {
+		return false;
+	}
+	if ( ! data.success ) {
+		return false;
+	}
+	if ( typeof data.blocks !== 'string' || data.blocks.trim() === '' ) {
+		return false;
+	}
+	if ( typeof data.label !== 'string' ) {
+		return false;
+	}
 	return true;
 }
 
@@ -2486,7 +2494,12 @@ async function inferTokens(
 		// Fall back to empty — enforceAnchors supplies required tokens.
 		if ( window?.aldusDebug ) {
 			// eslint-disable-next-line no-console
-			console.debug( '[Aldus] token parse failed:', parseErr, 'raw:', raw );
+			console.debug(
+				'[Aldus] token parse failed:',
+				parseErr,
+				'raw:',
+				raw
+			);
 		}
 	}
 	const rawTokens = Array.isArray( parsed?.tokens ) ? parsed.tokens : [];
@@ -3186,12 +3199,12 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 					} )
 				);
 
-			const assembled = assembleSettled
-				.filter(
-					( r ) =>
-						r.status === 'fulfilled' &&
-						isValidAssembleResponse( r.value )
-				)
+				const assembled = assembleSettled
+					.filter(
+						( r ) =>
+							r.status === 'fulfilled' &&
+							isValidAssembleResponse( r.value )
+					)
 					.map( ( r ) => {
 						const pIdx = personalities.findIndex(
 							( p ) => p.name === r.value.label
@@ -3381,12 +3394,12 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 					} )
 				);
 
-			const assembled = settled
-				.filter(
-					( r ) =>
-						r.status === 'fulfilled' &&
-						isValidAssembleResponse( r.value )
-				)
+				const assembled = settled
+					.filter(
+						( r ) =>
+							r.status === 'fulfilled' &&
+							isValidAssembleResponse( r.value )
+					)
 					.map( ( r ) => ( {
 						label: r.value.label,
 						blocks: r.value.blocks,
@@ -3754,7 +3767,9 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		( combinedBlocks ) => {
 			let newBlocks;
 			try {
-				newBlocks = parseBlocks( combinedBlocks ).filter( ( b ) => b?.name );
+				newBlocks = parseBlocks( combinedBlocks ).filter(
+					( b ) => b?.name
+				);
 			} catch ( e ) {
 				newBlocks = [];
 			}
@@ -7346,7 +7361,9 @@ function ConfirmingScreen( { label } ) {
 function MixAltButton( { section, isSelected, onSwap } ) {
 	const previewBlocks = useMemo( () => {
 		try {
-			return parseBlocks( section.blocks ?? '' ).filter( ( b ) => b?.name );
+			return parseBlocks( section.blocks ?? '' ).filter(
+				( b ) => b?.name
+			);
 		} catch ( e ) {
 			return [];
 		}

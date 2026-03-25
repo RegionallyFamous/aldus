@@ -10,6 +10,7 @@ import { PluginBlockSettingsMenuItem } from '@wordpress/editor';
 import metadata from './block.json';
 import Edit from './edit';
 import save from './save';
+import { AldusErrorBoundary } from './components/AldusErrorBoundary';
 
 /** Generate a unique ID with a fallback for non-secure contexts. */
 function generateId() {
@@ -259,7 +260,11 @@ function extractItemFromBlock( block ) {
 }
 
 registerBlockType( metadata.name, {
-	edit: Edit,
+	edit: ( props ) => (
+		<AldusErrorBoundary>
+			<Edit { ...props } />
+		</AldusErrorBoundary>
+	),
 	save,
 	transforms: {
 		/**

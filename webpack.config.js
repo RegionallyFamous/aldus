@@ -37,6 +37,12 @@ class PromoteMissingExportsPlugin {
 
 module.exports = {
 	...defaultConfig,
+	// Native webpack support for treating missing named exports as hard errors.
+	// Works alongside PromoteMissingExportsPlugin as belt-and-suspenders.
+	module: {
+		...( defaultConfig.module ?? {} ),
+		strictExportPresence: true,
+	},
 	entry: async () => {
 		const defaultEntries =
 			typeof defaultConfig.entry === 'function'

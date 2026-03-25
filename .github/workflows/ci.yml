@@ -190,9 +190,24 @@ jobs:
 
       - name: Verify build output
         run: |
-          test -f build/index.js
-          test -f build/index.css
-          test -f build/block.json
+          # Required files exist
+          test -f build/index.js    || { echo "MISSING: build/index.js";    exit 1; }
+          test -f build/index.css   || { echo "MISSING: build/index.css";   exit 1; }
+          test -f build/block.json  || { echo "MISSING: build/block.json";  exit 1; }
+          test -f build/index.asset.php || { echo "MISSING: build/index.asset.php"; exit 1; }
+          test -f build/render.php  || { echo "MISSING: build/render.php";  exit 1; }
+
+          # index.js must be at least 50 KB — catches empty or truncated builds
+          ACTUAL=$(wc -c < build/index.js)
+          [ "$ACTUAL" -gt 50000 ] || { echo "FAIL: build/index.js is only ${ACTUAL} bytes (min 50000)"; exit 1; }
+
+          # No undefined icon prop — catches missing named exports reaching the bundle
+          if grep -qP 'icon:\s*void 0' build/index.js; then
+            echo "FAIL: 'icon: void 0' found in build/index.js — an undefined icon import reached the bundle"
+            exit 1
+          fi
+
+          echo "Build output verified."
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v6.0.0

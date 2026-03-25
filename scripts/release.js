@@ -156,6 +156,16 @@ function applyVersion( oldVer, newVer ) {
 		bj = bj.replace( /("version":\s*")[\d.]+(")/, `$1${ newVer }$2` );
 		write( 'src/block.json', bj );
 	}
+
+	// src/edit.js — ALDUS_JS_VERSION constant (version mismatch check).
+	if ( exists( 'src/edit.js' ) ) {
+		let ej = read( 'src/edit.js' );
+		ej = ej.replace(
+			/(const ALDUS_JS_VERSION\s*=\s*')[\d.]+(';)/,
+			`$1${ newVer }$2`
+		);
+		write( 'src/edit.js', ej );
+	}
 }
 
 // ---------------------------------------------------------------------------
