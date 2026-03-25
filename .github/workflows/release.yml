@@ -9,9 +9,6 @@ on:
 permissions:
   contents: write   # required to create a GitHub Release
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   release:
     name: Build & Publish Release
@@ -19,10 +16,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v5.0.1
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v5.0.0
         with:
           node-version: "lts/*"
           cache: "npm"
@@ -50,11 +47,10 @@ jobs:
         run: npm run release -- --skip-build
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2.6.1
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: "Aldus ${{ steps.version.outputs.value }}"
-          draft: false
-          prerelease: false
-          generate_release_notes: true
-          files: releases/aldus-${{ steps.version.outputs.value }}.zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "Aldus ${{ steps.version.outputs.value }}" \
+            --generate-notes \
+            releases/aldus-${{ steps.version.outputs.value }}.zip
