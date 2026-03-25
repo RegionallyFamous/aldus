@@ -2853,7 +2853,6 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 						blocks: r.value.blocks,
 						tokens: r.value.tokens ?? [],
 						sections: r.value.sections ?? [],
-						_packName: pack.label,
 					} ) );
 
 				if ( assembled.length === 0 ) {
@@ -3508,7 +3507,6 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							startOver={ requestStartOver }
 							regenerate={ requestRegenerate }
 							isPreview={ isPreview }
-							packName={ layouts[ 0 ]?._packName ?? '' }
 							onReroll={ rerollLayout }
 							rerollingLabel={ rerollingLabel }
 							rerollErrors={ rerollErrors }
@@ -4014,15 +4012,6 @@ function BuildingScreen( {
 				</div>
 			</header>
 
-			{ ! hasEngine && (
-				<p className="aldus-hint aldus-hint--modes">
-					{ __(
-						'No download needed for "Try the personalities."',
-						'aldus'
-					) }
-				</p>
-			) }
-
 			{ buildingMode === 'content' && (
 				<>
 					{ noWebGPU && (
@@ -4481,52 +4470,6 @@ function AddContentPopover( { onAdd, isInline = false } ) {
 					</div>
 				</Popover>
 			) }
-		</div>
-	);
-}
-
-// ---------------------------------------------------------------------------
-// Pack selector — "Preview layouts" mode
-// ---------------------------------------------------------------------------
-
-// eslint-disable-next-line no-unused-vars
-function PackSelector( { packs, onSelect } ) {
-	return (
-		<div className="aldus-pack-selector">
-			<p className="aldus-section-label">
-				{ __( 'Pick a personality pack', 'aldus' ) }
-			</p>
-			<p className="aldus-pack-hint">
-				{ __(
-					'See what Aldus does with real content — no download required. Pick a theme to preview all sixteen styles.',
-					'aldus'
-				) }
-			</p>
-			<div className="aldus-pack-grid">
-				{ packs.map( ( pack ) => (
-					<button
-						key={ pack.id }
-						className="aldus-pack-card"
-						onClick={ () => onSelect( pack ) }
-					>
-						<div className="aldus-pack-swatches" aria-hidden="true">
-							{ pack.palette.image.map( ( c ) => (
-								<span
-									key={ c }
-									className="aldus-pack-swatch"
-									style={ { background: c } }
-								/>
-							) ) }
-						</div>
-						<strong className="aldus-pack-name">
-							{ pack.label }
-						</strong>
-						<span className="aldus-pack-desc">
-							{ pack.description }
-						</span>
-					</button>
-				) ) }
-			</div>
 		</div>
 	);
 }
@@ -5939,7 +5882,6 @@ function ResultsScreen( {
 	startOver,
 	regenerate,
 	isPreview,
-	packName,
 	onReroll,
 	rerollingLabel,
 	rerollErrors,
@@ -6064,10 +6006,9 @@ function ResultsScreen( {
 					<div>
 						<span className="aldus-results-title">
 							{ isPreview
-								? sprintf(
-										/* translators: %s is the pack name, e.g. "Roast". */
-										__( '%s — sixteen styles', 'aldus' ),
-										packName
+								? __(
+										'See what Aldus does with real content. Switch themes to try all sixteen styles.',
+										'aldus'
 								  )
 								: __(
 										'Sixteen ways your content could look. Pick the one that fits.',
@@ -6146,20 +6087,24 @@ function ResultsScreen( {
 								}` }
 								onClick={ () => onSwitchPack( p ) }
 								aria-pressed={ p.id === activePreviewPack?.id }
+								style={
+									p.id === activePreviewPack?.id
+										? {
+												background: p.palette.accent,
+												borderColor: p.palette.accent,
+										  }
+										: {}
+								}
+								title={ p.description }
 							>
-								<span
-									className="aldus-pack-pill-swatches"
-									aria-hidden="true"
-								>
-									{ p.palette.image
-										.slice( 0, 3 )
-										.map( ( c ) => (
-											<span
-												key={ c }
-												style={ { background: c } }
-											/>
-										) ) }
-								</span>
+								{ p.emoji && (
+									<span
+										className="aldus-pack-pill-emoji"
+										aria-hidden="true"
+									>
+										{ p.emoji }
+									</span>
+								) }
 								{ p.label }
 							</button>
 						) ) }
@@ -6331,14 +6276,16 @@ function LayoutCard( {
 				onFocus={ onFocus }
 				style={ { animationDelay: `${ index * 40 }ms` } }
 			>
-				<div className="aldus-card-preview" aria-hidden="true">
-					{ isRerolling ? (
-						<div className="aldus-card-rerolling">
-							<Spinner />
-						</div>
-					) : (
-						<LayoutWireframe tokens={ layout.tokens } />
-					) }
+				<div className="aldus-card-preview">
+					<div aria-hidden="true">
+						{ isRerolling ? (
+							<div className="aldus-card-rerolling">
+								<Spinner />
+							</div>
+						) : (
+							<LayoutWireframe tokens={ layout.tokens } />
+						) }
+					</div>
 					<Button
 						icon={ seen }
 						label={ __( 'Expand preview', 'aldus' ) }

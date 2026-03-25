@@ -137,7 +137,7 @@ function aldus_register_pack_pattern( array $pack ): void {
 		],
 	] );
 
-	$cover_inner_html = "<div class=\"wp-block-cover__inner-container is-layout-constrained wp-block-cover-is-layout-constrained\">\n$heading_block\n</div>";
+	$cover_inner_html = "<div class=\"" . aldus_cover_inner_classes() . "\">\n$heading_block\n</div>";
 
 	$cover_style_attr = "background-color:{$color_attr};min-height:420px";
 	$cover_block = serialize_block( [
