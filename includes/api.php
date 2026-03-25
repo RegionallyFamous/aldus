@@ -71,12 +71,32 @@ function aldus_register_rest_routes(): void {
 				'type'              => 'integer',
 				'minimum'           => 0,
 				'maximum'           => 999,
-				'default'           => 0,
-				'description'       => 'Incremented on each re-roll so variant picks change even when the token sequence is identical.',
-				'sanitize_callback' => 'absint',
-			],
+			'default'           => 0,
+			'description'       => 'Incremented on each re-roll so variant picks change even when the token sequence is identical.',
+			'sanitize_callback' => 'absint',
 		],
+	],
 	]
+	);
+
+	// Lightweight analytics endpoint — increments a per-personality use counter.
+	register_rest_route(
+		'aldus/v1',
+		'/record-use',
+		[
+			'methods'             => 'POST',
+			'callback'            => 'aldus_handle_record_use',
+			'permission_callback' => fn() => current_user_can( 'edit_posts' ),
+			'args'                => [
+				'personality' => [
+					'required'          => true,
+					'type'              => 'string',
+					'maxLength'         => 64,
+					'sanitize_callback' => 'sanitize_text_field',
+					'description'       => 'Personality name to record usage for.',
+				],
+			],
+		]
 	);
 }
 
@@ -156,9 +176,9 @@ function aldus_valid_tokens(): array {
  * Validates the tokens argument for /assemble.
  *
  * @param mixed $value
- * @return true|WP_Error
+ * @return bool|WP_Error
  */
-function aldus_validate_tokens_arg( mixed $value ): true|WP_Error {
+function aldus_validate_tokens_arg( mixed $value ): bool|WP_Error {
 	if ( ! is_array( $value ) || empty( $value ) ) {
 		return new WP_Error( 'invalid_tokens', __( 'Tokens must be a non-empty array.', 'aldus' ), [ 'status' => 400 ] );
 	}
@@ -679,4 +699,42 @@ function aldus_pick_large_font( array $font_sizes ): string {
 	// Fall back to the last (assumed largest).
 	$last = end( $font_sizes );
 	return sanitize_html_class( $last['slug'] ?? 'large' );
+}
+
+// ---------------------------------------------------------------------------
+// Analytics — personality usage counters
+// ---------------------------------------------------------------------------
+
+/**
+ * Increments the per-personality usage counter stored in wp_options.
+ *
+ * Counter key format: `aldus_usage_{name}` (e.g. `aldus_usage_dispatch`).
+ * The value is a plain integer.  Fires the `aldus_layout_chosen` action so
+ * third-party code can hook in without touching the REST endpoint.
+ *
+ * @param WP_REST_Request $request
+ * @return WP_REST_Response
+ */
+function aldus_handle_record_use( WP_REST_Request $request ): WP_REST_Response {
+	$personality = sanitize_text_field( $request->get_param( 'personality' ) );
+
+	if ( empty( $personality ) ) {
+		return new WP_REST_Response( [ 'success' => false, 'error' => 'missing personality' ], 400 );
+	}
+
+	// Validate against the known personality list (including filtered additions).
+	// This prevents arbitrary option key proliferation from rogue authenticated requests.
+	$known = array_keys( aldus_anchor_tokens() );
+	if ( ! in_array( $personality, $known, true ) ) {
+		return new WP_REST_Response( [ 'success' => false, 'error' => 'unknown personality' ], 400 );
+	}
+
+	$option_key = 'aldus_usage_' . strtolower( sanitize_html_class( $personality ) );
+	$current    = (int) get_option( $option_key, 0 );
+	update_option( $option_key, $current + 1, false );
+
+	// Allow external hooks to react (e.g. third-party analytics integrations).
+	do_action( 'aldus_layout_chosen', $personality );
+
+	return new WP_REST_Response( [ 'success' => true, 'count' => $current + 1 ], 200 );
 }
