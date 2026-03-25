@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Plugin Name:       Aldus — Block Compositor
  * Plugin URI:        https://github.com/RegionallyFamous/aldus
  * Description:       You write it. Aldus designs it. Sixteen layout styles for your content — pick the one that fits, and it becomes real WordPress blocks.
- * Version:           1.3.0
+ * Version:           1.4.0
  * Requires at least: 6.4
  * Requires PHP:      8.0
  * Author:            Regionally Famous
@@ -90,6 +90,13 @@ function aldus_init(): void {
 
 	// Warn about deprecated filter usage.
 	aldus_check_deprecated_filters();
+
+	// One-time "What's New" admin notice after upgrade.
+	add_action( 'admin_notices', 'aldus_whats_new_notice' );
+	add_action( 'wp_ajax_aldus_dismiss_notice', 'aldus_dismiss_notice' );
+
+	// Declare privacy policy content for the Tools > Privacy screen.
+	add_action( 'admin_init', 'aldus_add_privacy_policy_content' );
 }
 
 /**
@@ -184,6 +191,88 @@ function aldus_check_deprecated_filters(): void {
 }
 
 /**
+ * Displays a one-time "What's New" admin notice after each version upgrade.
+ *
+ * The notice is shown once per user until they dismiss it or upgrade again.
+ * Dismissal is handled via wp_ajax_aldus_dismiss_notice.
+ */
+function aldus_whats_new_notice(): void {
+	$user_id      = get_current_user_id();
+	$dismissed_v  = get_user_meta( $user_id, 'aldus_dismissed_notice_version', true );
+
+	if ( $dismissed_v === ALDUS_VERSION ) {
+		return;
+	}
+
+	if ( ! current_user_can( 'edit_posts' ) ) {
+		return;
+	}
+
+	$nonce   = wp_create_nonce( 'aldus_dismiss_notice' );
+	$version = esc_html( ALDUS_VERSION );
+	$label   = sprintf(
+		/* translators: plugin name + version number */
+		esc_html__( 'Aldus %s is installed.', 'aldus' ),
+		$version
+	);
+	$see   = esc_html__( 'See what improved in this release:', 'aldus' );
+	$notes = esc_html__( 'Release notes \u{2192}', 'aldus' );
+	$url   = 'https://github.com/RegionallyFamous/aldus/wiki';
+	$js    = esc_js( $nonce );
+
+	// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- all variables escaped above.
+	echo '<div class="notice notice-info is-dismissible" id="aldus-whats-new">';
+	echo '<p><strong>' . $label . '</strong> ' . $see . ' ';
+	echo '<a href="' . esc_url( $url ) . '" target="_blank" rel="noopener noreferrer">' . $notes . '</a></p></div>';
+	echo '<script>document.querySelector("#aldus-whats-new .notice-dismiss")?.addEventListener("click",function(){';
+	echo 'fetch(ajaxurl,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},';
+	echo 'body:"action=aldus_dismiss_notice&nonce=' . $js . '"});});</script>';
+	// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+}
+
+/**
+ * AJAX handler: marks the current version's notice as dismissed for the current user.
+ */
+function aldus_dismiss_notice(): void {
+	check_ajax_referer( 'aldus_dismiss_notice', 'nonce' );
+	update_user_meta( get_current_user_id(), 'aldus_dismissed_notice_version', ALDUS_VERSION );
+	wp_die();
+}
+
+/**
+ * Registers Aldus privacy policy content in the Tools > Privacy Policy Guide.
+ *
+ * Informs site administrators that content items entered in the Aldus editor
+ * are sent to a third-party AI API (OpenAI) for layout generation.
+ */
+function aldus_add_privacy_policy_content(): void {
+	if ( ! function_exists( 'wp_add_privacy_policy_content' ) ) {
+		return;
+	}
+
+	/* translators: Do not translate the product/company names in these strings. */
+	// phpcs:ignore Generic.Files.LineLength.MaxExceeded
+	$para1 = esc_html__( 'When you use the Aldus block to generate a layout, the content items you enter (headlines, paragraphs, image URLs, button labels, quotes) along with your site title and tagline are sent to a third-party AI API (OpenAI) for layout generation. No personally identifiable information about your site visitors is collected or transmitted.', 'aldus' );
+	/* translators: "api.openai.com" is a domain name and should not be translated. */
+	// phpcs:ignore Generic.Files.LineLength.MaxExceeded
+	$para2 = esc_html__( 'The OpenAI API key you supply in the Aldus settings is stored in your WordPress database and is only transmitted to api.openai.com over an encrypted (HTTPS) connection.', 'aldus' );
+	$para3 = sprintf(
+		/* translators: %s = linked text "OpenAI Privacy Policy" */
+		esc_html__( 'For details on how OpenAI handles your data, see the %s.', 'aldus' ),
+		'<a href="https://openai.com/policies/privacy-policy" target="_blank" rel="noopener noreferrer">'
+		. esc_html__( 'OpenAI Privacy Policy', 'aldus' )
+		. '</a>'
+	);
+
+	$content = '<h2>' . esc_html__( 'Aldus — Block Compositor', 'aldus' ) . '</h2>'
+		. '<p>' . $para1 . '</p>'
+		. '<p>' . $para2 . '</p>'
+		. '<p>' . $para3 . '</p>';
+
+	wp_add_privacy_policy_content( 'Aldus — Block Compositor', $content );
+}
+
+/**
  * Flush all Aldus object-cache entries for theme data.
  *
  * Hooked to switch_theme and customize_save_after so the color palette,
@@ -206,10 +295,6 @@ function aldus_register_block(): void {
 	$build_path = ALDUS_PATH . 'build';
 	if ( ! is_dir( $build_path ) || ! file_exists( $build_path . '/block.json' ) ) {
 		return;
-	}
-
-	if ( function_exists( 'wp_register_block_metadata_collection' ) ) {
-		wp_register_block_metadata_collection( $build_path, array( $build_path . '/block.json' ) );
 	}
 
 	register_block_type( $build_path );

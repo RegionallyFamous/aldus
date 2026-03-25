@@ -33,7 +33,8 @@ function aldus_register_block_patterns(): void {
 			'id'      => 'roast',
 			'title'   => 'Roast — Specialty Coffee',
 			'tagline' => 'Life Is Too Short for Coffee That Tastes Like Regret.',
-			'body'    => 'We fly to origin twice a year — not for the vibes, but because you can\'t judge a coffee from a sample bag and a spec sheet. You have to stand on the farm at sunrise and taste it fresh.',
+			'body'    => 'We fly to origin twice a year — not for the vibes, but because you can\'t judge'
+				. ' a coffee from a sample bag and a spec sheet. You have to stand on the farm at sunrise and taste it fresh.',
 			'cta'     => 'Shop the latest roast',
 			'color'   => '#3B1F0A',
 		),
@@ -41,7 +42,8 @@ function aldus_register_block_patterns(): void {
 			'id'      => 'meridian',
 			'title'   => 'Meridian — Developer Platform',
 			'tagline' => 'Ship Product. Not YAML.',
-			'body'    => 'Meridian exists because we got tired of watching senior engineers spend their Thursdays debugging Terraform instead of building product. Connect your repo. Define your environments. Push.',
+			'body'    => 'Meridian exists because we got tired of watching senior engineers spend their'
+				. ' Thursdays debugging Terraform instead of building product. Connect your repo. Define your environments. Push.',
 			'cta'     => 'Start deploying free',
 			'color'   => '#0D1B2A',
 		),
@@ -49,7 +51,8 @@ function aldus_register_block_patterns(): void {
 			'id'      => 'hearth',
 			'title'   => 'Hearth — Home Goods',
 			'tagline' => 'Made to Last. Designed to Live With.',
-			'body'    => 'Every piece in the Hearth collection is made by craftspeople who still believe a well-made object is worth the wait. No shortcuts, no compromises, no planned obsolescence.',
+			'body'    => 'Every piece in the Hearth collection is made by craftspeople who still believe'
+				. ' a well-made object is worth the wait. No shortcuts, no compromises, no planned obsolescence.',
 			'cta'     => 'Explore the collection',
 			'color'   => '#2C1A0E',
 		),
@@ -57,7 +60,8 @@ function aldus_register_block_patterns(): void {
 			'id'      => 'plume',
 			'title'   => 'Plume — Travel & Culture',
 			'tagline' => "The Places That Change You Don't Have Gift Shops.",
-			'body'    => 'The train from Sarajevo to Mostar takes two and a half hours and passes through scenery that doesn\'t fit on a phone screen. There are things you can\'t learn about a country at 35,000 feet.',
+			'body'    => 'The train from Sarajevo to Mostar takes two and a half hours and passes through'
+				. ' scenery that doesn\'t fit on a phone screen. There are things you can\'t learn about a country at 35,000 feet.',
 			'cta'     => 'Read the full dispatch',
 			'color'   => '#1C1410',
 		),
@@ -65,7 +69,8 @@ function aldus_register_block_patterns(): void {
 			'id'      => 'grove',
 			'title'   => 'Grove — Organic Skincare',
 			'tagline' => 'Your Skin Has Been Trying to Tell You Something.',
-			'body'    => 'Grove started in a kitchen with twelve ingredients, a notebook, and a firm belief that your skin doesn\'t need a 14-step routine — it needs the right three things, consistently.',
+			'body'    => 'Grove started in a kitchen with twelve ingredients, a notebook, and a firm belief'
+				. ' that your skin doesn\'t need a 14-step routine — it needs the right three things, consistently.',
 			'cta'     => 'Find your routine',
 			'color'   => '#1A2E1A',
 		),
@@ -73,7 +78,8 @@ function aldus_register_block_patterns(): void {
 			'id'      => 'loot',
 			'title'   => 'Loot — Indie Games',
 			'tagline' => 'Built by Four People in a Garage. Loved by Thousands.',
-			'body'    => 'Loot is a marketplace for indie games made by people who play too much and sleep too little. No algorithms, no pay-to-win mechanics, no games that mistake grinding for fun.',
+			'body'    => 'Loot is a marketplace for indie games made by people who play too much and sleep'
+				. ' too little. No algorithms, no pay-to-win mechanics, no games that mistake grinding for fun.',
 			'cta'     => 'Browse the catalog',
 			'color'   => '#0D0D1A',
 		),
@@ -81,7 +87,8 @@ function aldus_register_block_patterns(): void {
 			'id'      => 'signal',
 			'title'   => 'Signal — Private Email',
 			'tagline' => "Email That Doesn't Read Your Email.",
-			'body'    => 'Signal Mail is email the way it should have been built in the first place: encrypted, private, and completely uninterested in what you\'re writing. Your messages are yours. That\'s the whole product.',
+			'body'    => 'Signal Mail is email the way it should have been built in the first place:'
+				. ' encrypted, private, and completely uninterested in what you\'re writing. Your messages are yours. That\'s the whole product.',
 			'cta'     => 'Try it free for 30 days',
 			'color'   => '#0C0C0C',
 		),
@@ -89,7 +96,8 @@ function aldus_register_block_patterns(): void {
 			'id'      => 'slim',
 			'title'   => 'Slim — Minimal Layout',
 			'tagline' => 'A Clear Idea Deserves a Clear Layout.',
-			'body'    => 'Aldus works with whatever you bring. Six items is enough to see every personality\'s point of view — the way it balances your headline against an image, how it frames a quote, where it puts the call to action.',
+			'body'    => 'Aldus works with whatever you bring. Six items is enough to see every personality\'s'
+				. ' point of view — the way it balances your headline against an image, how it frames a quote, where it puts the call to action.',
 			'cta'     => 'Add your content',
 			'color'   => '#333333',
 		),
@@ -161,10 +169,12 @@ function aldus_register_pack_pattern( array $pack ): void {
 			),
 			'innerBlocks'  => array(),
 			'innerContent' => array(
-				"<div class=\"wp-block-cover alignfull has-custom-content-position is-position-center-center\" style=\"$cover_style_attr\">\n"
-				. "<span aria-hidden=\"true\" class=\"wp-block-cover__background has-background-dim-80 has-background-dim\" style=\"background-color:{$color_attr}\"></span>\n"
-				. $cover_inner_html
-				. "\n</div>",
+				'<div class="wp-block-cover alignfull has-custom-content-position'
+				. " is-position-center-center\" style=\"$cover_style_attr\">\n"
+				. '<span aria-hidden="true" class="wp-block-cover__background'
+				. " has-background-dim-80 has-background-dim\" style=\"background-color:{$color_attr}\"></span>\n"
+					. $cover_inner_html
+					. "\n</div>",
 			),
 		)
 	);

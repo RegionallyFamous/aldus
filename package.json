@@ -1,6 +1,6 @@
 {
 	"name": "aldus",
-	"version": "1.3.0",
+	"version": "1.4.0",
 	"description": "AI Block Compositor for WordPress",
 	"scripts": {
 		"build": "wp-scripts build",
@@ -42,7 +42,7 @@
 		"release:major": "node scripts/release.js --bump major",
 
 		"i18n:pot": "wp i18n make-pot . languages/aldus.pot --exclude=node_modules,build,vendor,tests",
-		"i18n:json": "wp i18n make-json languages/aldus.pot --no-purge"
+		"i18n:json": "wp-scripts i18n-make-json languages --no-purge"
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.58.2",
