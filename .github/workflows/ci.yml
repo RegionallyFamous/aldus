@@ -227,7 +227,7 @@ jobs:
         run: npm run build
 
       - name: WordPress Plugin Check
-        uses: wordpress/plugin-check-action@v1.1.5
+        uses: wordpress/plugin-check-action@9a0e904d688a8b72f99eba093641ec725404e1e8 # post-v1.1.5, uses nick-fields/retry@v4 (node24)
         with:
           build-dir: "./"
           # Exclude dev-only directories so the check only sees distributable files.
