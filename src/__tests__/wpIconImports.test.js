@@ -56,12 +56,24 @@ function extractIconImports( filePath ) {
 	return results;
 }
 
-// Collect all .js source files directly under src/ (not subdirectories —
-// tests live in src/__tests__/ and are intentionally excluded).
-const sourceFiles = fs
-	.readdirSync( SRC_DIR )
-	.filter( ( f ) => f.endsWith( '.js' ) )
-	.map( ( f ) => path.join( SRC_DIR, f ) );
+/**
+ * Collect all .js source files to audit.
+ * Scans src/ root plus src/utils/ (where safe icon wrappers live).
+ * Excludes src/__tests__/ to avoid self-referential test imports.
+ *
+ * @param {string} dir Directory path to scan.
+ */
+function collectSourceFiles( dir ) {
+	return fs
+		.readdirSync( dir )
+		.filter( ( f ) => f.endsWith( '.js' ) )
+		.map( ( f ) => path.join( dir, f ) );
+}
+
+const sourceFiles = [
+	...collectSourceFiles( SRC_DIR ),
+	...collectSourceFiles( path.join( SRC_DIR, 'utils' ) ),
+];
 
 describe( '@wordpress/icons — all named imports must exist in the package', () => {
 	for ( const filePath of sourceFiles ) {

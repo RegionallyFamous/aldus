@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Plugin Name:       Aldus — Block Compositor
  * Plugin URI:        https://github.com/RegionallyFamous/aldus
  * Description:       You write it. Aldus designs it. Sixteen layout styles for your content — pick the one that fits, and it becomes real WordPress blocks.
- * Version:           1.13.0
+ * Version:           1.14.0
  * Requires at least: 6.4
  * Requires PHP:      8.0
  * Author:            Regionally Famous
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'ALDUS_VERSION', '1.13.0' );
+define( 'ALDUS_VERSION', '1.14.0' );
 define( 'ALDUS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ALDUS_URL', plugin_dir_url( __FILE__ ) );
 
@@ -49,19 +49,46 @@ function aldus_deactivate(): void {}
 add_action( 'plugins_loaded', 'aldus_init' );
 
 /**
- * Bootstraps all plugin functionality.
+ * Loads all plugin files and registers WordPress hooks.
+ *
+ * Require order follows the dependency chain:
+ *   Foundation → Configuration → Renderers → API layer → Admin
  */
 function aldus_init(): void {
+	// Foundation — no dependencies on other Aldus files.
+	require_once ALDUS_PATH . 'includes/sanitize.php';
+	require_once ALDUS_PATH . 'includes/tokens.php';
+	require_once ALDUS_PATH . 'includes/theme.php';
+	require_once ALDUS_PATH . 'includes/class-content-distributor.php';
+
+	// Configuration — depends on theme helpers.
+	require_once ALDUS_PATH . 'includes/personality.php';
+	require_once ALDUS_PATH . 'includes/block-html.php';
+	require_once ALDUS_PATH . 'includes/serialize.php';
+
+	// Renderers.
+	require_once ALDUS_PATH . 'includes/renderers/cover.php';
+	require_once ALDUS_PATH . 'includes/renderers/columns.php';
+	require_once ALDUS_PATH . 'includes/renderers/group.php';
+	require_once ALDUS_PATH . 'includes/renderers/media-text.php';
+	require_once ALDUS_PATH . 'includes/renderers/pullquote.php';
+	require_once ALDUS_PATH . 'includes/renderers/heading.php';
+	require_once ALDUS_PATH . 'includes/renderers/text.php';
+	require_once ALDUS_PATH . 'includes/renderers/media.php';
+	require_once ALDUS_PATH . 'includes/renderers/structure.php';
+	require_once ALDUS_PATH . 'includes/renderers/layout.php';
+	require_once ALDUS_PATH . 'includes/render-router.php';
+
+	// API layer — depends on everything above.
+	require_once ALDUS_PATH . 'includes/class-rest-controller.php';
 	require_once ALDUS_PATH . 'includes/api.php';
 	require_once ALDUS_PATH . 'includes/bindings.php';
-	require_once ALDUS_PATH . 'includes/block-html.php';
-	require_once ALDUS_PATH . 'includes/templates.php';
 	require_once ALDUS_PATH . 'includes/patterns.php';
 	require_once ALDUS_PATH . 'includes/admin-page.php';
 	require_once ALDUS_PATH . 'includes/styles.php';
 
 	add_action( 'init', 'aldus_register_block' );
-	add_action( 'init', fn() => load_plugin_textdomain( 'aldus', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' ) );
+	add_action( 'init', static function (): void { load_plugin_textdomain( 'aldus', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' ); } );
 	add_action( 'rest_api_init', 'aldus_register_rest_routes' );
 
 	// Flush cached theme data whenever the active theme or Customizer settings change.
@@ -105,476 +132,4 @@ function aldus_init(): void {
 	add_filter( 'manage_pages_columns', 'aldus_add_posts_column' );
 	add_action( 'manage_posts_custom_column', 'aldus_render_posts_column', 10, 2 );
 	add_action( 'manage_pages_custom_column', 'aldus_render_posts_column', 10, 2 );
-}
-
-/**
- * Prepends the Aldus category to the block inserter category list.
- *
- * @param mixed $categories Existing block categories (array expected).
- * @return mixed
- */
-function aldus_register_block_category( mixed $categories ): mixed {
-	if ( ! is_array( $categories ) ) {
-		return $categories;
-	}
-	return array_merge(
-		array(
-			array(
-				'slug'  => 'aldus',
-				'title' => __( 'Aldus', 'aldus' ),
-				'icon'  => 'table-col-after',
-			),
-		),
-		$categories
-	);
-}
-
-/**
- * Adds action links to the plugin row on the Plugins admin page.
- *
- * @param mixed $links Existing action links (array expected).
- * @return mixed
- */
-function aldus_plugin_action_links( mixed $links ): mixed {
-	if ( ! is_array( $links ) ) {
-		return $links;
-	}
-	$welcome    = sprintf(
-		'<a href="%s">%s</a>',
-		esc_url( admin_url( 'admin.php?page=aldus-welcome' ) ),
-		__( 'About', 'aldus' )
-	);
-	$how_to_use = sprintf(
-		'<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
-		'https://github.com/RegionallyFamous/aldus/wiki',
-		__( 'Docs', 'aldus' )
-	);
-	return array_merge(
-		array(
-			'welcome'    => $welcome,
-			'how_to_use' => $how_to_use,
-		),
-		$links
-	);
-}
-
-/**
- * Issues _doing_it_wrong() notices if third-party code has attached callbacks
- * to Aldus filter hooks that may be renamed or removed in a future release.
- *
- * This is a no-op for all current hooks (none have been deprecated yet) but
- * establishes the pattern so that future renames can warn developers cleanly.
- */
-function aldus_check_deprecated_filters(): void {
-	/**
-	 * Map of deprecated hook name => message describing the replacement.
-	 * Populate this array when a hook is renamed or removed.
-	 *
-	 * Example:
-	 * 'aldus_old_hook' => 'Use aldus_new_hook instead. See https://github.com/RegionallyFamous/aldus/wiki for migration notes.',
-	 *
-	 * @var array<string, string>
-	 */
-	$deprecated = array();
-
-	foreach ( $deprecated as $hook => $message ) {
-		if ( has_filter( $hook ) ) {
-			// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- $hook is an internal hook name, not user input.
-			_doing_it_wrong(
-				$hook,
-				esc_html( $message ),
-				'1.0.0'
-			);
-			// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
-		}
-	}
-}
-
-/**
- * Redirects to the welcome admin page on the very first activation.
- *
- * Checks and deletes the activation transient set by aldus_activate() so
- * the redirect fires exactly once (and not during bulk plugin activations).
- */
-function aldus_maybe_redirect_to_welcome(): void {
-	if ( ! get_transient( 'aldus_activation_redirect' ) ) {
-		return;
-	}
-	delete_transient( 'aldus_activation_redirect' );
-
-	// Do not redirect on bulk activations.
-	if ( isset( $_GET['activate-multi'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		return;
-	}
-
-	wp_safe_redirect( admin_url( 'admin.php?page=aldus-welcome' ) );
-	exit;
-}
-
-/**
- * Displays a one-time "What's New" admin notice after each version upgrade.
- *
- * The notice is shown once per user until they dismiss it or upgrade again.
- * Dismissal is handled via wp_ajax_aldus_dismiss_notice.
- */
-function aldus_whats_new_notice(): void {
-	$user_id     = get_current_user_id();
-	$dismissed_v = get_user_meta( $user_id, 'aldus_dismissed_notice_version', true );
-
-	if ( $dismissed_v === ALDUS_VERSION ) {
-		return;
-	}
-
-	if ( ! current_user_can( 'edit_posts' ) ) {
-		return;
-	}
-
-	$nonce   = wp_create_nonce( 'aldus_dismiss_notice' );
-	$version = esc_html( ALDUS_VERSION );
-	$label   = sprintf(
-		/* translators: plugin name + version number */
-		esc_html__( 'Aldus %s is installed.', 'aldus' ),
-		$version
-	);
-	$see   = esc_html__( 'See what improved in this release:', 'aldus' );
-	$notes = esc_html__( 'Release notes \u{2192}', 'aldus' );
-	$url   = 'https://github.com/RegionallyFamous/aldus/wiki';
-	$js    = esc_js( $nonce );
-
-	// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- all variables escaped above.
-	echo '<div class="notice notice-info is-dismissible" id="aldus-whats-new">';
-	echo '<p><strong>' . $label . '</strong> ' . $see . ' ';
-	echo '<a href="' . esc_url( $url ) . '" target="_blank" rel="noopener noreferrer">' . $notes . '</a></p></div>';
-	echo '<script>document.querySelector("#aldus-whats-new .notice-dismiss")?.addEventListener("click",function(){';
-	echo 'fetch(ajaxurl,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},';
-	echo 'body:"action=aldus_dismiss_notice&nonce=' . $js . '"});});</script>';
-	// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
-}
-
-/**
- * AJAX handler: marks the current version's notice as dismissed for the current user.
- */
-function aldus_dismiss_notice(): void {
-	check_ajax_referer( 'aldus_dismiss_notice', 'nonce' );
-	if ( ! current_user_can( 'edit_posts' ) ) {
-		wp_die( '-1', '', array( 'response' => 403 ) );
-	}
-	update_user_meta( get_current_user_id(), 'aldus_dismissed_notice_version', ALDUS_VERSION );
-	wp_die();
-}
-
-/**
- * Registers Aldus privacy policy content in the Tools > Privacy Policy Guide.
- *
- * Informs site administrators that content items entered in the Aldus editor
- * are sent to a third-party AI API (OpenAI) for layout generation.
- */
-function aldus_add_privacy_policy_content(): void {
-	if ( ! function_exists( 'wp_add_privacy_policy_content' ) ) {
-		return;
-	}
-
-	/* translators: Do not translate the product/company names in these strings. */
-	// phpcs:ignore Generic.Files.LineLength.MaxExceeded
-	$para1 = esc_html__( 'When you use the Aldus block to generate a layout, the content items you enter (headlines, paragraphs, image URLs, button labels, quotes) along with your site title and tagline are sent to a third-party AI API (OpenAI) for layout generation. No personally identifiable information about your site visitors is collected or transmitted.', 'aldus' );
-	/* translators: "api.openai.com" is a domain name and should not be translated. */
-	// phpcs:ignore Generic.Files.LineLength.MaxExceeded
-	$para2 = esc_html__( 'The OpenAI API key you supply in the Aldus settings is stored in your WordPress database and is only transmitted to api.openai.com over an encrypted (HTTPS) connection.', 'aldus' );
-	$para3 = sprintf(
-		/* translators: %s = linked text "OpenAI Privacy Policy" */
-		esc_html__( 'For details on how OpenAI handles your data, see the %s.', 'aldus' ),
-		'<a href="https://openai.com/policies/privacy-policy" target="_blank" rel="noopener noreferrer">'
-		. esc_html__( 'OpenAI Privacy Policy', 'aldus' )
-		. '</a>'
-	);
-
-	$content = '<h2>' . esc_html__( 'Aldus — Block Compositor', 'aldus' ) . '</h2>'
-		. '<p>' . $para1 . '</p>'
-		. '<p>' . $para2 . '</p>'
-		. '<p>' . $para3 . '</p>';
-
-	wp_add_privacy_policy_content( 'Aldus — Block Compositor', $content );
-}
-
-/**
- * Flush all Aldus object-cache entries for theme data.
- *
- * Hooked to switch_theme and customize_save_after so the color palette,
- * font sizes, and gradient entries are re-read after any theme change.
- */
-function aldus_flush_theme_cache(): void {
-	wp_cache_delete( 'aldus_palette_' . ALDUS_VERSION, 'aldus' );
-	wp_cache_delete( 'aldus_font_sizes_' . ALDUS_VERSION, 'aldus' );
-	wp_cache_delete( 'aldus_gradients_' . ALDUS_VERSION, 'aldus' );
-}
-
-/**
- * Adds an "Aldus" indicator column to the Posts and Pages admin list screens.
- *
- * @param mixed $columns Existing columns (array expected).
- * @return mixed
- */
-function aldus_add_posts_column( mixed $columns ): mixed {
-	if ( ! is_array( $columns ) ) {
-		return $columns;
-	}
-	$columns['aldus_used'] = '<span title="' . esc_attr__( 'Uses Aldus', 'aldus' ) . '" aria-label="' . esc_attr__( 'Uses Aldus', 'aldus' ) . '">✦</span>';
-	return $columns;
-}
-
-/**
- * Renders the Aldus column cell for a given post.
- *
- * @param mixed $column  The current column ID.
- * @param mixed $post_id The post ID for this row.
- */
-function aldus_render_posts_column( mixed $column, mixed $post_id ): void {
-	if ( 'aldus_used' !== $column ) {
-		return;
-	}
-	$post = get_post( (int) $post_id );
-	if ( ! $post instanceof \WP_Post ) {
-		return;
-	}
-	if ( has_block( 'aldus/layout-generator', $post ) ) {
-		echo '<span style="color:#0073aa;font-size:16px;" aria-label="' . esc_attr__( 'Uses Aldus', 'aldus' ) . '" title="' . esc_attr__( 'This post uses the Aldus block.', 'aldus' ) . '">✦</span>';
-	} else {
-		echo '<span style="color:#ccc;" aria-hidden="true">—</span>';
-	}
-}
-
-/**
- * Registers the Gutenberg block from the compiled build directory.
- *
- * Uses wp_register_block_metadata_collection() (WP 6.7+) when available for
- * improved performance — it pre-processes the block metadata manifest so
- * WordPress can resolve block.json without repeated filesystem lookups.
- */
-function aldus_register_block(): void {
-	$build_path = ALDUS_PATH . 'build';
-	if ( ! is_dir( $build_path ) || ! file_exists( $build_path . '/block.json' ) ) {
-		return;
-	}
-
-	register_block_type( $build_path );
-
-	// Load a minimal frontend stylesheet only on pages that contain this block.
-	// Passing 'path' lets WordPress inline the stylesheet above the fold rather
-	// than emitting a <link> tag, which avoids a render-blocking request for
-	// the small number of pages where this fires.
-	wp_enqueue_block_style(
-		'aldus/layout-generator',
-		array(
-			'handle' => 'aldus-frontend',
-			'src'    => ALDUS_URL . 'build/frontend.css',
-			'ver'    => ALDUS_VERSION,
-			'path'   => ALDUS_PATH . 'build/frontend.css',
-		)
-	);
-
-	// Defer the editor script — it is large and has no dependency that requires
-	// synchronous execution.  The 'strategy' data key is respected by WP 6.3+.
-	wp_script_add_data( 'aldus-aldus-layout-generator-editor-script', 'strategy', 'defer' );
-
-	// Emit a modulepreload hint for the WebLLM runtime chunk so it starts
-	// downloading as soon as the block editor is opened, before the user clicks
-	// "Make it happen".
-	add_action( 'admin_head', 'aldus_webllm_modulepreload' );
-
-	// Register the WebLLM runtime as a native Script Module (WP 6.5+).
-	// The edit.js dynamic import() checks for window.__aldusScriptModules and
-	// uses the module URL from there when available, falling back to the webpack
-	// chunk for older WordPress versions.
-	if ( function_exists( 'wp_register_script_module' ) ) {
-		wp_register_script_module(
-			'@aldus/webllm-runtime',
-			ALDUS_URL . 'build/692.js',
-			array(),
-			ALDUS_VERSION
-		);
-
-		// Register the front-end Interactivity API store (WP 6.5+).
-		// block.json declares this via viewScriptModule so WordPress loads it
-		// automatically on pages that contain an Aldus-generated block.
-		if ( file_exists( ALDUS_PATH . 'build/frontend-interactivity.js' ) ) {
-			wp_register_script_module(
-				'@aldus/interactivity',
-				ALDUS_URL . 'build/frontend-interactivity.js',
-				array( '@wordpress/interactivity' ),
-				ALDUS_VERSION
-			);
-		}
-		// Surface the module URL to the editor script via an inline script.
-		wp_add_inline_script(
-			'aldus-aldus-layout-generator-editor-script',
-			'window.__aldusScriptModules = window.__aldusScriptModules || {};' .
-			' window.__aldusScriptModules["@aldus/webllm-runtime"] = ' .
-			wp_json_encode( ALDUS_URL . 'build/692.js' ) . ';',
-			'before'
-		);
-	}
-}
-
-/**
- * Injects site identity (name, description) for the editor LLM prompt.
- *
- * Hooked onto enqueue_block_editor_assets so the variable is available
- * as soon as the editor script loads — before the user interacts.
- */
-function aldus_inline_site_data(): void {
-	wp_add_inline_script(
-		'aldus-aldus-layout-generator-editor-script',
-		'window.__aldusSite = ' . wp_json_encode(
-			array(
-				'name'        => get_bloginfo( 'name' ),
-				'description' => get_bloginfo( 'description' ),
-			)
-		) . ';',
-		'before'
-	);
-
-	// Expose the PHP-side plugin version so the JS bundle can detect a
-	// cache/version mismatch (e.g. stale browser cache after an update).
-	wp_add_inline_script(
-		'aldus-aldus-layout-generator-editor-script',
-		'window.__aldusPhpVersion = ' . wp_json_encode( ALDUS_VERSION ) . ';',
-		'before'
-	);
-}
-add_action( 'enqueue_block_editor_assets', 'aldus_inline_site_data' );
-
-/**
- * Prints a <link rel="modulepreload"> for the WebLLM runtime chunk on
- * block-editor screens only.
- *
- * This primes the browser cache so the chunk (≈5.9 MB) is available
- * immediately when the dynamic import() fires instead of loading on demand.
- */
-function aldus_webllm_modulepreload(): void {
-	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-	if ( ! $screen || ! $screen->is_block_editor() ) {
-		return;
-	}
-	$chunk_url = ALDUS_URL . 'build/692.js';
-	// modulepreload for modern browsers; prefetch as fallback for older ones.
-	printf(
-		'<link rel="modulepreload" href="%1$s">' . "\n" .
-		'<link rel="prefetch" as="script" href="%1$s">' . "\n",
-		esc_url( $chunk_url )
-	);
-}
-
-/**
- * Merges Aldus-specific design tokens into the active theme's theme.json data.
- *
- * Injects custom spacing presets and CSS custom properties that generated
- * layouts depend on so they render consistently regardless of the active theme.
- * Uses the wp_theme_json_data_theme filter (WP 6.6+).
- *
- * @param mixed $theme_json Mutable theme.json data object (WP_Theme_JSON_Data expected).
- * @return mixed
- */
-function aldus_inject_theme_json( mixed $theme_json ): mixed {
-	if ( ! $theme_json instanceof WP_Theme_JSON_Data ) {
-		return $theme_json;
-	}
-	$additions = array(
-		'version'  => 3,
-		'settings' => array(
-			'spacing' => array(
-				'spacingSizes' => array(
-					array(
-						'slug' => 'aldus-section',
-						'size' => '80px',
-						'name' => 'Aldus Section',
-					),
-					array(
-						'slug' => 'aldus-gap',
-						'size' => '40px',
-						'name' => 'Aldus Gap',
-					),
-					array(
-						'slug' => 'aldus-tight',
-						'size' => '20px',
-						'name' => 'Aldus Tight',
-					),
-				),
-			),
-		),
-		'styles'   => array(
-			'css' => '
-				:root {
-					--aldus-section-spacing: 80px;
-					--aldus-gap: 40px;
-					--aldus-tight: 20px;
-					--aldus-overlay-dark: rgba(0,0,0,0.55);
-					--aldus-overlay-accent: rgba(0,0,0,0.35);
-				}
-
-				/* --- Aldus Personality Block Style Variations --- */
-
-				/* Dispatch: high-contrast, urgent, dark */
-				.is-style-aldus-dispatch {
-					background-color: #111 !important;
-					color: #fff !important;
-					padding: var(--aldus-section-spacing) var(--aldus-gap);
-				}
-				.is-style-aldus-dispatch .wp-block-heading {
-					font-weight: 800;
-					letter-spacing: -0.02em;
-				}
-
-				/* Nocturne: cinematic, atmospheric dark */
-				.is-style-aldus-nocturne {
-					background-color: #0a0a14 !important;
-					color: #e8e8e8 !important;
-					padding: var(--aldus-section-spacing) var(--aldus-gap);
-				}
-				.is-style-aldus-nocturne .wp-block-cover__background {
-					opacity: 0.7;
-				}
-
-				/* Codex: restrained, typographic, generous whitespace */
-				.is-style-aldus-codex {
-					padding: calc(var(--aldus-section-spacing) * 1.5) var(--aldus-gap);
-					max-width: 42rem;
-					margin-left: auto;
-					margin-right: auto;
-				}
-				.is-style-aldus-codex .wp-block-heading {
-					font-weight: 300;
-					letter-spacing: 0.01em;
-				}
-
-				/* Solstice: minimal, luminous, clean */
-				.is-style-aldus-solstice {
-					background-color: #fafafa !important;
-					color: #222 !important;
-					padding: var(--aldus-section-spacing) var(--aldus-gap);
-					border-radius: 8px;
-				}
-
-				/* Folio: editorial asymmetry */
-				.is-style-aldus-folio {
-					border-left: 3px solid currentColor;
-					padding-left: var(--aldus-gap);
-				}
-
-				/* Dusk: gradient atmosphere */
-				.is-style-aldus-dusk {
-					background: linear-gradient(
-						135deg,
-						#1a1a2e 0%,
-						#16213e 50%,
-						#0f3460 100%
-					) !important;
-					color: #e8e8e8 !important;
-					padding: var(--aldus-section-spacing) var(--aldus-gap);
-				}
-			',
-		),
-	);
-
-	$theme_json->update_with( $additions );
-	return $theme_json;
 }

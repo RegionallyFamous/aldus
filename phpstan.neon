@@ -29,11 +29,12 @@ parameters:
     # Suppress deprecated parameter warnings that replace the old boolean flags.
     ignoreErrors:
         - message: '#on left side of \?\? always exists and is not nullable#'
-        - message: '#Action callback returns bool but should not return anything#'
         - message: '#aldus_pick_large_font expects#'
         - message: "#Offset 'mediaId' does not exist on array#"
-        # WordPress stubs declare $deps as array<int|string, array{id:string,...}> but WP
-        # also accepts a flat array of string module IDs — the stubs are too strict here.
-        - message: '/Parameter \#3 \$deps of function wp_register_script_module expects/'
+        # String-form callbacks are valid in WordPress but PHPStan WP stubs flag them.
+        - message: '#Parameter \#2 \$callback of function add_action expects callable\(\): mixed#'
+        # ALDUS_URL is defined at global scope in aldus.php but PHPStan loses track of it
+        # when scanning includes/ independently.
+        - message: '#Constant ALDUS_URL not found#'
         - identifier: missingType.iterableValue
         # - identifier: missingType.generics  # uncomment if generic type errors appear

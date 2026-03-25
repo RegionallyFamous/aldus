@@ -215,7 +215,28 @@ if ( ! class_exists( 'WP_REST_Server' ) ) {
 	}
 }
 
-// Load the files under test.
+// Load the files under test — mirrors the require chain in aldus_init().
+// Foundation
+require_once ALDUS_PATH . 'includes/sanitize.php';
+require_once ALDUS_PATH . 'includes/tokens.php';
+require_once ALDUS_PATH . 'includes/theme.php';
+require_once ALDUS_PATH . 'includes/class-content-distributor.php';
+// Configuration
+require_once ALDUS_PATH . 'includes/personality.php';
 require_once ALDUS_PATH . 'includes/block-html.php';
+require_once ALDUS_PATH . 'includes/serialize.php';
+// Renderers
+require_once ALDUS_PATH . 'includes/renderers/cover.php';
+require_once ALDUS_PATH . 'includes/renderers/columns.php';
+require_once ALDUS_PATH . 'includes/renderers/group.php';
+require_once ALDUS_PATH . 'includes/renderers/media-text.php';
+require_once ALDUS_PATH . 'includes/renderers/pullquote.php';
+require_once ALDUS_PATH . 'includes/renderers/heading.php';
+require_once ALDUS_PATH . 'includes/renderers/text.php';
+require_once ALDUS_PATH . 'includes/renderers/media.php';
+require_once ALDUS_PATH . 'includes/renderers/structure.php';
+require_once ALDUS_PATH . 'includes/renderers/layout.php';
+require_once ALDUS_PATH . 'includes/render-router.php';
+// API layer
+require_once ALDUS_PATH . 'includes/class-rest-controller.php';
 require_once ALDUS_PATH . 'includes/api.php';
-require_once ALDUS_PATH . 'includes/templates.php';

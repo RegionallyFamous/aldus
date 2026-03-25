@@ -3,7 +3,7 @@ Contributors: regionallyfamous
 Tags: blocks, gutenberg, layout, design, composer
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 1.13.0
+Stable tag: 1.14.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -127,6 +127,12 @@ An optional free-text field on the building screen that steers the layout model 
 
 == Changelog ==
 
+= 1.14.0 =
+* The PHP backend has been split into focused modules — renderers, serialisers, theme helpers, and the REST controller each live in their own file. No user-facing changes; this makes the codebase easier to maintain and extend.
+
+= 1.13.0 =
+* The editor now loads faster. The block's internal JavaScript has been reorganised into focused modules — personalities, tokens, components, and screens each live in their own file. No user-facing changes; this lays the groundwork for easier feature additions.
+
 = 1.11.0 =
 * Any future render error in the block now shows a contained error panel instead of blanking the entire editor — you can keep editing the rest of your post.
 * Build and CI now catch undefined icon imports and incomplete bundles before they can be released, preventing the class of bug fixed in 1.10.2.
@@ -193,8 +199,11 @@ An optional free-text field on the building screen that steers the layout model 
 
 == Upgrade Notice ==
 
+= 1.14.0 =
+Internal PHP refactor. No user-facing changes; safe to update.
+
 = 1.13.0 =
-Internal code reorganisation. No user-facing changes; safe to update.
+Internal JavaScript reorganisation. No user-facing changes; safe to update.
 
 = 1.9.0 =
 Automatic retry on LLM parse failures reduces error rates. Assembled layout caching for repeat requests.

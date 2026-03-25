@@ -59,18 +59,18 @@ import {
 } from '@wordpress/keyboard-shortcuts';
 import { store as preferencesStore } from '@wordpress/preferences';
 import {
-	close,
-	undo,
-	help,
-	replace as refreshIcon,
-	unlock as unlockIcon,
-} from '@wordpress/icons';
-import {
 	PACK_META,
 	packToItems,
 	loadPackContent,
 } from './sample-data/index.js';
-import { safeIcon } from './utils/safeIcon';
+import {
+	safeIcon,
+	closeIcon as close,
+	undoIcon as undo,
+	helpIcon as help,
+	refreshIcon,
+	unlockIcon,
+} from './utils/icons';
 import { useAldusEngine } from './hooks/useAldusEngine.js';
 import { useAldusGeneration } from './hooks/useAldusGeneration.js';
 import { useAldusItems } from './hooks/useAldusItems.js';
@@ -85,6 +85,7 @@ import { LAYOUT_TAGLINES, LOADING_MESSAGES } from './data/ui-strings.js';
 import { buildPersonalityPrompt, enforceAnchors } from './lib/prompts.js';
 import { ResultsScreen } from './components/ResultsScreen.js';
 import { BuildingScreen } from './components/BuildScreen.js';
+import { ALDUS_JS_VERSION } from './constants.js';
 
 import './editor.scss';
 
@@ -167,10 +168,6 @@ async function inferTokens(
 // ---------------------------------------------------------------------------
 // Edit component
 // ---------------------------------------------------------------------------
-
-// JS build version — must match ALDUS_VERSION in aldus.php.
-// Set by the release script; used only for the mismatch warning below.
-const ALDUS_JS_VERSION = '1.12.0';
 
 export default function Edit( { clientId, attributes, setAttributes } ) {
 	const blockProps = useBlockProps( {
