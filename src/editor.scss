@@ -2786,3 +2786,61 @@
 		opacity: 1 !important;
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Onboarding tooltips — shown once to first-time users
+// ---------------------------------------------------------------------------
+
+.aldus-onboarding-anchor {
+	position: relative;
+	display: contents;
+}
+
+.aldus-onboarding-tooltip {
+	position: absolute;
+	bottom: calc(100% + 10px);
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 999999;
+	background: #1e1e1e;
+	color: #fff;
+	border-radius: 6px;
+	padding: 12px 14px;
+	min-width: 220px;
+	max-width: 300px;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+	pointer-events: auto;
+
+	&::after {
+		content: "";
+		position: absolute;
+		top: 100%;
+		left: 50%;
+		transform: translateX(-50%);
+		border: 6px solid transparent;
+		border-top-color: #1e1e1e;
+	}
+}
+
+.aldus-onboarding-tooltip-text {
+	margin: 0 0 10px;
+	font-size: 12px;
+	line-height: 1.5;
+}
+
+.aldus-onboarding-tooltip-dismiss {
+	display: block;
+	margin-left: auto;
+	padding: 4px 10px;
+	background: #fff;
+	color: #1e1e1e;
+	border: none;
+	border-radius: 3px;
+	font-size: 12px;
+	font-weight: 600;
+	cursor: pointer;
+
+	&:hover {
+		background: #f0f0f0;
+	}
+}

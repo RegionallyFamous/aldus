@@ -3,7 +3,7 @@ Contributors: regionallyfamous
 Tags: blocks, gutenberg, layout, design, composer
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 1.4.0
+Stable tag: 1.5.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -127,6 +127,11 @@ An optional free-text field on the building screen that steers the layout model 
 
 == Changelog ==
 
+= 1.5.0 =
+* New users see three sequential tooltips on their first visit — pointing to where to add content, style hints, and the generate button. Dismiss each with "Got it".
+* Activating the plugin now takes you directly to a welcome page explaining how it works, with a link to try it immediately.
+* Plugin row now has an "About" link to the welcome page.
+
 = 1.4.0 =
 * After you update, a one-time notice tells you what changed in this release — dismiss it with the ✕ button.
 * Your site's privacy policy guide (Tools > Privacy) now lists what Aldus sends to the AI API, so you can include it in your site's privacy statement.
@@ -149,6 +154,9 @@ An optional free-text field on the building screen that steers the layout model 
 * Initial release. Describe your content, pick a personality, and Aldus generates a complete block layout — no external services, no API keys, nothing leaves your browser until you hit generate.
 
 == Upgrade Notice ==
+
+= 1.5.0 =
+New users will see a quick tooltip walkthrough on their first visit. Activating fresh also opens a welcome page.
 
 = 1.4.0 =
 Shows a one-time notice after upgrading and adds a privacy policy statement for Tools > Privacy.

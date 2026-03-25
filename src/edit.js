@@ -2490,6 +2490,27 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 	// pin that personality so generation leads with it.
 	const [ pinnedPersonality, setPinnedPersonality ] = useState( null );
 
+	// Onboarding: show three sequential tooltips for first-time users.
+	// null = already onboarded; 0/1/2 = active step index.
+	const [ onboardingStep, setOnboardingStep ] = useState( () =>
+		typeof window !== 'undefined' &&
+		window.localStorage.getItem( 'aldus_onboarded' )
+			? null
+			: 0
+	);
+	const advanceOnboarding = useCallback( () => {
+		setOnboardingStep( ( step ) => {
+			if ( step === null ) {
+				return null;
+			}
+			if ( step >= 2 ) {
+				window.localStorage.setItem( 'aldus_onboarded', '1' );
+				return null;
+			}
+			return step + 1;
+		} );
+	}, [] );
+
 	const lastFocusRef = useRef( null );
 	const engineRef = useRef( null );
 	const abortRef = useRef( null ); // set to a cancel fn during downloading/loading
@@ -3730,6 +3751,8 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 								setPinnedPersonality( null )
 							}
 							loadPreset={ loadPreset }
+							onboardingStep={ onboardingStep }
+							onOnboardingNext={ advanceOnboarding }
 						/>
 					</div>
 				) }
@@ -3960,6 +3983,8 @@ function BuildingScreen( {
 	pinnedPersonality,
 	onClearPinnedPersonality,
 	loadPreset,
+	onboardingStep,
+	onOnboardingNext,
 } ) {
 	const dragIdRef = useRef( null );
 	const removeTimerRef = useRef( null );
@@ -4246,6 +4271,8 @@ function BuildingScreen( {
 							editorBlocks={ editorBlocks }
 							onImportFromEditor={ importFromEditor }
 							onLoadPreset={ loadPreset }
+							showOnboarding={ onboardingStep === 0 }
+							onOnboardingNext={ advanceOnboarding }
 						/>
 					) }
 
@@ -4326,12 +4353,21 @@ function BuildingScreen( {
 						</div>
 					) }
 
-					{ items.length > 0 && (
+				{ items.length > 0 && (
+					<OnboardingTooltip
+						show={ onboardingStep === 1 }
+						text={ __(
+							'Add optional style hints — "minimal", "bold CTA", "image-forward" — or pick a chip. These guide the layout model.',
+							'aldus'
+						) }
+						onDismiss={ onOnboardingNext }
+					>
 						<StyleNoteField
 							value={ styleNote }
 							onChange={ onStyleNoteChange }
 						/>
-					) }
+					</OnboardingTooltip>
+				) }
 
 					{ showEmptyWarning && (
 						<Notice
@@ -4370,11 +4406,19 @@ function BuildingScreen( {
 					{ /* Item 19: QuickPeek compact strip — just above the generate button */ }
 					{ items.length > 0 && <QuickPeek items={ items } /> }
 
-					{ items.length > 0 && (
-						<div className="aldus-generate-row">
-							<Button
-								variant="primary"
-								onClick={ handleGenerate }
+				{ items.length > 0 && (
+					<OnboardingTooltip
+						show={ onboardingStep === 2 }
+						text={ __(
+							'Hit "Make it happen" to see sixteen layout options for your content. The AI model downloads once (~200 MB) and is cached in your browser forever.',
+							'aldus'
+						) }
+						onDismiss={ onOnboardingNext }
+					>
+					<div className="aldus-generate-row">
+						<Button
+							variant="primary"
+							onClick={ handleGenerate }
 								disabled={
 									! canGenerate || isGenerating || noWebGPU
 								}
@@ -4389,20 +4433,54 @@ function BuildingScreen( {
 									<kbd className="aldus-kbd">⌘↵</kbd>
 								) }
 							</Button>
-							{ ! hasEngine &&
-								canGenerate &&
-								! hasDownloadedModel && (
-									<span className="aldus-hint aldus-hint--download">
-										{ __(
-											'First run downloads a small AI model (~200 MB, one time only). After that, Aldus works instantly — even offline.',
-											'aldus'
-										) }
-									</span>
-								) }
-						</div>
-					) }
+						{ ! hasEngine &&
+							canGenerate &&
+							! hasDownloadedModel && (
+								<span className="aldus-hint aldus-hint--download">
+									{ __(
+										'First run downloads a small AI model (~200 MB, one time only). After that, Aldus works instantly — even offline.',
+										'aldus'
+									) }
+								</span>
+							) }
+					</div>
+					</OnboardingTooltip>
+				) }
 				</>
 			) }
+		</div>
+	);
+}
+
+// ---------------------------------------------------------------------------
+// Onboarding tooltip — shown once to first-time users.
+// ---------------------------------------------------------------------------
+
+/**
+ * Wraps a child element with a floating "Got it" tooltip for onboarding.
+ *
+ * @param {Object}   props
+ * @param {boolean}  props.show       Whether the tooltip is currently active.
+ * @param {string}   props.text       Descriptive text shown in the tooltip.
+ * @param {Function} props.onDismiss  Callback fired when the user dismisses.
+ * @param {*}        props.children   The element to annotate.
+ */
+function OnboardingTooltip( { show, text, onDismiss, children } ) {
+	if ( ! show ) {
+		return children;
+	}
+	return (
+		<div className="aldus-onboarding-anchor">
+			{ children }
+			<div className="aldus-onboarding-tooltip" role="status">
+				<p className="aldus-onboarding-tooltip-text">{ text }</p>
+				<button
+					className="aldus-onboarding-tooltip-dismiss"
+					onClick={ onDismiss }
+				>
+					{ __( 'Got it', 'aldus' ) }
+				</button>
+			</div>
 		</div>
 	);
 }
@@ -4416,6 +4494,8 @@ function EmptyState( {
 	editorBlocks,
 	onImportFromEditor,
 	onLoadPreset,
+	showOnboarding = false,
+	onOnboardingNext,
 } ) {
 	// Summarise the editor's existing block tree into a human-readable hint
 	// shown beneath the import button, e.g. "4 headings · 6 paragraphs · 2 images".
@@ -4513,13 +4593,27 @@ function EmptyState( {
 				) ) }
 			</div>
 
+		<OnboardingTooltip
+			show={ showOnboarding }
+			text={ __(
+				'Start by picking a template or adding content manually. Once you\'ve added something, you\'ll be able to generate your layout.',
+				'aldus'
+			) }
+			onDismiss={ onOnboardingNext }
+		>
 			<button
 				className="aldus-empty-manual-link"
-				onClick={ () => onAdd?.( 'headline' ) }
+				onClick={ () => {
+					onAdd?.( 'headline' );
+					if ( showOnboarding ) {
+						onOnboardingNext?.();
+					}
+				} }
 			>
 				{ __( 'Add content manually', 'aldus' ) }
 			</button>
-		</div>
+		</OnboardingTooltip>
+	</div>
 	);
 }
 

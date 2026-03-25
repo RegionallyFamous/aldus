@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Plugin Name:       Aldus — Block Compositor
  * Plugin URI:        https://github.com/RegionallyFamous/aldus
  * Description:       You write it. Aldus designs it. Sixteen layout styles for your content — pick the one that fits, and it becomes real WordPress blocks.
- * Version:           1.4.0
+ * Version:           1.5.0
  * Requires at least: 6.4
  * Requires PHP:      8.0
  * Author:            Regionally Famous
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'ALDUS_VERSION', '1.3.0' );
+define( 'ALDUS_VERSION', '1.5.0' );
 define( 'ALDUS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ALDUS_URL', plugin_dir_url( __FILE__ ) );
 
@@ -31,13 +31,13 @@ register_deactivation_hook( __FILE__, 'aldus_deactivate' );
 /**
  * Runs on plugin activation.
  *
- * Stores the installed version so future activations can detect upgrades and
- * run any needed migration logic. No rewrite rules are registered at this time,
- * so no flush is required.
+ * Stores the installed version and sets a one-time redirect transient so
+ * the first activation takes the user to the welcome page.
  */
 function aldus_activate(): void {
 	if ( ! get_option( 'aldus_version' ) ) {
 		add_option( 'aldus_version', ALDUS_VERSION, '', false );
+		set_transient( 'aldus_activation_redirect', true, 60 );
 	}
 }
 
@@ -57,6 +57,7 @@ function aldus_init(): void {
 	require_once ALDUS_PATH . 'includes/block-html.php';
 	require_once ALDUS_PATH . 'includes/templates.php';
 	require_once ALDUS_PATH . 'includes/patterns.php';
+	require_once ALDUS_PATH . 'includes/admin-page.php';
 
 	add_action( 'init', 'aldus_register_block' );
 	add_action( 'init', fn() => load_plugin_textdomain( 'aldus', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' ) );
@@ -95,6 +96,9 @@ function aldus_init(): void {
 	add_action( 'admin_notices', 'aldus_whats_new_notice' );
 	add_action( 'wp_ajax_aldus_dismiss_notice', 'aldus_dismiss_notice' );
 
+	// Redirect to welcome page on first activation.
+	add_action( 'admin_init', 'aldus_maybe_redirect_to_welcome' );
+
 	// Declare privacy policy content for the Tools > Privacy screen.
 	add_action( 'admin_init', 'aldus_add_privacy_policy_content' );
 }
@@ -125,12 +129,23 @@ function aldus_register_block_category( array $categories ): array {
  * @return array<string, string>
  */
 function aldus_plugin_action_links( array $links ): array {
+	$welcome = sprintf(
+		'<a href="%s">%s</a>',
+		esc_url( admin_url( 'admin.php?page=aldus-welcome' ) ),
+		__( 'About', 'aldus' )
+	);
 	$how_to_use = sprintf(
 		'<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
 		'https://github.com/RegionallyFamous/aldus/wiki',
-		__( 'How to use', 'aldus' )
+		__( 'Docs', 'aldus' )
 	);
-	return array_merge( array( 'how_to_use' => $how_to_use ), $links );
+	return array_merge(
+		array(
+			'welcome'    => $welcome,
+			'how_to_use' => $how_to_use,
+		),
+		$links
+	);
 }
 
 /**
@@ -188,6 +203,27 @@ function aldus_check_deprecated_filters(): void {
 			// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 		}
 	}
+}
+
+/**
+ * Redirects to the welcome admin page on the very first activation.
+ *
+ * Checks and deletes the activation transient set by aldus_activate() so
+ * the redirect fires exactly once (and not during bulk plugin activations).
+ */
+function aldus_maybe_redirect_to_welcome(): void {
+	if ( ! get_transient( 'aldus_activation_redirect' ) ) {
+		return;
+	}
+	delete_transient( 'aldus_activation_redirect' );
+
+	// Do not redirect on bulk activations.
+	if ( isset( $_GET['activate-multi'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		return;
+	}
+
+	wp_safe_redirect( admin_url( 'admin.php?page=aldus-welcome' ) );
+	exit;
 }
 
 /**
