@@ -54,7 +54,11 @@ async function runInference( engine, prompt, temperature, maxTokens ) {
 	} catch ( err ) {
 		if ( window?.aldusDebug ) {
 			// eslint-disable-next-line no-console
-			console.debug( '[Aldus intelligence] JSON parse failed. Raw:', raw, err );
+			console.debug(
+				'[Aldus intelligence] JSON parse failed. Raw:',
+				raw,
+				err
+			);
 		}
 		return {};
 	}
