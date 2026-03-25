@@ -142,6 +142,28 @@ if ( ! function_exists( '__' ) ) {
 	}
 }
 
+if ( ! function_exists( 'add_action' ) ) {
+	function add_action( string $hook, callable $callback, int $priority = 10, int $accepted_args = 1 ): bool {
+		return true;
+	}
+}
+
+if ( ! function_exists( 'add_filter' ) ) {
+	function add_filter( string $hook, callable $callback, int $priority = 10, int $accepted_args = 1 ): bool {
+		return true;
+	}
+}
+
+if ( ! function_exists( 'register_rest_route' ) ) {
+	function register_rest_route( string $namespace, string $route, array $args = array() ): bool {
+		return true;
+	}
+}
+
+if ( ! function_exists( '_doing_it_wrong' ) ) {
+	function _doing_it_wrong( string $function, string $message, string $version ): void {}
+}
+
 if ( ! class_exists( 'WP_Error' ) ) {
 	class WP_Error {
 		public string $code;

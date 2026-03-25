@@ -1046,6 +1046,28 @@ function aldus_theme_content_size(): string {
 }
 
 /**
+ * Returns the theme's wide layout width (wideSize) or a sensible default.
+ *
+ * @return string CSS width value, e.g. '72rem'.
+ */
+function aldus_theme_wide_size(): string {
+	$cache_key = 'aldus_wide_size_' . ALDUS_VERSION;
+	$cached    = wp_cache_get( $cache_key, 'aldus' );
+	if ( false !== $cached ) {
+		return (string) $cached;
+	}
+
+	$settings = wp_get_global_settings( array( 'layout' ) );
+	$value    = ( is_array( $settings ) ? $settings['wideSize'] ?? '' : '' );
+	if ( '' === $value ) {
+		$value = '72rem';
+	}
+
+	wp_cache_set( $cache_key, $value, 'aldus', HOUR_IN_SECONDS );
+	return $value;
+}
+
+/**
  * Returns a theme spacing value mapped to a logical role.
  *
  * Roles map to positional percentiles in the theme's spacing preset scale so
@@ -1345,6 +1367,122 @@ function aldus_handle_record_use( WP_REST_Request $request ): WP_REST_Response {
 		array(
 			'success' => true,
 			'count'   => $current + 1,
+		)
+	);
+}
+
+// ---------------------------------------------------------------------------
+// Public API — register_aldus_personality()
+// ---------------------------------------------------------------------------
+
+/** @var array<string, array{label: string, prompt: string}> */
+$aldus_registered_personalities = array();
+
+/**
+ * Register a custom personality from a theme or plugin.
+ *
+ * The registered personality appears in the Aldus editor alongside the
+ * built-in sixteen. Call this function on or after the `init` hook.
+ *
+ * @param string $slug            Unique machine-readable identifier.
+ * @param string $label           Human-readable name shown in the editor UI.
+ * @param string $prompt_fragment One-sentence style description appended to
+ *                                the LLM prompt for this personality.
+ */
+function aldus_register_personality( string $slug, string $label, string $prompt_fragment ): void {
+	global $aldus_registered_personalities;
+
+	$safe_slug = sanitize_key( $slug );
+	if ( '' === $safe_slug ) {
+		_doing_it_wrong( __FUNCTION__, 'Personality slug must be a non-empty string.', '1.6.0' );
+		return;
+	}
+
+	$aldus_registered_personalities[ $safe_slug ] = array(
+		'label'  => sanitize_text_field( $label ),
+		'prompt' => sanitize_text_field( $prompt_fragment ),
+	);
+}
+
+/**
+ * Returns all personalities registered via register_aldus_personality().
+ *
+ * @return array<string, array{label: string, prompt: string}>
+ */
+function aldus_get_registered_personalities(): array {
+	global $aldus_registered_personalities;
+	return (array) $aldus_registered_personalities;
+}
+
+// ---------------------------------------------------------------------------
+// GET /aldus/v1/config — public configuration endpoint
+// ---------------------------------------------------------------------------
+
+/**
+ * Registers the GET /aldus/v1/config endpoint.
+ *
+ * Called from aldus_register_rest_routes() via the rest_api_init hook.
+ */
+function aldus_register_config_route(): void {
+	register_rest_route(
+		'aldus/v1',
+		'/config',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'aldus_handle_config',
+			'permission_callback' => static function () {
+				return current_user_can( 'edit_posts' );
+			},
+		)
+	);
+}
+add_action( 'rest_api_init', 'aldus_register_config_route' );
+
+/**
+ * Handles GET /aldus/v1/config.
+ *
+ * Returns the current Aldus configuration: plugin version, all available
+ * personalities (built-in + registered), and active theme layout settings.
+ *
+ * @return WP_REST_Response
+ */
+function aldus_handle_config(): WP_REST_Response {
+	// Built-in personalities from the anchor map.
+	$builtin = array_keys( aldus_anchor_tokens() );
+	$personalities = array_map(
+		static function ( string $name ) {
+			return array(
+				'slug'   => sanitize_key( strtolower( str_replace( ' ', '-', $name ) ) ),
+				'label'  => $name,
+				'source' => 'builtin',
+			);
+		},
+		$builtin
+	);
+
+	// Personalities registered via register_aldus_personality().
+	foreach ( aldus_get_registered_personalities() as $slug => $data ) {
+		$personalities[] = array(
+			'slug'   => $slug,
+			'label'  => $data['label'],
+			'source' => 'registered',
+		);
+	}
+
+	return rest_ensure_response(
+		array(
+			'version'       => ALDUS_VERSION,
+			'personalities' => $personalities,
+			'theme'         => array(
+				'contentSize' => aldus_theme_content_size(),
+				'wideSize'    => aldus_theme_wide_size(),
+				'spacing'     => array(
+					'sm' => aldus_theme_spacing( 'sm' ),
+					'md' => aldus_theme_spacing( 'md' ),
+					'lg' => aldus_theme_spacing( 'lg' ),
+					'xl' => aldus_theme_spacing( 'xl' ),
+				),
+			),
 		)
 	);
 }

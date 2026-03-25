@@ -22,7 +22,9 @@ if ( ! is_dir( $wp_tests_dir . '/includes' ) ) {
 	exit( 1 );
 }
 
-define( 'ABSPATH', dirname( __DIR__, 2 ) . '/' );
+// Note: do NOT define ABSPATH here. The WP test suite (wp-tests-config.php)
+// sets it to the actual WordPress install directory. Defining it early causes
+// wp-settings.php to be loaded from the wrong path.
 define( 'ALDUS_VERSION', '1.0.0-test' );
 define( 'ALDUS_PATH', dirname( __DIR__, 2 ) . '/' );
 define( 'ALDUS_URL', 'http://localhost/' );

@@ -4272,7 +4272,7 @@ function BuildingScreen( {
 							onImportFromEditor={ importFromEditor }
 							onLoadPreset={ loadPreset }
 							showOnboarding={ onboardingStep === 0 }
-							onOnboardingNext={ advanceOnboarding }
+							onOnboardingNext={ onOnboardingNext }
 						/>
 					) }
 
@@ -4353,21 +4353,21 @@ function BuildingScreen( {
 						</div>
 					) }
 
-				{ items.length > 0 && (
-					<OnboardingTooltip
-						show={ onboardingStep === 1 }
-						text={ __(
-							'Add optional style hints — "minimal", "bold CTA", "image-forward" — or pick a chip. These guide the layout model.',
-							'aldus'
-						) }
-						onDismiss={ onOnboardingNext }
-					>
-						<StyleNoteField
-							value={ styleNote }
-							onChange={ onStyleNoteChange }
-						/>
-					</OnboardingTooltip>
-				) }
+					{ items.length > 0 && (
+						<OnboardingTooltip
+							show={ onboardingStep === 1 }
+							text={ __(
+								'Add optional style hints — "minimal", "bold CTA", "image-forward" — or pick a chip. These guide the layout model.',
+								'aldus'
+							) }
+							onDismiss={ onOnboardingNext }
+						>
+							<StyleNoteField
+								value={ styleNote }
+								onChange={ onStyleNoteChange }
+							/>
+						</OnboardingTooltip>
+					) }
 
 					{ showEmptyWarning && (
 						<Notice
@@ -4406,46 +4406,51 @@ function BuildingScreen( {
 					{ /* Item 19: QuickPeek compact strip — just above the generate button */ }
 					{ items.length > 0 && <QuickPeek items={ items } /> }
 
-				{ items.length > 0 && (
-					<OnboardingTooltip
-						show={ onboardingStep === 2 }
-						text={ __(
-							'Hit "Make it happen" to see sixteen layout options for your content. The AI model downloads once (~200 MB) and is cached in your browser forever.',
-							'aldus'
-						) }
-						onDismiss={ onOnboardingNext }
-					>
-					<div className="aldus-generate-row">
-						<Button
-							variant="primary"
-							onClick={ handleGenerate }
-								disabled={
-									! canGenerate || isGenerating || noWebGPU
-								}
-								className="aldus-generate-btn"
-							>
-								{ isGenerating && <Spinner /> }
-								{ ! isGenerating &&
-									( noWebGPU
-										? __( 'Requires WebGPU', 'aldus' )
-										: __( 'Make it happen', 'aldus' ) ) }
-								{ ! isGenerating && ! noWebGPU && (
-									<kbd className="aldus-kbd">⌘↵</kbd>
-								) }
-							</Button>
-						{ ! hasEngine &&
-							canGenerate &&
-							! hasDownloadedModel && (
-								<span className="aldus-hint aldus-hint--download">
-									{ __(
-										'First run downloads a small AI model (~200 MB, one time only). After that, Aldus works instantly — even offline.',
-										'aldus'
-									) }
-								</span>
+					{ items.length > 0 && (
+						<OnboardingTooltip
+							show={ onboardingStep === 2 }
+							text={ __(
+								'Hit "Make it happen" to see sixteen layout options for your content. The AI model downloads once (~200 MB) and is cached in your browser forever.',
+								'aldus'
 							) }
-					</div>
-					</OnboardingTooltip>
-				) }
+							onDismiss={ onOnboardingNext }
+						>
+							<div className="aldus-generate-row">
+								<Button
+									variant="primary"
+									onClick={ handleGenerate }
+									disabled={
+										! canGenerate ||
+										isGenerating ||
+										noWebGPU
+									}
+									className="aldus-generate-btn"
+								>
+									{ isGenerating && <Spinner /> }
+									{ ! isGenerating &&
+										( noWebGPU
+											? __( 'Requires WebGPU', 'aldus' )
+											: __(
+													'Make it happen',
+													'aldus'
+											  ) ) }
+									{ ! isGenerating && ! noWebGPU && (
+										<kbd className="aldus-kbd">⌘↵</kbd>
+									) }
+								</Button>
+								{ ! hasEngine &&
+									canGenerate &&
+									! hasDownloadedModel && (
+										<span className="aldus-hint aldus-hint--download">
+											{ __(
+												'First run downloads a small AI model (~200 MB, one time only). After that, Aldus works instantly — even offline.',
+												'aldus'
+											) }
+										</span>
+									) }
+							</div>
+						</OnboardingTooltip>
+					) }
 				</>
 			) }
 		</div>
@@ -4460,10 +4465,10 @@ function BuildingScreen( {
  * Wraps a child element with a floating "Got it" tooltip for onboarding.
  *
  * @param {Object}   props
- * @param {boolean}  props.show       Whether the tooltip is currently active.
- * @param {string}   props.text       Descriptive text shown in the tooltip.
- * @param {Function} props.onDismiss  Callback fired when the user dismisses.
- * @param {*}        props.children   The element to annotate.
+ * @param {boolean}  props.show      Whether the tooltip is currently active.
+ * @param {string}   props.text      Descriptive text shown in the tooltip.
+ * @param {Function} props.onDismiss Callback fired when the user dismisses.
+ * @param {*}        props.children  The element to annotate.
  */
 function OnboardingTooltip( { show, text, onDismiss, children } ) {
 	if ( ! show ) {
@@ -4593,27 +4598,27 @@ function EmptyState( {
 				) ) }
 			</div>
 
-		<OnboardingTooltip
-			show={ showOnboarding }
-			text={ __(
-				'Start by picking a template or adding content manually. Once you\'ve added something, you\'ll be able to generate your layout.',
-				'aldus'
-			) }
-			onDismiss={ onOnboardingNext }
-		>
-			<button
-				className="aldus-empty-manual-link"
-				onClick={ () => {
-					onAdd?.( 'headline' );
-					if ( showOnboarding ) {
-						onOnboardingNext?.();
-					}
-				} }
+			<OnboardingTooltip
+				show={ showOnboarding }
+				text={ __(
+					"Start by picking a template or adding content manually. Once you've added something, you'll be able to generate your layout.",
+					'aldus'
+				) }
+				onDismiss={ onOnboardingNext }
 			>
-				{ __( 'Add content manually', 'aldus' ) }
-			</button>
-		</OnboardingTooltip>
-	</div>
+				<button
+					className="aldus-empty-manual-link"
+					onClick={ () => {
+						onAdd?.( 'headline' );
+						if ( showOnboarding ) {
+							onOnboardingNext?.();
+						}
+					} }
+				>
+					{ __( 'Add content manually', 'aldus' ) }
+				</button>
+			</OnboardingTooltip>
+		</div>
 	);
 }
 

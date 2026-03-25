@@ -7,26 +7,50 @@
 	"category": "aldus",
 	"icon": "table-col-after",
 	"description": "Turn your content into a professionally designed layout. Add what you've got — Aldus shows you sixteen ways it could look.",
-	"keywords": [ "layout", "personality", "aldus", "design", "arrange", "compositor" ],
+	"keywords": [
+		"layout",
+		"personality",
+		"aldus",
+		"design",
+		"arrange",
+		"compositor"
+	],
 	"textdomain": "aldus",
 	"usesContext": [ "postId", "postType" ],
 	"attributes": {
 		"enabledPersonalities": {
 			"type": "array",
 			"items": { "type": "string" },
-			"default": [ "Dispatch", "Folio", "Stratum", "Broadside", "Manifesto", "Nocturne", "Tribune", "Overture", "Codex", "Dusk", "Broadsheet", "Solstice", "Mirage", "Ledger", "Mosaic", "Prism" ]
+			"default": [
+				"Dispatch",
+				"Folio",
+				"Stratum",
+				"Broadside",
+				"Manifesto",
+				"Nocturne",
+				"Tribune",
+				"Overture",
+				"Codex",
+				"Dusk",
+				"Broadsheet",
+				"Solstice",
+				"Mirage",
+				"Ledger",
+				"Mosaic",
+				"Prism"
+			]
 		},
 		"savedItems": {
 			"type": "array",
 			"items": {
 				"type": "object",
 				"properties": {
-					"id":      { "type": "string" },
-					"type":    { "type": "string" },
+					"id": { "type": "string" },
+					"type": { "type": "string" },
 					"content": { "type": "string" },
-					"url":     { "type": "string" },
+					"url": { "type": "string" },
 					"mediaId": { "type": "integer" },
-					"urls":    { "type": "array", "items": { "type": "string" } }
+					"urls": { "type": "array", "items": { "type": "string" } }
 				}
 			},
 			"default": []
@@ -43,11 +67,31 @@
 	"example": {
 		"attributes": {
 			"savedItems": [
-				{ "id": "ex1", "type": "headline",  "content": "Espresso at Altitude", "url": "" },
-				{ "id": "ex2", "type": "subheading","content": "A single-origin story", "url": "" },
-				{ "id": "ex3", "type": "paragraph", "content": "Sourced from 2,400m farms in the Yirgacheffe region, these beans carry a brightness that no lower-altitude crop can match.", "url": "" },
-				{ "id": "ex4", "type": "image",     "content": "", "url": "" },
-				{ "id": "ex5", "type": "cta",       "content": "Explore the farm", "url": "#" }
+				{
+					"id": "ex1",
+					"type": "headline",
+					"content": "Espresso at Altitude",
+					"url": ""
+				},
+				{
+					"id": "ex2",
+					"type": "subheading",
+					"content": "A single-origin story",
+					"url": ""
+				},
+				{
+					"id": "ex3",
+					"type": "paragraph",
+					"content": "Sourced from 2,400m farms in the Yirgacheffe region, these beans carry a brightness that no lower-altitude crop can match.",
+					"url": ""
+				},
+				{ "id": "ex4", "type": "image", "content": "", "url": "" },
+				{
+					"id": "ex5",
+					"type": "cta",
+					"content": "Explore the farm",
+					"url": "#"
+				}
 			],
 			"styleNote": ""
 		}
@@ -60,12 +104,37 @@
 			"isDefault": false,
 			"attributes": {
 				"savedItems": [
-					{ "id": "v1h", "type": "headline",   "content": "The Places That Change You Don't Have Gift Shops.",           "url": "" },
-					{ "id": "v1s", "type": "subheading", "content": "Slow Travel in a World That Won't Stop Refreshing",           "url": "" },
-					{ "id": "v1p", "type": "paragraph",  "content": "The train from Sarajevo to Mostar takes two and a half hours and passes through scenery that doesn't fit on a phone screen. We almost flew. We are so glad we didn't. There are things you can't learn about a country at 35,000 feet, and most of them happen in the dining car.", "url": "" },
-					{ "id": "v1q", "type": "quote",      "content": "The discomfort was the point. We paid for it gladly.",        "url": "" },
-					{ "id": "v1i", "type": "image",      "content": "",                                                             "url": "" },
-					{ "id": "v1c", "type": "cta",        "content": "Read the full dispatch",                                      "url": "#" }
+					{
+						"id": "v1h",
+						"type": "headline",
+						"content": "The Places That Change You Don't Have Gift Shops.",
+						"url": ""
+					},
+					{
+						"id": "v1s",
+						"type": "subheading",
+						"content": "Slow Travel in a World That Won't Stop Refreshing",
+						"url": ""
+					},
+					{
+						"id": "v1p",
+						"type": "paragraph",
+						"content": "The train from Sarajevo to Mostar takes two and a half hours and passes through scenery that doesn't fit on a phone screen. We almost flew. We are so glad we didn't. There are things you can't learn about a country at 35,000 feet, and most of them happen in the dining car.",
+						"url": ""
+					},
+					{
+						"id": "v1q",
+						"type": "quote",
+						"content": "The discomfort was the point. We paid for it gladly.",
+						"url": ""
+					},
+					{ "id": "v1i", "type": "image", "content": "", "url": "" },
+					{
+						"id": "v1c",
+						"type": "cta",
+						"content": "Read the full dispatch",
+						"url": "#"
+					}
 				],
 				"styleNote": "editorial magazine layout"
 			}
@@ -77,12 +146,37 @@
 			"isDefault": false,
 			"attributes": {
 				"savedItems": [
-					{ "id": "v2h", "type": "headline",   "content": "Ship Product. Not YAML.",                                     "url": "" },
-					{ "id": "v2s", "type": "subheading", "content": "From Localhost to Production in Under 3 Minutes",             "url": "" },
-					{ "id": "v2p", "type": "paragraph",  "content": "Meridian exists because we got tired of watching senior engineers spend their Thursdays debugging Terraform instead of building product. Connect your repo. Define your environments. Push. That's it.", "url": "" },
-					{ "id": "v2q", "type": "quote",      "content": "We deployed 47 times last week. Zero issues.",                "url": "" },
-					{ "id": "v2i", "type": "image",      "content": "",                                                             "url": "" },
-					{ "id": "v2c", "type": "cta",        "content": "Start deploying free",                                        "url": "#" }
+					{
+						"id": "v2h",
+						"type": "headline",
+						"content": "Ship Product. Not YAML.",
+						"url": ""
+					},
+					{
+						"id": "v2s",
+						"type": "subheading",
+						"content": "From Localhost to Production in Under 3 Minutes",
+						"url": ""
+					},
+					{
+						"id": "v2p",
+						"type": "paragraph",
+						"content": "Meridian exists because we got tired of watching senior engineers spend their Thursdays debugging Terraform instead of building product. Connect your repo. Define your environments. Push. That's it.",
+						"url": ""
+					},
+					{
+						"id": "v2q",
+						"type": "quote",
+						"content": "We deployed 47 times last week. Zero issues.",
+						"url": ""
+					},
+					{ "id": "v2i", "type": "image", "content": "", "url": "" },
+					{
+						"id": "v2c",
+						"type": "cta",
+						"content": "Start deploying free",
+						"url": "#"
+					}
 				],
 				"styleNote": "cta-focus"
 			}
@@ -94,12 +188,37 @@
 			"isDefault": false,
 			"attributes": {
 				"savedItems": [
-					{ "id": "v3h", "type": "headline",   "content": "Life Is Too Short for Coffee That Tastes Like Regret.",       "url": "" },
-					{ "id": "v3s", "type": "subheading", "content": "From Cherry to Cup",                                          "url": "" },
-					{ "id": "v3p", "type": "paragraph",  "content": "We fly to origin twice a year. Not for the vibes — although the vibes are excellent — but because you can't judge a coffee from a sample bag and a spec sheet. You have to stand on the farm at sunrise, cup it at the wet mill, and watch the farmer's face.", "url": "" },
-					{ "id": "v3q", "type": "quote",      "content": "Sourced at altitude. Roasted with opinions.",                 "url": "" },
-					{ "id": "v3i", "type": "image",      "content": "",                                                             "url": "" },
-					{ "id": "v3c", "type": "cta",        "content": "Shop the latest roast",                                       "url": "#" }
+					{
+						"id": "v3h",
+						"type": "headline",
+						"content": "Life Is Too Short for Coffee That Tastes Like Regret.",
+						"url": ""
+					},
+					{
+						"id": "v3s",
+						"type": "subheading",
+						"content": "From Cherry to Cup",
+						"url": ""
+					},
+					{
+						"id": "v3p",
+						"type": "paragraph",
+						"content": "We fly to origin twice a year. Not for the vibes — although the vibes are excellent — but because you can't judge a coffee from a sample bag and a spec sheet. You have to stand on the farm at sunrise, cup it at the wet mill, and watch the farmer's face.",
+						"url": ""
+					},
+					{
+						"id": "v3q",
+						"type": "quote",
+						"content": "Sourced at altitude. Roasted with opinions.",
+						"url": ""
+					},
+					{ "id": "v3i", "type": "image", "content": "", "url": "" },
+					{
+						"id": "v3c",
+						"type": "cta",
+						"content": "Shop the latest roast",
+						"url": "#"
+					}
 				],
 				"styleNote": "text-first"
 			}
@@ -111,12 +230,37 @@
 			"isDefault": false,
 			"attributes": {
 				"savedItems": [
-					{ "id": "v4h", "type": "headline",   "content": "Email That Doesn't Read Your Email.",                         "url": "" },
-					{ "id": "v4s", "type": "subheading", "content": "The Privacy You Stopped Expecting",                           "url": "" },
-					{ "id": "v4p", "type": "paragraph",  "content": "Signal Mail is email the way it should have been built in the first place: encrypted, private, and completely uninterested in what you're writing. No scanning. No profiling. Your messages are yours. That's the whole product.", "url": "" },
-					{ "id": "v4q", "type": "quote",      "content": "We can't read your email. That's not a limitation — it's the product.", "url": "" },
-					{ "id": "v4i", "type": "image",      "content": "",                                                             "url": "" },
-					{ "id": "v4c", "type": "cta",        "content": "Try it free for 30 days",                                     "url": "#" }
+					{
+						"id": "v4h",
+						"type": "headline",
+						"content": "Email That Doesn't Read Your Email.",
+						"url": ""
+					},
+					{
+						"id": "v4s",
+						"type": "subheading",
+						"content": "The Privacy You Stopped Expecting",
+						"url": ""
+					},
+					{
+						"id": "v4p",
+						"type": "paragraph",
+						"content": "Signal Mail is email the way it should have been built in the first place: encrypted, private, and completely uninterested in what you're writing. No scanning. No profiling. Your messages are yours. That's the whole product.",
+						"url": ""
+					},
+					{
+						"id": "v4q",
+						"type": "quote",
+						"content": "We can't read your email. That's not a limitation — it's the product.",
+						"url": ""
+					},
+					{ "id": "v4i", "type": "image", "content": "", "url": "" },
+					{
+						"id": "v4c",
+						"type": "cta",
+						"content": "Try it free for 30 days",
+						"url": "#"
+					}
 				],
 				"styleNote": "minimal"
 			}
