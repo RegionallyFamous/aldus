@@ -128,59 +128,29 @@ An optional free-text field on the building screen that steers the layout model 
 == Changelog ==
 
 = 1.3.0 =
-* Testing & linting infrastructure: added PHPCS with WordPress Coding Standards, PHPStan static analysis at level 6, and stricter ESLint config — 0 errors across all PHP source files.
-* Auto-fixed 1,430 PHPCS style violations (indentation, array syntax, spacing) via phpcbf.
-* Expanded PHP unit test suite: new ContentDistributorTest (17 tests), SanitizeTokenTest (11 tests), SanitizeItemTest (15 tests), and ThemeHelpersTest (18 tests) — 93 unit tests total.
-* Corrected existing BlockHtmlTest, EnforceAnchorsTest, and PruneTokensTest to use accurate function names and non-anchor token fixtures.
-* Added Jest configuration (jest.config.js) and tokenLabels.test.js — 57 JS unit tests total.
-* Added PHP integration test suite (tests/integration/) with AssembleEndpointTest and RendererCoverTest; requires WordPress test library via bin/install-wp-tests.sh.
-* Added test fixtures (tests/fixtures/) for blog post and landing page content scenarios.
-* Updated CI pipeline: PHPCS and PHPStan added to lint job; PHP unit tests now run against PHP 8.0, 8.2, and 8.3 in a matrix; integration tests run against WP 6.4/6.7/latest with MySQL service.
-* New npm scripts: lint:php, analyze:php, fix:php, test:js, test:php:unit, test:php:integration, coverage:php, coverage:js, ci.
+* No changes to the editor or generated layouts. This release adds automated testing and static analysis so bugs are caught before they reach you.
 
 = 1.2.0 =
-* Theme awareness: Aldus now reads theme.json layout settings and uses the active theme's contentSize for constrained group blocks instead of a hardcoded 48rem.
-* Theme spacing: padding values in generated blocks now map to the theme's spacing preset scale (via CSS custom properties) when declared; hardcoded rem values are used as fallback.
-* Theme spacer adaptation: spacer block heights are reduced when the theme already has a generous blockGap, preventing double whitespace.
-* Theme appearance tools: tokens that rely on borders or background colors are automatically filtered out when the theme has disabled those appearance tools.
-* Plain button variant: the default CTA button no longer overrides theme colors — it renders as a bare core/button so the theme's global button styles apply natively. Outline and ghost variants are unchanged.
-* Custom block styles: the editor detects registered styles for core/pullquote, core/image, and core/button and passes them to the assembler; pullquotes use a theme's "plain" style when available.
-* Site identity in LLM prompt: the site title and tagline are now passed to the layout model as context ("Site: Name — Tagline"), giving the model a signal about the site's domain and tone.
-* Nav menu URL suggestions: CTA button inputs now show clickable suggestion pills for the site's primary navigation items when the URL field is empty.
-* Recent media thumbnails: image inputs now show the 8 most recently uploaded media library images as clickable thumbnails when no image has been selected yet.
+* Generated layouts now feel like they belong in your theme. Spacing, widths, and button styles are pulled from your theme settings rather than baked in, so output looks right on any block theme without manual cleanup.
+* CTA button fields now suggest your site's navigation links when the URL is empty — one click to fill it in.
+* Image fields show your most recently uploaded media as a thumbnail grid, so you're not hunting through the media library.
+* The layout model is now aware of your site name and tagline, which helps it make better style and tone choices.
 
 = 1.1.0 =
-* Redesigned card overlay: replaced full-cover dark overlay with a slim gradient bar at the bottom of each card. "Use this one" is now the sole primary action in the overlay, styled with the theme accent color.
-* Moved "Expand preview" button to the top-right corner of the card; semi-transparent by default, fully visible on hover.
-* Moved "Copy blocks" and "Try with my content" to the card footer as compact icon-only buttons (clipboard and swap icons) with tooltips. These power-user actions no longer block the layout preview.
-* Redesigned empty state: content type buttons are now the first interactive elements, making the primary action immediately obvious. Import options ("Use post title as headline", "Import content from this page") appear below a visual divider as a secondary path.
-* Style chips, special instructions, and the "Make it happen" button are now hidden in the empty state and only appear once at least one content item has been added.
-* Fixed WordPress 6.9 block serialization: padding shorthand expanded to longhand (padding-top / right / bottom / left), cover inner-container class list corrected, button class order fixed, media-text grid-template updated, group border migrated to longhand with has-border-color class.
+* The card overlay is less intrusive. "Use this one" is the clear primary action; expand, copy, and swap are still there as small footer controls so they stay out of the way while you're browsing layouts.
+* The empty state now leads with content type buttons so it's immediately obvious what to do first. Style options and the generate button stay hidden until you've added something to work with.
+* Fixes block validation errors that appeared in WordPress 6.9.
 
 = 1.0.0 =
-* Initial public release.
-* Hybrid architecture: client-side WebLLM (SmolLM2-360M) for probabilistic layout planning; server-side PHP for deterministic WordPress block assembly. No external services, no subscriptions.
-* 16 layout personalities: Dispatch, Folio, Stratum, Broadside, Manifesto, Nocturne, Tribune, Overture, Codex, Dusk, Broadsheet, Solstice, Mirage, Ledger, Mosaic, Prism.
-* 10 content types: headline, subheading, paragraph, quote, image, button/CTA, list, video, table, gallery.
-* 9 themed sample packs for instant model-free previews: Roast, Meridian, Hearth, Plume, Grove, Bazaar, Forge, Rally, Slim.
-* Block transforms from core/group, core/heading, core/paragraph, core/image, core/quote, core/list, core/buttons, core/embed, core/table, core/gallery.
-* Mix & match — combine sections from different personalities into one layout.
-* Per-card re-roll — regenerate a single layout slot without losing the rest.
-* Quick peek — instant personality previews using your own content, no model required.
-* Saved sessions with post title and ID context.
-* Live content preview drawer on the building screen.
-* Keyboard shortcuts: ⌘↵ generate, ⇧⌘Z undo, ⇧⌘R regenerate.
-* Style notes — free-text steering for the layout model.
-* Completeness hints — outcome-based suggestions for missing content types.
-* Full CI via GitHub Actions; Dependabot for npm and Actions updates.
+* Initial release. Describe your content, pick a personality, and Aldus generates a complete block layout — no external services, no API keys, nothing leaves your browser until you hit generate.
 
 == Upgrade Notice ==
 
 = 1.3.0 =
-Maintenance release: adds comprehensive testing and linting infrastructure with no functional changes to layouts or the editor UI.
+No user-facing changes. Safe to update.
 
 = 1.2.0 =
-Generated layouts now adapt to your theme's spacing scale, content width, and button styles — output feels native to any block theme out of the box.
+Generated layouts now adapt to your active theme — spacing, widths, and button styles should look right without any manual cleanup.
 
 = 1.1.0 =
-Redesigned card overlay and empty state for a cleaner first-use experience. Fixes block serialization errors that appeared after upgrading to WordPress 6.9.
+Cleaner card overlay and empty state. Fixes block validation errors on WordPress 6.9.
