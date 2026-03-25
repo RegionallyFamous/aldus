@@ -257,7 +257,7 @@ function aldus_whats_new_notice(): void {
 function aldus_dismiss_notice(): void {
 	check_ajax_referer( 'aldus_dismiss_notice', 'nonce' );
 	if ( ! current_user_can( 'edit_posts' ) ) {
-		wp_die( -1, '', array( 'response' => 403 ) );
+		wp_die( '-1', '', array( 'response' => 403 ) );
 	}
 	update_user_meta( get_current_user_id(), 'aldus_dismissed_notice_version', ALDUS_VERSION );
 	wp_die();
