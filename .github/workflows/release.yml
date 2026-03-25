@@ -46,11 +46,25 @@ jobs:
       - name: Package release zip
         run: npm run release -- --skip-build
 
+      - name: Extract changelog entry
+        id: notes
+        run: |
+          VERSION="${{ steps.version.outputs.value }}"
+          # Pull the block between "= $VERSION =" and the next "= " heading
+          NOTES=$(awk "/^= $VERSION =/{found=1; next} found && /^= [0-9]/{exit} found{print}" readme.txt \
+            | sed '/^[[:space:]]*$/d' \
+            | sed 's/^\* /- /')
+          if [ -z "$NOTES" ]; then
+            NOTES="See readme.txt for full changelog."
+          fi
+          # Write to a temp file to avoid quoting issues with multiline strings
+          echo "$NOTES" > /tmp/release-notes.md
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${{ github.ref_name }}" \
             --title "Aldus ${{ steps.version.outputs.value }}" \
-            --generate-notes \
+            --notes-file /tmp/release-notes.md \
             releases/aldus-${{ steps.version.outputs.value }}.zip
