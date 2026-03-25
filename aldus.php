@@ -87,9 +87,6 @@ function aldus_init(): void {
 	// Add a "How to use" link to the plugin row on the Plugins admin page.
 	add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), 'aldus_plugin_action_links' );
 
-	// Restrict the Block Hook declared in block.json to FSE templates only.
-	add_filter( 'hooked_block_types', 'aldus_hooked_block_types', 10, 4 );
-
 	// Warn about deprecated filter usage.
 	aldus_check_deprecated_filters();
 
@@ -159,31 +156,6 @@ function aldus_plugin_action_links( mixed $links ): mixed {
 		),
 		$links
 	);
-}
-
-/**
- * Restricts the Block Hook to FSE block templates only.
- *
- * The hook declared in block.json makes sense inside the Site Editor, where
- * Aldus can seed an empty layout in a blank template. It should not fire when
- * WordPress is rendering individual post or page content on the front end —
- * that would silently inject the compositor into every published page.
- *
- * WordPress passes a WP_Block_Template for FSE templates, a WP_Post for
- * classic template parts / patterns, and null in some edge cases.
- * Checking instanceof WP_Block_Template is the narrowest safe guard here.
- *
- * @param string[]                              $hooked_blocks  Block types to insert at this position.
- * @param string                                $position       Relative position (e.g. 'firstChild').
- * @param string|null                           $anchor         Anchor block type, or null when there is no anchor.
- * @param WP_Block_Template|WP_Post|array|null  $context        Template, post, reusable-block array, or null.
- * @return string[]
- */
-function aldus_hooked_block_types( array $hooked_blocks, string $position, ?string $anchor, $context ): array {
-	if ( ! ( $context instanceof WP_Block_Template ) ) {
-		return array_diff( $hooked_blocks, array( 'aldus/layout-generator' ) );
-	}
-	return $hooked_blocks;
 }
 
 /**

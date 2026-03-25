@@ -234,6 +234,21 @@ function getManifest() {
 		execSync( 'npm run build', { cwd: ROOT, stdio: 'inherit' } );
 	}
 
+	// Verify that critical build artefacts are present.
+	const required = [
+		'build/index.js',
+		'build/index.asset.php',
+		'build/index.css',
+		'build/block.json',
+		'build/render.php',
+	];
+	const missing = required.filter( ( f ) => ! exists( f ) );
+	if ( missing.length ) {
+		die(
+			`Missing required build files (run npm run build first):\n    ${ missing.join( '\n    ' ) }`
+		);
+	}
+
 	// Prepare temp staging directory.
 	const stagingRoot = path.join( ROOT, 'releases', '.tmp-staging' );
 	const stagingPlugin = path.join( stagingRoot, 'aldus' );
