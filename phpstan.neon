@@ -30,8 +30,10 @@ parameters:
     ignoreErrors:
         - message: '#on left side of \?\? always exists and is not nullable#'
         - message: '#Action callback returns bool but should not return anything#'
-        - message: '#Function aldus_handle_record_use\(\) should return WP_REST_Response but returns WP_Error#'
         - message: '#aldus_pick_large_font expects#'
         - message: "#Offset 'mediaId' does not exist on array#"
+        # WordPress stubs declare $deps as array<int|string, array{id:string,...}> but WP
+        # also accepts a flat array of string module IDs — the stubs are too strict here.
+        - message: '/Parameter \#3 \$deps of function wp_register_script_module expects/'
         - identifier: missingType.iterableValue
         # - identifier: missingType.generics  # uncomment if generic type errors appear

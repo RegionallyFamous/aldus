@@ -349,9 +349,9 @@ class Aldus_REST_Controller extends WP_REST_Controller {
 	 * Handles POST /aldus/v1/record-use.
 	 *
 	 * @param WP_REST_Request $request Full request object.
-	 * @return WP_REST_Response
+	 * @return WP_REST_Response|WP_Error
 	 */
-	public function record_use( WP_REST_Request $request ): WP_REST_Response {
+	public function record_use( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		return aldus_handle_record_use( $request );
 	}
 }
@@ -1349,9 +1349,9 @@ function aldus_pick_medium_font( array $font_sizes ): string {
  * third-party code can hook in without touching the REST endpoint.
  *
  * @param WP_REST_Request $request
- * @return WP_REST_Response
+ * @return WP_REST_Response|WP_Error
  */
-function aldus_handle_record_use( WP_REST_Request $request ): WP_REST_Response {
+function aldus_handle_record_use( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 	$personality = sanitize_text_field( $request->get_param( 'personality' ) );
 
 	if ( empty( $personality ) ) {
@@ -1466,7 +1466,7 @@ add_action( 'rest_api_init', 'aldus_register_config_route' );
  */
 function aldus_handle_config(): WP_REST_Response {
 	// Built-in personalities from the anchor map.
-	$builtin = array_keys( aldus_anchor_tokens() );
+	$builtin       = array_keys( aldus_anchor_tokens() );
 	$personalities = array_map(
 		static function ( string $name ) {
 			return array(

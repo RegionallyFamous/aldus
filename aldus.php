@@ -58,6 +58,7 @@ function aldus_init(): void {
 	require_once ALDUS_PATH . 'includes/templates.php';
 	require_once ALDUS_PATH . 'includes/patterns.php';
 	require_once ALDUS_PATH . 'includes/admin-page.php';
+	require_once ALDUS_PATH . 'includes/styles.php';
 
 	add_action( 'init', 'aldus_register_block' );
 	add_action( 'init', fn() => load_plugin_textdomain( 'aldus', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' ) );
@@ -112,10 +113,13 @@ function aldus_init(): void {
 /**
  * Prepends the Aldus category to the block inserter category list.
  *
- * @param array<int, array<string, string>> $categories Existing block categories.
- * @return array<int, array<string, string>>
+ * @param mixed $categories Existing block categories (array expected).
+ * @return mixed
  */
-function aldus_register_block_category( array $categories ): array {
+function aldus_register_block_category( mixed $categories ): mixed {
+	if ( ! is_array( $categories ) ) {
+		return $categories;
+	}
 	return array_merge(
 		array(
 			array(
@@ -131,11 +135,14 @@ function aldus_register_block_category( array $categories ): array {
 /**
  * Adds action links to the plugin row on the Plugins admin page.
  *
- * @param array<string, string> $links Existing action links.
- * @return array<string, string>
+ * @param mixed $links Existing action links (array expected).
+ * @return mixed
  */
-function aldus_plugin_action_links( array $links ): array {
-	$welcome = sprintf(
+function aldus_plugin_action_links( mixed $links ): mixed {
+	if ( ! is_array( $links ) ) {
+		return $links;
+	}
+	$welcome    = sprintf(
 		'<a href="%s">%s</a>',
 		esc_url( admin_url( 'admin.php?page=aldus-welcome' ) ),
 		__( 'About', 'aldus' )
@@ -168,11 +175,11 @@ function aldus_plugin_action_links( array $links ): array {
  *
  * @param string[]                              $hooked_blocks  Block types to insert at this position.
  * @param string                                $position       Relative position (e.g. 'firstChild').
- * @param string                                $anchor         Anchor block type.
+ * @param string|null                           $anchor         Anchor block type, or null when there is no anchor.
  * @param WP_Block_Template|WP_Post|array|null  $context        Template, post, reusable-block array, or null.
  * @return string[]
  */
-function aldus_hooked_block_types( array $hooked_blocks, string $position, string $anchor, $context ): array {
+function aldus_hooked_block_types( array $hooked_blocks, string $position, ?string $anchor, $context ): array {
 	if ( ! ( $context instanceof WP_Block_Template ) ) {
 		return array_diff( $hooked_blocks, array( 'aldus/layout-generator' ) );
 	}
@@ -239,8 +246,8 @@ function aldus_maybe_redirect_to_welcome(): void {
  * Dismissal is handled via wp_ajax_aldus_dismiss_notice.
  */
 function aldus_whats_new_notice(): void {
-	$user_id      = get_current_user_id();
-	$dismissed_v  = get_user_meta( $user_id, 'aldus_dismissed_notice_version', true );
+	$user_id     = get_current_user_id();
+	$dismissed_v = get_user_meta( $user_id, 'aldus_dismissed_notice_version', true );
 
 	if ( $dismissed_v === ALDUS_VERSION ) {
 		return;
@@ -329,10 +336,13 @@ function aldus_flush_theme_cache(): void {
 /**
  * Adds an "Aldus" indicator column to the Posts and Pages admin list screens.
  *
- * @param array<string, string> $columns Existing columns.
- * @return array<string, string>
+ * @param mixed $columns Existing columns (array expected).
+ * @return mixed
  */
-function aldus_add_posts_column( array $columns ): array {
+function aldus_add_posts_column( mixed $columns ): mixed {
+	if ( ! is_array( $columns ) ) {
+		return $columns;
+	}
 	$columns['aldus_used'] = '<span title="' . esc_attr__( 'Uses Aldus', 'aldus' ) . '" aria-label="' . esc_attr__( 'Uses Aldus', 'aldus' ) . '">✦</span>';
 	return $columns;
 }
@@ -340,14 +350,14 @@ function aldus_add_posts_column( array $columns ): array {
 /**
  * Renders the Aldus column cell for a given post.
  *
- * @param string $column  The current column ID.
- * @param int    $post_id The post ID for this row.
+ * @param mixed $column  The current column ID.
+ * @param mixed $post_id The post ID for this row.
  */
-function aldus_render_posts_column( string $column, int $post_id ): void {
+function aldus_render_posts_column( mixed $column, mixed $post_id ): void {
 	if ( 'aldus_used' !== $column ) {
 		return;
 	}
-	$post = get_post( $post_id );
+	$post = get_post( (int) $post_id );
 	if ( ! $post instanceof \WP_Post ) {
 		return;
 	}
@@ -407,6 +417,18 @@ function aldus_register_block(): void {
 			array(),
 			ALDUS_VERSION
 		);
+
+		// Register the front-end Interactivity API store (WP 6.5+).
+		// block.json declares this via viewScriptModule so WordPress loads it
+		// automatically on pages that contain an Aldus-generated block.
+		if ( file_exists( ALDUS_PATH . 'build/frontend-interactivity.js' ) ) {
+			wp_register_script_module(
+				'@aldus/interactivity',
+				ALDUS_URL . 'build/frontend-interactivity.js',
+				array( '@wordpress/interactivity' ),
+				ALDUS_VERSION
+			);
+		}
 		// Surface the module URL to the editor script via an inline script.
 		wp_add_inline_script(
 			'aldus-aldus-layout-generator-editor-script',
@@ -466,10 +488,13 @@ function aldus_webllm_modulepreload(): void {
  * layouts depend on so they render consistently regardless of the active theme.
  * Uses the wp_theme_json_data_theme filter (WP 6.6+).
  *
- * @param WP_Theme_JSON_Data $theme_json Mutable theme.json data object.
- * @return WP_Theme_JSON_Data
+ * @param mixed $theme_json Mutable theme.json data object (WP_Theme_JSON_Data expected).
+ * @return mixed
  */
-function aldus_inject_theme_json( WP_Theme_JSON_Data $theme_json ): WP_Theme_JSON_Data {
+function aldus_inject_theme_json( mixed $theme_json ): mixed {
+	if ( ! $theme_json instanceof WP_Theme_JSON_Data ) {
+		return $theme_json;
+	}
 	$additions = array(
 		'version'  => 3,
 		'settings' => array(
@@ -501,6 +526,67 @@ function aldus_inject_theme_json( WP_Theme_JSON_Data $theme_json ): WP_Theme_JSO
 					--aldus-tight: 20px;
 					--aldus-overlay-dark: rgba(0,0,0,0.55);
 					--aldus-overlay-accent: rgba(0,0,0,0.35);
+				}
+
+				/* --- Aldus Personality Block Style Variations --- */
+
+				/* Dispatch: high-contrast, urgent, dark */
+				.is-style-aldus-dispatch {
+					background-color: #111 !important;
+					color: #fff !important;
+					padding: var(--aldus-section-spacing) var(--aldus-gap);
+				}
+				.is-style-aldus-dispatch .wp-block-heading {
+					font-weight: 800;
+					letter-spacing: -0.02em;
+				}
+
+				/* Nocturne: cinematic, atmospheric dark */
+				.is-style-aldus-nocturne {
+					background-color: #0a0a14 !important;
+					color: #e8e8e8 !important;
+					padding: var(--aldus-section-spacing) var(--aldus-gap);
+				}
+				.is-style-aldus-nocturne .wp-block-cover__background {
+					opacity: 0.7;
+				}
+
+				/* Codex: restrained, typographic, generous whitespace */
+				.is-style-aldus-codex {
+					padding: calc(var(--aldus-section-spacing) * 1.5) var(--aldus-gap);
+					max-width: 42rem;
+					margin-left: auto;
+					margin-right: auto;
+				}
+				.is-style-aldus-codex .wp-block-heading {
+					font-weight: 300;
+					letter-spacing: 0.01em;
+				}
+
+				/* Solstice: minimal, luminous, clean */
+				.is-style-aldus-solstice {
+					background-color: #fafafa !important;
+					color: #222 !important;
+					padding: var(--aldus-section-spacing) var(--aldus-gap);
+					border-radius: 8px;
+				}
+
+				/* Folio: editorial asymmetry */
+				.is-style-aldus-folio {
+					border-left: 3px solid currentColor;
+					padding-left: var(--aldus-gap);
+				}
+
+				/* Dusk: gradient atmosphere */
+				.is-style-aldus-dusk {
+					background: linear-gradient(
+						135deg,
+						#1a1a2e 0%,
+						#16213e 50%,
+						#0f3460 100%
+					) !important;
+					color: #e8e8e8 !important;
+					padding: var(--aldus-section-spacing) var(--aldus-gap);
 				}
 			',
 		),
