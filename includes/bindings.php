@@ -59,7 +59,23 @@ function aldus_register_meta_and_bindings(): void {
 				'single'            => true,
 				'show_in_rest'      => true,
 				'auth_callback'     => fn() => current_user_can( 'edit_posts' ),
-				'sanitize_callback' => 'sanitize_text_field',
+				'sanitize_callback' => static function ( $value ) {
+					if ( ! is_string( $value ) || '' === $value ) {
+						return '[]';
+					}
+					$decoded = json_decode( $value, true );
+					if ( ! is_array( $decoded ) ) {
+						return '[]';
+					}
+					// Allow only arrays of UUID-shaped strings (block client IDs).
+					$ids = array_filter(
+						$decoded,
+						static function ( $id ) {
+							return is_string( $id ) && preg_match( '/^[0-9a-f\-]{10,64}$/i', $id );
+						}
+					);
+					return wp_json_encode( array_values( $ids ) );
+				},
 			)
 		);
 	}

@@ -114,11 +114,10 @@ class Aldus_REST_Controller extends WP_REST_Controller {
 			}
 		} else {
 			$count = (int) get_transient( $tk );
-			if ( $count < 60 ) {
-				set_transient( $tk, $count + 1, MINUTE_IN_SECONDS );
-			}
+			// Always increment so the count is accurate; set TTL only on first write.
+			set_transient( $tk, $count + 1, MINUTE_IN_SECONDS );
 		}
-		if ( $count > 60 ) {
+		if ( $count >= 60 ) {
 			return new WP_Error(
 				'rate_limited',
 				__( 'Too many requests. Wait a moment and try again.', 'aldus' ),

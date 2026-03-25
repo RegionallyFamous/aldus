@@ -33,15 +33,16 @@ export function useAldusEngine( {
 } ) {
 	const engineRef = useRef( null );
 	const abortRef = useRef( null );
-	// Tracks in-flight init attempts; prevents concurrent initialisation if
-	// initEngine() is called again before the first promise resolves.
-	const initGenRef = useRef( 0 );
+	// Stores the in-flight init Promise so concurrent callers await the same
+	// initialisation rather than receiving null or starting a second download.
+	const initPromiseRef = useRef( null );
 
 	/**
 	 * Initialises the WebLLM engine, downloading the model on first run.
 	 *
 	 * Returns the engine instance. If the engine is already initialised, the
-	 * cached instance is returned immediately with no download or progress calls.
+	 * cached instance is returned immediately. If initialisation is already
+	 * in-flight, all concurrent callers await the same Promise.
 	 *
 	 * @return {Promise<import('@mlc-ai/web-llm').MLCEngine>}
 	 * @throws {Error} If the download is aborted or initialisation fails.
@@ -51,69 +52,76 @@ export function useAldusEngine( {
 			return engineRef.current;
 		}
 
-		// Prevent re-entrant calls — if an init is already in-flight, bail out.
-		if ( initGenRef.current > 0 ) {
-			return null;
+		// Deduplicate concurrent calls: return the in-flight promise so every
+		// caller awaits the same download rather than triggering a second one.
+		if ( initPromiseRef.current ) {
+			return initPromiseRef.current;
 		}
-		initGenRef.current += 1;
 
-		onDownloadStart?.();
+		const doInit = async () => {
+			onDownloadStart?.();
 
-		// Support the wp_register_script_module() path (WP 6.5+) where the
-		// runtime URL is surfaced via window.__aldusScriptModules so the module
-		// graph is managed by WordPress. Falls back to the webpack dynamic import.
-		let CreateMLCEngine;
-		const scriptModuleUrl =
-			window.__aldusScriptModules?.[ '@aldus/webllm-runtime' ];
-		if ( scriptModuleUrl ) {
-			// Validate that the module URL is same-origin before dynamic import
-			// to prevent loading arbitrary third-party scripts.
-			const isSameOrigin = ( () => {
-				try {
-					const parsed = new URL(
-						scriptModuleUrl,
-						window.location.href
+			// Support the wp_register_script_module() path (WP 6.5+) where the
+			// runtime URL is surfaced via window.__aldusScriptModules so the
+			// module graph is managed by WordPress. Falls back to webpack import.
+			let CreateMLCEngine;
+			const scriptModuleUrl =
+				window.__aldusScriptModules?.[ '@aldus/webllm-runtime' ];
+			if ( scriptModuleUrl ) {
+				// Validate that the module URL is same-origin before dynamic import
+				// to prevent loading arbitrary third-party scripts.
+				const isSameOrigin = ( () => {
+					try {
+						const parsed = new URL(
+							scriptModuleUrl,
+							window.location.href
+						);
+						return parsed.origin === window.location.origin;
+					} catch {
+						return false;
+					}
+				} )();
+				if ( ! isSameOrigin ) {
+					throw new Error(
+						'[Aldus] WebLLM module URL origin mismatch — refusing to import.'
 					);
-					return parsed.origin === window.location.origin;
-				} catch {
-					return false;
 				}
-			} )();
-			if ( ! isSameOrigin ) {
-				throw new Error(
-					'[Aldus] WebLLM module URL origin mismatch — refusing to import.'
+				const mod = await import(
+					/* webpackIgnore: true */ scriptModuleUrl
 				);
+				CreateMLCEngine = mod.CreateMLCEngine;
+			} else {
+				( { CreateMLCEngine } = await import( '@mlc-ai/web-llm' ) );
 			}
-			const mod = await import(
-				/* webpackIgnore: true */ scriptModuleUrl
-			);
-			CreateMLCEngine = mod.CreateMLCEngine;
-		} else {
-			( { CreateMLCEngine } = await import( '@mlc-ai/web-llm' ) );
-		}
 
-		const dlController = new AbortController();
-		abortRef.current = () => dlController.abort();
+			const dlController = new AbortController();
+			abortRef.current = () => dlController.abort();
 
-		try {
-			engineRef.current = await CreateMLCEngine( MODEL_ID, {
-				signal: dlController.signal,
-				initProgressCallback: ( info ) => {
-					onDownloadProgress?.( {
-						progress: info.progress ?? 0,
-						text: info.text ?? '',
-					} );
-				},
-			} );
-		} finally {
-			abortRef.current = null;
-			initGenRef.current = Math.max( 0, initGenRef.current - 1 );
-		}
+			try {
+				engineRef.current = await CreateMLCEngine( MODEL_ID, {
+					signal: dlController.signal,
+					initProgressCallback: ( info ) => {
+						onDownloadProgress?.( {
+							progress: info.progress ?? 0,
+							text: info.text ?? '',
+						} );
+					},
+				} );
+			} finally {
+				abortRef.current = null;
+			}
 
-		onModelDownloaded?.();
-		onDownloadDone?.();
+			onModelDownloaded?.();
+			onDownloadDone?.();
 
-		return engineRef.current;
+			return engineRef.current;
+		};
+
+		initPromiseRef.current = doInit().finally( () => {
+			initPromiseRef.current = null;
+		} );
+
+		return initPromiseRef.current;
 	}, [
 		onDownloadStart,
 		onDownloadProgress,

@@ -104,10 +104,33 @@ import {
 	packToItems,
 	loadPackContent,
 } from './sample-data/index.js';
+import { safeIcon } from './utils/safeIcon';
 
 // Named constant for the default pack index to avoid magic numbers at call sites.
 const DEFAULT_PACK_INDEX = 0;
 import './editor.scss';
+
+// ---------------------------------------------------------------------------
+// API response validation
+// ---------------------------------------------------------------------------
+
+/**
+ * Validates a single response object from /aldus/v1/assemble.
+ * Returns false for anything that would cause a crash downstream:
+ *   - non-object or missing `success` flag
+ *   - `blocks` not a non-empty string (used directly in parseBlocks)
+ *   - `label` not a string (used in UI rendering)
+ *
+ * @param {*} data
+ * @return {boolean}
+ */
+function isValidAssembleResponse( data ) {
+	if ( ! data || typeof data !== 'object' ) return false;
+	if ( ! data.success ) return false;
+	if ( typeof data.blocks !== 'string' || data.blocks.trim() === '' ) return false;
+	if ( typeof data.label !== 'string' ) return false;
+	return true;
+}
 
 // ---------------------------------------------------------------------------
 // Layout personalities — mirrors PHP aldus_anchor_tokens()
@@ -2446,12 +2469,24 @@ async function inferTokens(
 			.replace( /^```(?:json)?\s*/i, '' )
 			.replace( /\s*```$/i, '' )
 			.trim();
-		parsed = JSON.parse( stripped );
+		// First attempt: parse the stripped string directly.
+		try {
+			parsed = JSON.parse( stripped );
+		} catch {
+			// Second attempt: the model sometimes wraps the JSON in preamble text
+			// (e.g. "Sure! Here is the JSON: {...}"). Extract the first {...} block.
+			const objMatch = stripped.match( /\{[\s\S]*\}/ );
+			if ( objMatch ) {
+				parsed = JSON.parse( objMatch[ 0 ] );
+			} else {
+				throw new Error( 'No JSON object found in LLM output' );
+			}
+		}
 	} catch ( parseErr ) {
 		// Fall back to empty — enforceAnchors supplies required tokens.
 		if ( window?.aldusDebug ) {
 			// eslint-disable-next-line no-console
-			console.debug( '[Aldus] token parse failed:', parseErr );
+			console.debug( '[Aldus] token parse failed:', parseErr, 'raw:', raw );
 		}
 	}
 	const rawTokens = Array.isArray( parsed?.tokens ) ? parsed.tokens : [];
@@ -2467,6 +2502,10 @@ async function inferTokens(
 // Edit component
 // ---------------------------------------------------------------------------
 
+// JS build version — must match ALDUS_VERSION in aldus.php.
+// Set by the release script; used only for the mismatch warning below.
+const ALDUS_JS_VERSION = '1.10.2';
+
 export default function Edit( { clientId, attributes, setAttributes } ) {
 	const blockProps = useBlockProps( {
 		className: 'wp-block-aldus-layout-generator',
@@ -2479,6 +2518,20 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		useMeta,
 		wrapperMode,
 	} = attributes;
+
+	// Warn once if the PHP plugin version and the JS build version are out of
+	// sync — this usually means the browser is serving a stale cached bundle
+	// after a plugin update. Console-only; no UI disruption.
+	useEffect( () => {
+		const phpVer = window.__aldusPhpVersion;
+		if ( phpVer && phpVer !== ALDUS_JS_VERSION ) {
+			// eslint-disable-next-line no-console
+			console.warn(
+				`[Aldus] Version mismatch: PHP=${ phpVer }, JS=${ ALDUS_JS_VERSION }. ` +
+					'Try clearing your browser cache (Ctrl+Shift+R / Cmd+Shift+R).'
+			);
+		}
+	}, [] ); // eslint-disable-line react-hooks/exhaustive-deps
 
 	// State machine: 'building' | 'downloading' | 'loading' | 'results' | 'confirming' | 'mixing' | 'inserted' | 'error' | 'no-gpu'
 	const [ screen, setScreen ] = useState( 'building' );
@@ -2719,7 +2772,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		}
 		let newBlocks;
 		try {
-			newBlocks = parseBlocks( chosen.blocks );
+			newBlocks = parseBlocks( chosen.blocks ).filter( ( b ) => b?.name );
 		} catch ( e ) {
 			newBlocks = [];
 		}
@@ -3133,13 +3186,12 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 					} )
 				);
 
-				const assembled = assembleSettled
-					.filter(
-						( r ) =>
-							r.status === 'fulfilled' &&
-							r.value?.success &&
-							r.value?.blocks
-					)
+			const assembled = assembleSettled
+				.filter(
+					( r ) =>
+						r.status === 'fulfilled' &&
+						isValidAssembleResponse( r.value )
+				)
 					.map( ( r ) => {
 						const pIdx = personalities.findIndex(
 							( p ) => p.name === r.value.label
@@ -3329,13 +3381,12 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 					} )
 				);
 
-				const assembled = settled
-					.filter(
-						( r ) =>
-							r.status === 'fulfilled' &&
-							r.value?.success &&
-							r.value?.blocks
-					)
+			const assembled = settled
+				.filter(
+					( r ) =>
+						r.status === 'fulfilled' &&
+						isValidAssembleResponse( r.value )
+				)
 					.map( ( r ) => ( {
 						label: r.value.label,
 						blocks: r.value.blocks,
@@ -3703,7 +3754,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		( combinedBlocks ) => {
 			let newBlocks;
 			try {
-				newBlocks = parseBlocks( combinedBlocks );
+				newBlocks = parseBlocks( combinedBlocks ).filter( ( b ) => b?.name );
 			} catch ( e ) {
 				newBlocks = [];
 			}
@@ -4032,13 +4083,13 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 					<ToolbarGroup>
 						{ screen === 'results' && (
 							<ToolbarButton
-								icon={ undo }
+								icon={ safeIcon( undo ) }
 								label={ __( 'Regenerate', 'aldus' ) }
 								onClick={ requestRegenerate }
 							/>
 						) }
 						<ToolbarButton
-							icon={ close }
+							icon={ safeIcon( close ) }
 							label={ __( 'Start fresh', 'aldus' ) }
 							onClick={ requestStartOver }
 						/>
@@ -4048,7 +4099,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 			<BlockControls group="other">
 				<ToolbarGroup>
 					<ToolbarButton
-						icon={ help }
+						icon={ safeIcon( help ) }
 						label={ __( 'How Aldus works', 'aldus' ) }
 						onClick={ () => setShowHelp( true ) }
 					/>
@@ -4750,7 +4801,7 @@ function BuildingScreen( {
 								) }
 							</span>
 							<Button
-								icon={ close }
+								icon={ safeIcon( close ) }
 								label={ __( 'Remove focus', 'aldus' ) }
 								size="small"
 								onClick={ onClearPinnedPersonality }
@@ -5034,7 +5085,7 @@ function AddContentPopover( { onAdd, isInline = false } ) {
 		>
 			<Button
 				__next40pxDefaultSize
-				icon={ plus }
+				icon={ safeIcon( plus ) }
 				variant={ isInline ? 'tertiary' : 'secondary' }
 				className={ `aldus-add-trigger${
 					isInline ? ' aldus-add-trigger--inline' : ''
@@ -5277,7 +5328,7 @@ function QuickPeek( { items } ) {
 			return [];
 		}
 		try {
-			return parseBlocks( peekBlocks );
+			return parseBlocks( peekBlocks ).filter( ( b ) => b?.name );
 		} catch ( e ) {
 			return [];
 		}
@@ -5746,7 +5797,7 @@ function SavedSessions( { items, styleNote, onLoad } ) {
 									</span>
 								</button>
 								<Button
-									icon={ close }
+									icon={ safeIcon( close ) }
 									label={ __( 'Delete', 'aldus' ) }
 									size="small"
 									isDestructive
@@ -5821,7 +5872,7 @@ function ContentItem( {
 				onDragEnd={ onDragEnd }
 			>
 				<Button
-					icon={ dragHandle }
+					icon={ safeIcon( dragHandle ) }
 					label={ __( 'Drag to reorder', 'aldus' ) }
 					size="small"
 					className="aldus-drag-btn"
@@ -5965,7 +6016,7 @@ function ContentItem( {
 			</div>
 
 			<Button
-				icon={ close }
+				icon={ safeIcon( close ) }
 				label={ sprintf(
 					/* translators: %s is the content item label, e.g. "Paragraph". */
 					__( 'Remove %s', 'aldus' ),
@@ -6037,7 +6088,7 @@ const ListBuilder = forwardRef( function ListBuilder(
 					/>
 					{ displayLines.length > 1 && (
 						<Button
-							icon={ close }
+							icon={ safeIcon( close ) }
 							label={ sprintf(
 								/* translators: %d is the list item number, e.g. "1". */
 								__( 'Remove item %d', 'aldus' ),
@@ -6054,7 +6105,7 @@ const ListBuilder = forwardRef( function ListBuilder(
 			<Button
 				variant="tertiary"
 				size="small"
-				icon={ plus }
+				icon={ safeIcon( plus ) }
 				className="aldus-list-builder-add"
 				onClick={ addLine }
 			>
@@ -6208,7 +6259,7 @@ const ImageInput = forwardRef( function ImageInput(
 				{ hasUrl && (
 					<FlexItem>
 						<Button
-							icon={ close }
+							icon={ safeIcon( close ) }
 							label={ __( 'Remove image', 'aldus' ) }
 							size="small"
 							isDestructive
@@ -6360,7 +6411,7 @@ const GalleryInput = forwardRef( function GalleryInput(
 			</MediaUploadCheck>
 			{ urls.length > 0 && (
 				<Button
-					icon={ close }
+					icon={ safeIcon( close ) }
 					label={ __( 'Remove gallery', 'aldus' ) }
 					size="small"
 					isDestructive
@@ -6752,7 +6803,7 @@ function ResultsScreen( {
 							<Button
 								variant="secondary"
 								size="small"
-								icon={ layoutIcon }
+								icon={ safeIcon( layoutIcon ) }
 								onClick={ onMix }
 							>
 								{ __( 'Mix sections', 'aldus' ) }
@@ -6845,7 +6896,7 @@ function ResultsScreen( {
 						/>
 						{ filterText && (
 							<Button
-								icon={ close }
+								icon={ safeIcon( close ) }
 								label={ __( 'Clear filter', 'aldus' ) }
 								size="small"
 								className="aldus-results-filter-clear"
@@ -6943,7 +6994,7 @@ function LayoutCard( {
 	const [ isExpanded, setIsExpanded ] = useState( false );
 	const blocks = useMemo( () => {
 		try {
-			return parseBlocks( layout.blocks );
+			return parseBlocks( layout.blocks ).filter( ( b ) => b?.name );
 		} catch ( e ) {
 			return [];
 		}
@@ -6995,7 +7046,7 @@ function LayoutCard( {
 						) }
 					</div>
 					<Button
-						icon={ seen }
+						icon={ safeIcon( seen ) }
 						label={ __( 'Expand preview', 'aldus' ) }
 						size="small"
 						className="aldus-card-expand-btn"
@@ -7063,7 +7114,7 @@ function LayoutCard( {
 							) }
 							{ onReroll && ! isRerolling && (
 								<Button
-									icon={ undo }
+									icon={ safeIcon( undo ) }
 									label={ __(
 										'Try a different arrangement for this personality',
 										'aldus'
@@ -7074,7 +7125,7 @@ function LayoutCard( {
 								/>
 							) }
 							<Button
-								icon={ copy }
+								icon={ safeIcon( copy ) }
 								label={ __(
 									'Copy blocks to clipboard',
 									'aldus'
@@ -7105,7 +7156,7 @@ function LayoutCard( {
 							/>
 							{ onTryWithContent && (
 								<Button
-									icon={ reusableBlock }
+									icon={ safeIcon( reusableBlock ) }
 									label={ __(
 										'Try with my content',
 										'aldus'
@@ -7249,12 +7300,12 @@ function InsertedScreen( { onRedesign, onDetach } ) {
 			<BlockControls>
 				<ToolbarGroup>
 					<ToolbarButton
-						icon={ refreshIcon }
+						icon={ safeIcon( refreshIcon ) }
 						label={ __( 'Redesign with Aldus', 'aldus' ) }
 						onClick={ onRedesign }
 					/>
 					<ToolbarButton
-						icon={ unlockIcon }
+						icon={ safeIcon( unlockIcon ) }
 						label={ __( 'Detach from Aldus', 'aldus' ) }
 						onClick={ onDetach }
 					/>
@@ -7295,7 +7346,7 @@ function ConfirmingScreen( { label } ) {
 function MixAltButton( { section, isSelected, onSwap } ) {
 	const previewBlocks = useMemo( () => {
 		try {
-			return parseBlocks( section.blocks ?? '' );
+			return parseBlocks( section.blocks ?? '' ).filter( ( b ) => b?.name );
 		} catch ( e ) {
 			return [];
 		}

@@ -37,7 +37,11 @@ async function runInference( engine, prompt, temperature, maxTokens ) {
 			stream: false,
 		} );
 		raw = completion.choices[ 0 ]?.message?.content ?? '{}';
-	} catch {
+	} catch ( err ) {
+		if ( window?.aldusDebug ) {
+			// eslint-disable-next-line no-console
+			console.debug( '[Aldus intelligence] inference call failed:', err );
+		}
 		return {};
 	}
 
@@ -47,7 +51,11 @@ async function runInference( engine, prompt, temperature, maxTokens ) {
 			.replace( /\s*```$/i, '' )
 			.trim();
 		return JSON.parse( stripped );
-	} catch {
+	} catch ( err ) {
+		if ( window?.aldusDebug ) {
+			// eslint-disable-next-line no-console
+			console.debug( '[Aldus intelligence] JSON parse failed. Raw:', raw, err );
+		}
 		return {};
 	}
 }

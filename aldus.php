@@ -256,6 +256,9 @@ function aldus_whats_new_notice(): void {
  */
 function aldus_dismiss_notice(): void {
 	check_ajax_referer( 'aldus_dismiss_notice', 'nonce' );
+	if ( ! current_user_can( 'edit_posts' ) ) {
+		wp_die( -1, '', array( 'response' => 403 ) );
+	}
 	update_user_meta( get_current_user_id(), 'aldus_dismissed_notice_version', ALDUS_VERSION );
 	wp_die();
 }
@@ -427,6 +430,14 @@ function aldus_inline_site_data(): void {
 				'description' => get_bloginfo( 'description' ),
 			)
 		) . ';',
+		'before'
+	);
+
+	// Expose the PHP-side plugin version so the JS bundle can detect a
+	// cache/version mismatch (e.g. stale browser cache after an update).
+	wp_add_inline_script(
+		'aldus-aldus-layout-generator-editor-script',
+		'window.__aldusPhpVersion = ' . wp_json_encode( ALDUS_VERSION ) . ';',
 		'before'
 	);
 }
