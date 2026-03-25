@@ -3,24 +3,34 @@
  *
  * Orchestrates the full generation pipeline:
  *   1. Lazy-initialise the WebLLM engine (delegated to useAldusEngine)
- *   2. Run token inference in parallel for all active personalities
- *   3. POST each token sequence to /aldus/v1/assemble
- *   4. Return the assembled layouts array
+ *   2. Pre-generation: style direction, personality recommendation, content hints
+ *   3. Run token inference in parallel for all active personalities
+ *   4. Post-generation: coverage scoring, layout description per personality
+ *   5. POST each token sequence to /aldus/v1/assemble
+ *   6. Return the assembled layouts array
  *
  * Extracted from the monolithic Edit component so the generation flow can be
  * reasoned about and eventually integration-tested with mocked API responses.
  *
  * @param {Object}   options
- * @param {Function} options.initEngine          From useAldusEngine.
- * @param {Function} options.destroyEngine       From useAldusEngine.
- * @param {Function} options.inferTokens         Pure function: engine × personality × manifest → tokens.
- * @param {Function} options.enforceAnchors      Pure function: personality × tokens → tokens.
- * @param {Array}    options.activePersonalities Filtered personality objects.
- * @param {Function} options.onScreenChange      setScreen callback.
- * @param {Function} options.onLayoutsReady      Called with the assembled layouts array.
- * @param {Function} options.onProgress          Called with { done, total, lastLabel }.
- * @param {Function} options.onError             Called with an error code string.
- * @param {Function} options.speak               @wordpress/a11y speak().
+ * @param {Function} options.initEngine             From useAldusEngine.
+ * @param {Function} options.destroyEngine          From useAldusEngine.
+ * @param {Function} options.inferTokens            Pure function: engine × personality × manifest → tokens.
+ * @param {Function} options.enforceAnchors         Pure function: personality × tokens → tokens.
+ * @param {Function} options.inferStyleDirection    Intelligence: manifest → style string.
+ * @param {Function} options.scoreCoverage          Intelligence: manifest × tokens → unused types.
+ * @param {Function} options.inferLayoutDescription Intelligence: personality × tokens → description.
+ * @param {Function} options.recommendPersonalities Intelligence: manifest × personalities → top 3 names.
+ * @param {Function} options.analyzeContentHints    Intelligence: manifest × items → hint strings.
+ * @param {Array}    options.activePersonalities    Filtered personality objects.
+ * @param {Function} options.onScreenChange         setScreen callback.
+ * @param {Function} options.onLayoutsReady         Called with the assembled layouts array.
+ * @param {Function} options.onProgress             Called with { done, total, lastLabel }.
+ * @param {Function} options.onError                Called with an error code string.
+ * @param {Function} options.onStyleDetected        Called with the inferred style string.
+ * @param {Function} options.onRecommendationsReady Called with string[] of recommended names.
+ * @param {Function} options.onHintsReady           Called with string[] of content hints.
+ * @param {Function} options.speak                  @wordpress/a11y speak().
  * @return {{ runGenerate: Function, isGenerating: boolean }}
  */
 
@@ -35,11 +45,19 @@ export function useAldusGeneration( {
 	destroyEngine,
 	inferTokens,
 	enforceAnchors,
+	inferStyleDirection,
+	scoreCoverage,
+	inferLayoutDescription,
+	recommendPersonalities,
+	analyzeContentHints,
 	activePersonalities,
 	onScreenChange,
 	onLayoutsReady,
 	onProgress,
 	onError,
+	onStyleDetected,
+	onRecommendationsReady,
+	onHintsReady,
 } ) {
 	const [ isGenerating, setIsGenerating ] = useState( false );
 	// Ref-based guard prevents re-entrant calls even when the state setter has
@@ -98,8 +116,42 @@ export function useAldusGeneration( {
 				const engine = await initEngine();
 				onScreenChange( 'loading' );
 
-				// Step 2: run token inference in parallel, passing previous personality
-				// sequences as diversity hints.
+				// Step 2: pre-generation intelligence — runs in parallel.
+				// Non-critical: failures produce safe empty defaults.
+				const [ styleResult, recommendResult, hintsResult ] =
+					await Promise.allSettled( [
+						inferStyleDirection( engine, manifest, items ),
+						recommendPersonalities(
+							engine,
+							manifest,
+							personalities
+						),
+						analyzeContentHints( engine, manifest, items ),
+					] );
+
+				const autoStyle =
+					styleResult.status === 'fulfilled'
+						? styleResult.value?.style ?? ''
+						: '';
+				onStyleDetected( autoStyle );
+				onRecommendationsReady(
+					recommendResult.status === 'fulfilled'
+						? recommendResult.value?.recommended ?? []
+						: []
+				);
+				onHintsReady(
+					hintsResult.status === 'fulfilled'
+						? hintsResult.value?.hints ?? []
+						: []
+				);
+
+				// Prepend auto-detected style to any user-supplied style note.
+				const effectiveStyle = [ autoStyle, styleNote ]
+					.filter( Boolean )
+					.join( ', ' );
+
+				// Step 3: run token inference in parallel, passing previous
+				// personality sequences as diversity hints.
 				const tokenSettled = await Promise.allSettled(
 					personalities.map( ( p, idx ) => {
 						const previousSequences = personalities
@@ -114,7 +166,7 @@ export function useAldusGeneration( {
 							engine,
 							p,
 							manifest,
-							styleNote,
+							effectiveStyle,
 							postContext,
 							items,
 							previousSequences
@@ -128,7 +180,27 @@ export function useAldusGeneration( {
 						: enforceAnchors( personalities[ i ], [] )
 				);
 
-				// Step 3: assemble block markup for each token sequence.
+				// Step 4: post-generation intelligence — coverage and descriptions.
+				// Runs in parallel with each other; results indexed by personality.
+				const [ coverageSettled, descriptionSettled ] =
+					await Promise.all( [
+						Promise.allSettled(
+							tokenResults.map( ( tokens ) =>
+								scoreCoverage( engine, manifest, tokens )
+							)
+						),
+						Promise.allSettled(
+							tokenResults.map( ( tokens, i ) =>
+								inferLayoutDescription(
+									engine,
+									personalities[ i ],
+									tokens
+								)
+							)
+						),
+					] );
+
+				// Step 5: assemble block markup for each token sequence.
 				onProgress( {
 					done: 0,
 					total: personalities.length,
@@ -168,12 +240,32 @@ export function useAldusGeneration( {
 							r.value?.success &&
 							r.value?.blocks
 					)
-					.map( ( r ) => ( {
-						label: r.value.label,
-						blocks: r.value.blocks,
-						tokens: r.value.tokens ?? [],
-						sections: r.value.sections ?? [],
-					} ) );
+					.map( ( r ) => {
+						// Map back to the original personality index by label.
+						const personalityIdx = personalities.findIndex(
+							( p ) => p.name === r.value.label
+						);
+						return {
+							label: r.value.label,
+							blocks: r.value.blocks,
+							tokens: r.value.tokens ?? [],
+							sections: r.value.sections ?? [],
+							unusedTypes:
+								personalityIdx >= 0 &&
+								coverageSettled[ personalityIdx ]?.status ===
+									'fulfilled'
+									? coverageSettled[ personalityIdx ].value
+											?.unused ?? []
+									: [],
+							description:
+								personalityIdx >= 0 &&
+								descriptionSettled[ personalityIdx ]?.status ===
+									'fulfilled'
+									? descriptionSettled[ personalityIdx ].value
+											?.description ?? ''
+									: '',
+						};
+					} );
 
 				if ( assembled.length === 0 ) {
 					onError( 'no_layouts' );
@@ -247,11 +339,19 @@ export function useAldusGeneration( {
 			destroyEngine,
 			inferTokens,
 			enforceAnchors,
+			inferStyleDirection,
+			scoreCoverage,
+			inferLayoutDescription,
+			recommendPersonalities,
+			analyzeContentHints,
 			activePersonalities,
 			onScreenChange,
 			onLayoutsReady,
 			onProgress,
 			onError,
+			onStyleDetected,
+			onRecommendationsReady,
+			onHintsReady,
 		]
 	);
 

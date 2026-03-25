@@ -5,19 +5,16 @@
 	"scripts": {
 		"build": "wp-scripts build",
 		"start": "wp-scripts start",
-
 		"lint": "npm run lint:js && npm run lint:css && npm run lint:php && npm run analyze:php",
 		"lint:js": "wp-scripts lint-js src/",
 		"lint:css": "wp-scripts lint-style",
 		"lint:php": "composer run phpcs",
 		"lint:php:syntax": "find . -name '*.php' -not -path './node_modules/*' -not -path './build/*' -not -path './vendor/*' -print0 | xargs -0 php -l",
 		"analyze:php": "composer run phpstan",
-
 		"fix": "npm run fix:js && npm run fix:css && npm run fix:php",
 		"fix:js": "wp-scripts format src/",
 		"fix:css": "wp-scripts lint-style --fix",
 		"fix:php": "composer run phpcbf",
-
 		"test": "npm run test:php:unit && npm run test:js",
 		"test:js": "wp-scripts test-unit-js --config jest.config.js",
 		"test:js:watch": "wp-scripts test-unit-js --config jest.config.js --watch",
@@ -27,21 +24,16 @@
 		"test:php:integration": "vendor/bin/phpunit -c phpunit-integration.xml.dist",
 		"test:e2e": "playwright test",
 		"test:e2e:ui": "playwright test --ui",
-
 		"coverage:php": "vendor/bin/phpunit --testsuite unit --coverage-html coverage/php",
 		"coverage:js": "wp-scripts test-unit-js --config jest.config.js --coverage",
-
 		"ci": "npm run lint && npm run test && npm run build",
-
 		"env:start": "wp-env start",
 		"env:stop": "wp-env stop",
-
 		"release": "node scripts/release.js",
 		"release:patch": "node scripts/release.js --bump patch",
 		"release:minor": "node scripts/release.js --bump minor",
 		"release:major": "node scripts/release.js --bump major",
 		"release:zip": "bash bin/release-zip.sh",
-
 		"i18n:pot": "wp i18n make-pot . languages/aldus.pot --exclude=node_modules,build,vendor,tests",
 		"i18n:json": "wp-scripts i18n-make-json languages --no-purge"
 	},
@@ -53,13 +45,15 @@
 		"@wordpress/scripts": "^31.7.0"
 	},
 	"dependencies": {
-		"@mlc-ai/web-llm": "^0.2.82"
+		"@mlc-ai/web-llm": "^0.2.82",
+		"@wordpress/interactivity": "^6.42.0"
 	},
 	"peerDependencies": {
 		"@wordpress/a11y": "*",
 		"@wordpress/api-fetch": "*",
 		"@wordpress/block-editor": "*",
 		"@wordpress/blocks": "*",
+		"@wordpress/core-data": "*",
 		"@wordpress/components": "*",
 		"@wordpress/compose": "*",
 		"@wordpress/data": "*",

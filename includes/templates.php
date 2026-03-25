@@ -203,149 +203,177 @@ function aldus_personality_style_rules(): array {
 	if ( null !== $rules ) {
 		return $rules;
 	}
-	// Each personality has seven knobs:
-	//   align     — 'left' | 'centered' | 'mixed'
-	//   density   — 'airy' | 'balanced' | 'dense'
-	//   contrast  — 'medium' | 'high'
-	//   accent    — 'restrained' | 'pronounced'
-	//   blockGap  — '1rem' | '1.5rem' | '2rem'  (derived from density)
-	//   edges     — 'soft' | 'sharp' | 'default' (border-radius treatment)
-	//   separator — 'default' | 'wide' | 'dots'  (separator style variant)
+	// Each personality has eight knobs:
+	//   align         — 'left' | 'centered' | 'mixed'
+	//   density       — 'airy' | 'balanced' | 'dense'
+	//   contrast      — 'medium' | 'high'
+	//   accent        — 'restrained' | 'pronounced'
+	//   blockGap      — '1rem' | '1.5rem' | '2rem'  (derived from density)
+	//   edges         — 'soft' | 'sharp' | 'default' (border-radius treatment)
+	//   separator     — 'default' | 'wide' | 'dots'  (separator style variant)
+	//   interactivity — comma-separated effect names applied to generated blocks
+	//                   '' = none | 'parallax' | 'reveal' | 'countup'
+	//                   Multiple: 'parallax,reveal'
 	$rules = array(
 		'Dispatch'   => array(
-			'align'     => 'left',
-			'density'   => 'balanced',
-			'contrast'  => 'high',
-			'accent'    => 'restrained',
-			'blockGap'  => '1.5rem',
-			'edges'     => 'sharp',
-			'separator' => 'wide',
+			'align'         => 'left',
+			'density'       => 'balanced',
+			'contrast'      => 'high',
+			'accent'        => 'restrained',
+			'blockGap'      => '1.5rem',
+			'edges'         => 'sharp',
+			'separator'     => 'wide',
+			'interactivity' => 'parallax,reveal',
 		),
 		'Tribune'    => array(
-			'align'     => 'centered',
-			'density'   => 'dense',
-			'contrast'  => 'medium',
-			'accent'    => 'restrained',
-			'blockGap'  => '1rem',
-			'edges'     => 'sharp',
-			'separator' => 'wide',
+			'align'         => 'centered',
+			'density'       => 'dense',
+			'contrast'      => 'medium',
+			'accent'        => 'restrained',
+			'blockGap'      => '1rem',
+			'edges'         => 'sharp',
+			'separator'     => 'wide',
+			'interactivity' => 'countup',
 		),
 		'Folio'      => array(
-			'align'     => 'left',
-			'density'   => 'airy',
-			'contrast'  => 'medium',
-			'accent'    => 'restrained',
-			'blockGap'  => '2rem',
-			'edges'     => 'default',
-			'separator' => 'default',
+			'align'         => 'left',
+			'density'       => 'airy',
+			'contrast'      => 'medium',
+			'accent'        => 'restrained',
+			'blockGap'      => '2rem',
+			'edges'         => 'default',
+			'separator'     => 'default',
+			'interactivity' => 'reveal',
 		),
 		'Nocturne'   => array(
-			'align'     => 'centered',
-			'density'   => 'airy',
-			'contrast'  => 'high',
-			'accent'    => 'pronounced',
-			'blockGap'  => '2rem',
-			'edges'     => 'default',
-			'separator' => 'wide',
+			'align'         => 'centered',
+			'density'       => 'airy',
+			'contrast'      => 'high',
+			'accent'        => 'pronounced',
+			'blockGap'      => '2rem',
+			'edges'         => 'default',
+			'separator'     => 'wide',
+			'interactivity' => 'parallax,reveal',
 		),
 		'Broadsheet' => array(
-			'align'     => 'left',
-			'density'   => 'dense',
-			'contrast'  => 'high',
-			'accent'    => 'restrained',
-			'blockGap'  => '1rem',
-			'edges'     => 'sharp',
-			'separator' => 'wide',
+			'align'         => 'left',
+			'density'       => 'dense',
+			'contrast'      => 'high',
+			'accent'        => 'restrained',
+			'blockGap'      => '1rem',
+			'edges'         => 'sharp',
+			'separator'     => 'wide',
+			'interactivity' => '',
 		),
 		'Codex'      => array(
-			'align'     => 'left',
-			'density'   => 'balanced',
-			'contrast'  => 'medium',
-			'accent'    => 'restrained',
-			'blockGap'  => '1.5rem',
-			'edges'     => 'sharp',
-			'separator' => 'default',
+			'align'         => 'left',
+			'density'       => 'balanced',
+			'contrast'      => 'medium',
+			'accent'        => 'restrained',
+			'blockGap'      => '1.5rem',
+			'edges'         => 'sharp',
+			'separator'     => 'default',
+			'interactivity' => '',
 		),
 		'Dusk'       => array(
-			'align'     => 'centered',
-			'density'   => 'airy',
-			'contrast'  => 'high',
-			'accent'    => 'pronounced',
-			'blockGap'  => '2rem',
-			'edges'     => 'default',
-			'separator' => 'wide',
+			'align'         => 'centered',
+			'density'       => 'airy',
+			'contrast'      => 'high',
+			'accent'        => 'pronounced',
+			'blockGap'      => '2rem',
+			'edges'         => 'default',
+			'separator'     => 'wide',
+			'interactivity' => 'parallax,reveal',
 		),
 		'Solstice'   => array(
-			'align'     => 'centered',
-			'density'   => 'balanced',
-			'contrast'  => 'high',
-			'accent'    => 'pronounced',
-			'blockGap'  => '1.5rem',
-			'edges'     => 'soft',
-			'separator' => 'wide',
+			'align'         => 'centered',
+			'density'       => 'balanced',
+			'contrast'      => 'high',
+			'accent'        => 'pronounced',
+			'blockGap'      => '1.5rem',
+			'edges'         => 'soft',
+			'separator'     => 'wide',
+			'interactivity' => 'reveal',
 		),
 		'Mirage'     => array(
-			'align'     => 'mixed',
-			'density'   => 'airy',
-			'contrast'  => 'high',
-			'accent'    => 'pronounced',
-			'blockGap'  => '2rem',
-			'edges'     => 'soft',
-			'separator' => 'wide',
+			'align'         => 'mixed',
+			'density'       => 'airy',
+			'contrast'      => 'high',
+			'accent'        => 'pronounced',
+			'blockGap'      => '2rem',
+			'edges'         => 'soft',
+			'separator'     => 'wide',
+			'interactivity' => 'reveal',
 		),
 		'Ledger'     => array(
-			'align'     => 'left',
-			'density'   => 'dense',
-			'contrast'  => 'medium',
-			'accent'    => 'restrained',
-			'blockGap'  => '1rem',
-			'edges'     => 'default',
-			'separator' => 'dots',
+			'align'         => 'left',
+			'density'       => 'dense',
+			'contrast'      => 'medium',
+			'accent'        => 'restrained',
+			'blockGap'      => '1rem',
+			'edges'         => 'default',
+			'separator'     => 'dots',
+			'interactivity' => '',
 		),
 		'Mosaic'     => array(
-			'align'     => 'mixed',
-			'density'   => 'balanced',
-			'contrast'  => 'high',
-			'accent'    => 'pronounced',
-			'blockGap'  => '1.5rem',
-			'edges'     => 'default',
-			'separator' => 'wide',
+			'align'         => 'mixed',
+			'density'       => 'balanced',
+			'contrast'      => 'high',
+			'accent'        => 'pronounced',
+			'blockGap'      => '1.5rem',
+			'edges'         => 'default',
+			'separator'     => 'wide',
+			'interactivity' => 'reveal',
 		),
 		'Prism'      => array(
-			'align'     => 'mixed',
-			'density'   => 'airy',
-			'contrast'  => 'high',
-			'accent'    => 'pronounced',
-			'blockGap'  => '2rem',
-			'edges'     => 'soft',
-			'separator' => 'wide',
+			'align'         => 'mixed',
+			'density'       => 'airy',
+			'contrast'      => 'high',
+			'accent'        => 'pronounced',
+			'blockGap'      => '2rem',
+			'edges'         => 'soft',
+			'separator'     => 'wide',
+			'interactivity' => 'reveal',
 		),
 		'Broadside'  => array(
-			'align'     => 'left',
-			'density'   => 'balanced',
-			'contrast'  => 'high',
-			'accent'    => 'pronounced',
-			'blockGap'  => '1.5rem',
-			'edges'     => 'default',
-			'separator' => 'wide',
+			'align'         => 'left',
+			'density'       => 'balanced',
+			'contrast'      => 'high',
+			'accent'        => 'pronounced',
+			'blockGap'      => '1.5rem',
+			'edges'         => 'default',
+			'separator'     => 'wide',
+			'interactivity' => 'reveal',
 		),
 		'Manifesto'  => array(
-			'align'     => 'centered',
-			'density'   => 'airy',
-			'contrast'  => 'high',
-			'accent'    => 'pronounced',
-			'blockGap'  => '2rem',
-			'edges'     => 'default',
-			'separator' => 'wide',
+			'align'         => 'centered',
+			'density'       => 'airy',
+			'contrast'      => 'high',
+			'accent'        => 'pronounced',
+			'blockGap'      => '2rem',
+			'edges'         => 'default',
+			'separator'     => 'wide',
+			'interactivity' => 'parallax,reveal',
 		),
 		'Overture'   => array(
-			'align'     => 'centered',
-			'density'   => 'airy',
-			'contrast'  => 'medium',
-			'accent'    => 'pronounced',
-			'blockGap'  => '2rem',
-			'edges'     => 'soft',
-			'separator' => 'wide',
+			'align'         => 'centered',
+			'density'       => 'airy',
+			'contrast'      => 'medium',
+			'accent'        => 'pronounced',
+			'blockGap'      => '2rem',
+			'edges'         => 'soft',
+			'separator'     => 'wide',
+			'interactivity' => 'reveal',
+		),
+		'Stratum'    => array(
+			'align'         => 'left',
+			'density'       => 'balanced',
+			'contrast'      => 'high',
+			'accent'        => 'restrained',
+			'blockGap'      => '1.5rem',
+			'edges'         => 'default',
+			'separator'     => 'wide',
+			'interactivity' => 'reveal',
 		),
 	);
 	$rules = (array) apply_filters( 'aldus_personality_style_rules', $rules );
@@ -460,13 +488,51 @@ function aldus_render_block_token(
 	$large    = $theme['large'] ?? aldus_pick_large_font( $font_sizes );
 	$gradient = $theme['gradient'] ?? aldus_pick_gradient( aldus_get_theme_gradients() );
 
-	$s_align     = $style['align'] ?? 'left';
-	$s_density   = $style['density'] ?? 'balanced';
-	$s_contrast  = $style['contrast'] ?? 'medium';
-	$s_accent    = $style['accent'] ?? 'restrained';
-	$s_block_gap = $style['blockGap'] ?? '1.5rem';
-	$s_edges     = $style['edges'] ?? 'default';
-	$s_separator = $style['separator'] ?? 'wide';
+	$s_align         = $style['align'] ?? 'left';
+	$s_density       = $style['density'] ?? 'balanced';
+	$s_contrast      = $style['contrast'] ?? 'medium';
+	$s_accent        = $style['accent'] ?? 'restrained';
+	$s_block_gap     = $style['blockGap'] ?? '1.5rem';
+	$s_edges         = $style['edges'] ?? 'default';
+	$s_separator     = $style['separator'] ?? 'wide';
+	$s_interactivity = $style['interactivity'] ?? '';
+
+	// Pre-compute Interactivity API data attribute strings.
+	// Gated so the attributes are never emitted on WP < 6.5 where the
+	// Interactivity API is not available.
+	$wp_interactive_available = function_exists( 'wp_interactivity_data_wp_context' );
+
+	// Parallax: applied to cover blocks.
+	$ia_parallax = '';
+	if ( $wp_interactive_available && str_contains( $s_interactivity, 'parallax' ) ) {
+		$ia_parallax = ' data-wp-interactive="aldus"'
+			. ' data-wp-on-window--scroll="actions.parallax"';
+	}
+
+	// Reveal on scroll: applied to full-width group sections.
+	$ia_reveal = '';
+	if ( $wp_interactive_available && str_contains( $s_interactivity, 'reveal' ) ) {
+		$ia_reveal = ' data-wp-interactive="aldus"'
+			. ' data-wp-on-window--scroll="actions.revealOnScroll"'
+			. " data-wp-context='{\"revealed\":false}'"
+			. ' style="opacity:0;transform:translateY(20px);'
+			. 'transition:opacity 0.6s ease,transform 0.6s ease"';
+	}
+
+	// Count-up: applied to stat headings in row:stats blocks.
+	$ia_countup = '';
+	if ( $wp_interactive_available && str_contains( $s_interactivity, 'countup' ) ) {
+		$ia_countup = ' data-wp-interactive="aldus"'
+			. ' data-wp-watch="callbacks.countUp"'
+			. " data-wp-context='{\"revealed\":false,\"counted\":false}'";
+	}
+
+	// Accordion: applied to details blocks.
+	$ia_accordion = '';
+	if ( $wp_interactive_available ) {
+		$ia_accordion = ' data-wp-interactive="aldus"'
+			. ' data-wp-watch="callbacks.animateDetails"';
+	}
 
 	// Compute border-radius from edges setting.
 	$s_radius = '';
@@ -504,12 +570,32 @@ function aldus_render_block_token(
 			// Content-aware: skip product-hero variant (3) if no CTA in manifest.
 			$cv      = ( ! $has_cta && $variant5 === 3 ) ? 0 : $variant5;
 			$post_id = (int) ( $context['post_id'] ?? 0 );
-			return aldus_block_cover( $dist, $dark, 60, $large, false, 'Hero', $cv, $post_id );
+			return aldus_block_cover(
+				$dist,
+				$dark,
+				60,
+				$large,
+				false,
+				'Hero',
+				$cv,
+				$post_id,
+				$ia_parallax
+			);
 
 		case 'cover:light':
 			$cv      = ( ! $has_cta && $variant5 === 3 ) ? 1 : $variant5;
 			$post_id = (int) ( $context['post_id'] ?? 0 );
-			return aldus_block_cover( $dist, $light, 30, $large, true, 'Feature Cover', $cv, $post_id );
+			return aldus_block_cover(
+				$dist,
+				$light,
+				30,
+				$large,
+				true,
+				'Feature Cover',
+				$cv,
+				$post_id,
+				$ia_parallax
+			);
 
 		case 'cover:minimal':
 			return aldus_block_cover_minimal( $dist, $dark, $large, 'Minimal Cover' );
@@ -549,13 +635,40 @@ function aldus_render_block_token(
 		// ---- Group wrappers ----
 
 		case 'group:dark-full':
-			return aldus_block_group( $dist, $dark, 'white', true, 'Dark Section', $variant3, $s_block_gap );
+			return aldus_block_group(
+				$dist,
+				$dark,
+				'white',
+				true,
+				'Dark Section',
+				$variant3,
+				$s_block_gap,
+				$ia_reveal
+			);
 
 		case 'group:accent-full':
-			return aldus_block_group( $dist, $accent, '', false, 'Accent Section', $variant3, $s_block_gap );
+			return aldus_block_group(
+				$dist,
+				$accent,
+				'',
+				false,
+				'Accent Section',
+				$variant3,
+				$s_block_gap,
+				$ia_reveal
+			);
 
 		case 'group:light-full':
-			return aldus_block_group( $dist, $light, '', false, 'Light Section', $variant3, $s_block_gap );
+			return aldus_block_group(
+				$dist,
+				$light,
+				'',
+				false,
+				'Light Section',
+				$variant3,
+				$s_block_gap,
+				$ia_reveal
+			);
 
 		case 'group:border-box':
 			// Personality density: dense personalities prefer the CTA/list variant (1).
@@ -577,7 +690,7 @@ function aldus_render_block_token(
 			return aldus_block_group_grid( $dist );
 
 		case 'row:stats':
-			return aldus_block_row_stats( $dist );
+			return aldus_block_row_stats( $dist, $ia_countup );
 
 		// ---- Pull quotes ----
 
@@ -706,7 +819,7 @@ function aldus_render_block_token(
 		// ---- FAQ / accordion ----
 
 		case 'details:accordion':
-			return aldus_block_details_accordion( $dist );
+			return aldus_block_details_accordion( $dist, $ia_accordion );
 
 		// ---- Code ----
 
@@ -744,7 +857,8 @@ function aldus_block_cover(
 	bool $is_light = false,
 	string $name = '',
 	int $variant = 0,
-	int $post_id = 0
+	int $post_id = 0,
+	string $ia_attrs = ''
 ): string {
 	// Variant 2: pure backdrop — no inner content. Still needs at least an image to be meaningful.
 	if ( $variant === 2 ) {
@@ -1027,7 +1141,8 @@ function aldus_block_cover(
 			'attrs'        => $attrs,
 			'innerBlocks'  => array(),
 			'innerContent' => array(
-				"<div class=\"wp-block-cover alignfull {$position_class}\" style=\"min-height:{$cover_min_height}px\">\n"
+				"<div class=\"wp-block-cover alignfull {$position_class}\"{$ia_attrs}"
+				. " style=\"min-height:{$cover_min_height}px\">\n"
 				. "<span aria-hidden=\"true\" class=\"wp-block-cover__background has-{$color_safe}-background-color {$dim_class} has-background-dim\"></span>\n"
 				. $image_html
 				. $inner_container
@@ -1433,7 +1548,8 @@ function aldus_block_group(
 	bool $full_width,
 	string $name = '',
 	int $variant = 0,
-	string $block_gap = ''
+	string $block_gap = '',
+	string $ia_attrs = ''
 ): string {
 	$bg_safe = sanitize_html_class( $bg_slug );
 	$tc_safe = $text_color_slug ? sanitize_html_class( $text_color_slug ) : '';
@@ -1677,7 +1793,8 @@ function aldus_block_group(
 			'innerBlocks'  => array(),
 			'innerContent' => array(
 				'<div class="' . aldus_group_classes( 'constrained' )
-				. "{$align_class}{$bg_class}{$tc_class}\" style=\"padding-top:{$pad};padding-bottom:{$pad}\">\n{$inner}</div>",
+				. "{$align_class}{$bg_class}{$tc_class}\"{$ia_attrs}"
+				. " style=\"padding-top:{$pad};padding-bottom:{$pad}\">\n{$inner}</div>",
 			),
 		)
 	) . "\n\n";
@@ -3542,7 +3659,7 @@ function aldus_block_group_grid( Aldus_Content_Distributor $dist ): string {
  * @param Aldus_Content_Distributor $dist
  * @return string
  */
-function aldus_block_row_stats( Aldus_Content_Distributor $dist ): string {
+function aldus_block_row_stats( Aldus_Content_Distributor $dist, string $ia_attrs = '' ): string {
 	$pairs = array();
 	for ( $i = 0; $i < 4; $i++ ) {
 		$heading = $dist->has( 'subheading' ) ? $dist->consume( 'subheading' ) : null;
@@ -3600,7 +3717,9 @@ function aldus_block_row_stats( Aldus_Content_Distributor $dist ): string {
 				'metadata' => array( 'name' => 'Stats Row' ),
 			),
 			'innerBlocks'  => array(),
-			'innerContent' => array( '<div class="' . aldus_group_classes( 'flex' ) . "\">\n{$inner}</div>" ),
+			'innerContent' => array(
+				'<div class="' . aldus_group_classes( 'flex' ) . "\"{$ia_attrs}>\n{$inner}</div>",
+			),
 		)
 	) . "\n\n";
 }
@@ -3612,7 +3731,7 @@ function aldus_block_row_stats( Aldus_Content_Distributor $dist ): string {
  * @param Aldus_Content_Distributor $dist
  * @return string
  */
-function aldus_block_details_accordion( Aldus_Content_Distributor $dist ): string {
+function aldus_block_details_accordion( Aldus_Content_Distributor $dist, string $ia_attrs = '' ): string {
 	$output = '';
 	$count  = 0;
 
@@ -3625,7 +3744,7 @@ function aldus_block_details_accordion( Aldus_Content_Distributor $dist ): strin
 
 		$summary_text = $summary ? esc_html( $summary['content'] ) : '';
 		$body_text    = $body ? esc_html( $body['content'] ) : '';
-		$inner_html   = "<details class=\"wp-block-details\"><summary>{$summary_text}</summary>\n"
+		$inner_html   = "<details class=\"wp-block-details\"{$ia_attrs}><summary>{$summary_text}</summary>\n"
 			. ( $body_text ? "<p>{$body_text}</p>\n" : '' )
 			. '</details>';
 

@@ -23,6 +23,11 @@ module.exports = {
 			// Referenced by the 'style' key in block.json and by wp_enqueue_block_style()
 			// in aldus_register_block(). Loads only on pages that contain the block.
 			frontend: './src/frontend.scss',
+			// Compiles the Interactivity API store → build/frontend-interactivity.js.
+			// Registered as a Script Module in aldus_register_block() and declared
+			// via viewScriptModule in block.json so WP loads it only on pages with
+			// Aldus blocks. Requires @wordpress/interactivity (WP 6.5+).
+			'frontend-interactivity': './src/frontend/interactivity.js',
 		};
 	},
 	experiments: {

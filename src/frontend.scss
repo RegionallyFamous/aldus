@@ -21,3 +21,52 @@
 	--aldus-overlay-dark: rgba(0, 0, 0, 0.55);
 	--aldus-overlay-accent: rgba(0, 0, 0, 0.35);
 }
+
+// ---------------------------------------------------------------------------
+// Interactivity API — initial animation states.
+// PHP renderers inject inline style for reveal targets. The CSS here
+// provides smooth transitions for details accordion blocks and enforces
+// the no-motion preference.
+// ---------------------------------------------------------------------------
+
+// Smooth accordion open/close via max-height animation.
+// The JS sets max-height to scrollHeight on open, 0 on close.
+.wp-block-details {
+	overflow: hidden;
+
+	> :not(summary) {
+		max-height: 0;
+		overflow: hidden;
+		opacity: 0;
+		transition:
+			max-height 0.35s ease,
+			opacity 0.25s ease;
+	}
+
+	/* stylelint-disable-next-line no-descending-specificity */
+	&[open] > :not(summary) {
+		max-height: 2000px;
+		opacity: 1;
+	}
+}
+
+// Wrapper mode: .aldus-layout is a semantic container that carries the
+// data-personality attribute but should not interrupt block layout.
+.aldus-layout {
+	display: contents;
+}
+
+// Respect user's reduced-motion preference — disable all Aldus transitions.
+@media (prefers-reduced-motion: reduce) {
+	// stylelint-disable-next-line no-descending-specificity
+	.wp-block-cover,
+	.wp-block-group,
+	.wp-block-details,
+	.wp-block-details > :not(summary),
+	.aldus-layout * {
+		transition: none !important;
+		animation: none !important;
+		transform: none !important;
+		opacity: 1 !important;
+	}
+}

@@ -46,7 +46,7 @@ function aldus_render_admin_page(): void {
 	$support_url = 'https://wordpress.org/support/plugin/aldus/';
 
 	// Find the most recently edited post to link to the editor.
-	$recent = get_posts(
+	$recent     = get_posts(
 		array(
 			'numberposts' => 1,
 			'post_status' => array( 'draft', 'publish' ),

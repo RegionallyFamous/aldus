@@ -47,6 +47,21 @@ function aldus_register_meta_and_bindings(): void {
 				'sanitize_callback' => 'aldus_sanitize_items_meta',
 			)
 		);
+
+		// Stores the client IDs of container blocks locked to content-only mode
+		// so the lock can be restored across editor sessions.
+		register_post_meta(
+			$post_type,
+			'_aldus_locked_blocks',
+			array(
+				'type'              => 'string',
+				'description'       => 'JSON-encoded array of block client IDs locked to content-only editing mode by Aldus.',
+				'single'            => true,
+				'show_in_rest'      => true,
+				'auth_callback'     => fn() => current_user_can( 'edit_posts' ),
+				'sanitize_callback' => 'sanitize_text_field',
+			)
+		);
 	}
 
 	// Block Bindings API requires WP 6.5+.

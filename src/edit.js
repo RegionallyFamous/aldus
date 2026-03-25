@@ -19,7 +19,15 @@ import {
 	forwardRef,
 } from '@wordpress/element';
 import {
+	inferStyleDirection,
+	scoreCoverage,
+	inferLayoutDescription,
+	recommendPersonalities,
+	analyzeContentHints,
+} from './lib/intelligence.js';
+import {
 	useBlockProps,
+	useInnerBlocksProps,
 	InspectorControls,
 	BlockControls,
 	MediaUpload,
@@ -88,6 +96,8 @@ import {
 	starFilled,
 	copy,
 	reusableBlock,
+	refresh as refreshIcon,
+	unlock as unlockIcon,
 } from '@wordpress/icons';
 import {
 	PACK_META,
@@ -2462,9 +2472,15 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		className: 'wp-block-aldus-layout-generator',
 	} );
 
-	const { enabledPersonalities, savedItems, styleNote, useMeta } = attributes;
+	const {
+		enabledPersonalities,
+		savedItems,
+		styleNote,
+		useMeta,
+		wrapperMode,
+	} = attributes;
 
-	// State machine: 'building' | 'downloading' | 'loading' | 'results' | 'confirming' | 'mixing' | 'error' | 'no-gpu'
+	// State machine: 'building' | 'downloading' | 'loading' | 'results' | 'confirming' | 'mixing' | 'inserted' | 'error' | 'no-gpu'
 	const [ screen, setScreen ] = useState( 'building' );
 	const [ items, setItems ] = useState( () =>
 		validateSavedItems( savedItems )
@@ -2491,6 +2507,16 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 	// When the user clicks "Try with my content" from a pack preview card, we
 	// pin that personality so generation leads with it.
 	const [ pinnedPersonality, setPinnedPersonality ] = useState( null );
+
+	// Intelligence signals — set during generation, cleared on start-over.
+	// autoStyle: string inferred from content manifest (e.g. "text-heavy editorial").
+	// recommendedPersonalities: string[] of top-3 personality names for this content.
+	// contentHints: string[] of actionable suggestions shown as dismissible pills.
+	const [ autoStyle, setAutoStyle ] = useState( '' );
+	const [ recommendedPersonalities, setRecommendedPersonalities ] = useState(
+		[]
+	);
+	const [ contentHints, setContentHints ] = useState( [] );
 
 	// Onboarding: show three sequential tooltips for first-time users.
 	// null = already onboarded; 0/1/2 = active step index.
@@ -2521,18 +2547,27 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 	// when it runs inside a stale closure (deps = [screen]).
 	const itemsRef = useRef( items );
 	const useMetaRef = useRef( useMeta );
+	const wrapperModeRef = useRef( wrapperMode );
 	useEffect( () => {
 		itemsRef.current = items;
 	} );
 	useEffect( () => {
 		useMetaRef.current = useMeta;
 	} );
+	useEffect( () => {
+		wrapperModeRef.current = wrapperMode;
+	} );
 	const personalityWarningTimerRef = useRef( null );
 	// Tracks how many times each personality layout has been re-rolled so the PHP
 	// variant picker produces different results even when the token sequence is identical.
 	const rerollCountsRef = useRef( {} );
 	const rerollErrorTimersRef = useRef( {} ); // label → timer id, so stale timers are cleared
-	const { replaceBlocks, selectBlock } = useDispatch( blockEditorStore );
+	const {
+		replaceBlocks,
+		replaceInnerBlocks,
+		selectBlock,
+		setBlockEditingMode,
+	} = useDispatch( blockEditorStore );
 	const { registerShortcut } = useDispatch( keyboardShortcutsStore );
 
 	// Read live theme colors from the editor settings store — no PHP round-trip needed.
@@ -2706,49 +2741,121 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 						}
 					}
 				}
-				replaceBlocks( clientId, newBlocks );
-				// Move editor focus to the first inserted block so keyboard users land
-				// somewhere meaningful after picking a layout (item 20 — accessibility).
-				const firstBlock = newBlocks[ 0 ];
-				if ( firstBlock?.clientId ) {
-					selectBlock( firstBlock.clientId );
-					// Also move DOM focus so keyboard navigation starts at the right block.
-					requestAnimationFrame( () => {
-						document
-							.querySelector(
-								`[data-block="${ firstBlock.clientId }"]`
-							)
-							?.focus();
+				const usingWrapper = wrapperModeRef.current;
+
+				if ( usingWrapper ) {
+					// Wrapper mode: blocks become inner blocks of the Aldus container.
+					// The block stays in the tree so render.php can wrap the output
+					// with a semantic <div data-personality="…"> on the front end.
+					replaceInnerBlocks( clientId, newBlocks, false );
+					setAttributes( {
+						insertedPersonality: chosen.label,
 					} );
-				}
-				wpDispatch( 'core/notices' ).createSuccessNotice(
-					__( 'Layout inserted. Not quite right?', 'aldus' ),
-					{
-						actions: [
-							{
-								label: __( 'Undo', 'aldus' ),
-								onClick: () =>
-									wpDispatch( 'core/editor' ).undo(),
-							},
-						],
-						type: 'snackbar',
-						id: 'aldus-insert-undo',
+					setScreen( 'inserted' );
+					wpDispatch( 'core/notices' ).createSuccessNotice(
+						__(
+							'Layout loaded as inner blocks. Use toolbar to redesign or detach.',
+							'aldus'
+						),
+						{
+							type: 'snackbar',
+							id: 'aldus-insert-wrapper',
+						}
+					);
+				} else {
+					// Classic mode: replace the Aldus block with the generated blocks.
+					replaceBlocks( clientId, newBlocks );
+					// Move editor focus to the first inserted block so keyboard users land
+					// somewhere meaningful after picking a layout (item 20 — accessibility).
+					const firstBlock = newBlocks[ 0 ];
+					if ( firstBlock?.clientId ) {
+						selectBlock( firstBlock.clientId );
+						// Also move DOM focus so keyboard navigation starts at the right block.
+						requestAnimationFrame( () => {
+							document
+								.querySelector(
+									`[data-block="${ firstBlock.clientId }"]`
+								)
+								?.focus();
+						} );
 					}
-				);
+
+					// Lock container block structure so the user can freely edit
+					// content (text, images, links) without accidentally breaking
+					// the layout by dragging, deleting, or rearranging containers.
+					const CONTAINER_TYPES = new Set( [
+						'core/group',
+						'core/columns',
+						'core/column',
+						'core/cover',
+						'core/media-text',
+						'core/buttons',
+					] );
+					const lockedIds = [];
+					const lockContainers = ( blocks ) => {
+						for ( const block of blocks ) {
+							if ( CONTAINER_TYPES.has( block.name ) ) {
+								setBlockEditingMode(
+									block.clientId,
+									'contentOnly'
+								);
+								lockedIds.push( block.clientId );
+							}
+							if ( block.innerBlocks?.length ) {
+								lockContainers( block.innerBlocks );
+							}
+						}
+					};
+					lockContainers( newBlocks );
+
+					wpDispatch( 'core/notices' ).createSuccessNotice(
+						__(
+							'Layout inserted. Structure locked — edit content freely.',
+							'aldus'
+						),
+						{
+							actions: [
+								{
+									label: __( 'Unlock structure', 'aldus' ),
+									onClick: () => {
+										lockedIds.forEach( ( id ) =>
+											wpDispatch(
+												blockEditorStore
+											).setBlockEditingMode(
+												id,
+												'default'
+											)
+										);
+									},
+								},
+								{
+									label: __( 'Undo', 'aldus' ),
+									onClick: () =>
+										wpDispatch( 'core/editor' ).undo(),
+								},
+							],
+							type: 'snackbar',
+							id: 'aldus-insert-undo',
+						}
+					);
+				}
+
 				/**
 				 * Fires after an Aldus layout has been inserted into the editor.
 				 *
 				 * Action: 'aldus.layoutInserted'
 				 *
 				 * @param {Object}   data
-				 * @param {string}   data.label  Personality name.
-				 * @param {string[]} data.tokens Token sequence used.
-				 * @param {Object[]} data.blocks Parsed block objects.
+				 * @param {string}   data.label       Personality name.
+				 * @param {string[]} data.tokens      Token sequence used.
+				 * @param {Object[]} data.blocks      Parsed block objects.
+				 * @param {boolean}  data.wrapperMode Whether wrapper mode was used.
 				 */
 				doAction( 'aldus.layoutInserted', {
 					label: chosen.label,
 					tokens: chosen.tokens ?? [],
 					blocks: newBlocks,
+					wrapperMode: usingWrapper,
 				} );
 			}, 400 );
 			return () => clearTimeout( timerId );
@@ -2898,6 +3005,49 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 					activePersonalities.includes( p.name )
 				);
 
+				// Pre-generation intelligence: style direction, personality
+				// recommendations, and content hints run in parallel.
+				// Failures produce safe empty defaults — never block generation.
+				const [ styleResult, recommendResult, hintsResult ] =
+					await Promise.allSettled( [
+						inferStyleDirection(
+							engineRef.current,
+							manifest,
+							currentItems
+						),
+						recommendPersonalities(
+							engineRef.current,
+							manifest,
+							personalities
+						),
+						analyzeContentHints(
+							engineRef.current,
+							manifest,
+							currentItems
+						),
+					] );
+
+				const detectedStyle =
+					styleResult.status === 'fulfilled'
+						? styleResult.value?.style ?? ''
+						: '';
+				setAutoStyle( detectedStyle );
+				setRecommendedPersonalities(
+					recommendResult.status === 'fulfilled'
+						? recommendResult.value?.recommended ?? []
+						: []
+				);
+				setContentHints(
+					hintsResult.status === 'fulfilled'
+						? hintsResult.value?.hints ?? []
+						: []
+				);
+
+				// Prepend auto-detected style direction to any user-supplied note.
+				const effectiveStyleNote = [ detectedStyle, currentStyleNote ]
+					.filter( Boolean )
+					.join( ', ' );
+
 				// For each personality after the first, pass the example sequences of
 				// prior personalities as diversity hints. This runs in parallel while
 				// still nudging the model toward structural variety.
@@ -2915,7 +3065,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							engineRef.current,
 							p,
 							manifest,
-							currentStyleNote,
+							effectiveStyleNote,
 							currentPostContext,
 							currentItems,
 							previousSequences
@@ -2928,6 +3078,30 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 						? result.value
 						: enforceAnchors( personalities[ i ], [] )
 				);
+
+				// Post-generation intelligence: coverage scoring and layout
+				// descriptions per personality, both in parallel.
+				const [ coverageSettled, descriptionSettled ] =
+					await Promise.all( [
+						Promise.allSettled(
+							tokenResults.map( ( tokens ) =>
+								scoreCoverage(
+									engineRef.current,
+									manifest,
+									tokens
+								)
+							)
+						),
+						Promise.allSettled(
+							tokenResults.map( ( tokens, i ) =>
+								inferLayoutDescription(
+									engineRef.current,
+									personalities[ i ],
+									tokens
+								)
+							)
+						),
+					] );
 
 				setGenProgress( {
 					done: 0,
@@ -2966,12 +3140,30 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							r.value?.success &&
 							r.value?.blocks
 					)
-					.map( ( r ) => ( {
-						label: r.value.label,
-						blocks: r.value.blocks,
-						tokens: r.value.tokens ?? [],
-						sections: r.value.sections ?? [],
-					} ) );
+					.map( ( r ) => {
+						const pIdx = personalities.findIndex(
+							( p ) => p.name === r.value.label
+						);
+						return {
+							label: r.value.label,
+							blocks: r.value.blocks,
+							tokens: r.value.tokens ?? [],
+							sections: r.value.sections ?? [],
+							unusedTypes:
+								pIdx >= 0 &&
+								coverageSettled[ pIdx ]?.status === 'fulfilled'
+									? coverageSettled[ pIdx ].value?.unused ??
+									  []
+									: [],
+							description:
+								pIdx >= 0 &&
+								descriptionSettled[ pIdx ]?.status ===
+									'fulfilled'
+									? descriptionSettled[ pIdx ].value
+											?.description ?? ''
+									: '',
+						};
+					} );
 
 				if ( assembled.length === 0 ) {
 					setErrorCode( 'no_layouts' );
@@ -3357,6 +3549,24 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 
 	const regenerate = generate;
 
+	// Auto-trigger generation when the block was created via a block transform.
+	// When the user selects blocks and uses "Transform to Aldus", the resulting
+	// block already has savedItems populated. Detect this on first render and
+	// fire generate() automatically — two clicks from "I have blocks" to layouts.
+	// The ref guard prevents re-triggering on subsequent renders.
+	const hasAutoGeneratedRef = useRef( false );
+	useEffect( () => {
+		if (
+			items.length > 0 &&
+			screen === 'building' &&
+			! hasAutoGeneratedRef.current
+		) {
+			hasAutoGeneratedRef.current = true;
+			const timer = setTimeout( generate, 300 );
+			return () => clearTimeout( timer );
+		}
+	}, [] ); // eslint-disable-line react-hooks/exhaustive-deps
+
 	const chooseLayout = useCallback(
 		( label ) => {
 			setLayouts( ( prev ) =>
@@ -3393,6 +3603,9 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		setPinnedPersonality( null );
 		setIsPreview( false );
 		setBuildingMode( 'content' );
+		setAutoStyle( '' );
+		setRecommendedPersonalities( [] );
+		setContentHints( [] );
 	}, [] );
 
 	// "Try with my content" — called from a pack preview LayoutCard.
@@ -3508,10 +3721,48 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							?.focus();
 					} );
 				}
+				// Lock container structure so only content (text/images) is editable.
+				const MIX_CONTAINER_TYPES = new Set( [
+					'core/group',
+					'core/columns',
+					'core/column',
+					'core/cover',
+					'core/media-text',
+					'core/buttons',
+				] );
+				const mixLockedIds = [];
+				const lockMixContainers = ( blocks ) => {
+					for ( const block of blocks ) {
+						if ( MIX_CONTAINER_TYPES.has( block.name ) ) {
+							setBlockEditingMode(
+								block.clientId,
+								'contentOnly'
+							);
+							mixLockedIds.push( block.clientId );
+						}
+						if ( block.innerBlocks?.length ) {
+							lockMixContainers( block.innerBlocks );
+						}
+					}
+				};
+				lockMixContainers( newBlocks );
 				wpDispatch( 'core/notices' ).createSuccessNotice(
-					__( 'Layout inserted. Not quite right?', 'aldus' ),
+					__(
+						'Layout inserted. Structure locked — edit content freely.',
+						'aldus'
+					),
 					{
 						actions: [
+							{
+								label: __( 'Unlock structure', 'aldus' ),
+								onClick: () => {
+									mixLockedIds.forEach( ( id ) =>
+										wpDispatch(
+											blockEditorStore
+										).setBlockEditingMode( id, 'default' )
+									);
+								},
+							},
 							{
 								label: __( 'Undo', 'aldus' ),
 								onClick: () =>
@@ -3528,7 +3779,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 				setScreen( 'error' );
 			}
 		},
-		[ clientId, replaceBlocks, selectBlock ]
+		[ clientId, replaceBlocks, selectBlock, setBlockEditingMode ]
 	);
 
 	// ---------------------------------------------------------------------------
@@ -3538,6 +3789,30 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 	return (
 		<>
 			<InspectorControls>
+				{ /* Insertion mode — persistent wrapper vs. classic replace */ }
+				<PanelBody
+					title={ __( 'Insertion mode', 'aldus' ) }
+					initialOpen={ false }
+				>
+					<ToggleControl
+						label={ __( 'Persistent wrapper', 'aldus' ) }
+						help={
+							wrapperMode
+								? __(
+										'Aldus block stays in the tree. Generated blocks are inner blocks — you can redesign without losing them.',
+										'aldus'
+								  )
+								: __(
+										'Aldus block replaces itself after you pick a layout. The block is gone from the tree.',
+										'aldus'
+								  )
+						}
+						checked={ !! wrapperMode }
+						onChange={ ( value ) =>
+							setAttributes( { wrapperMode: value } )
+						}
+					/>
+				</PanelBody>
 				{ /* Pass 8: Quick start presets panel */ }
 				<PanelBody
 					title={ __( 'Quick start', 'aldus' ) }
@@ -3627,10 +3902,26 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 								const checked =
 									enabledPersonalities.includes( name );
 								const tagline = LAYOUT_TAGLINES[ name ] ?? '';
+								const isRecommended =
+									recommendedPersonalities.includes( name );
 								return (
 									<CheckboxControl
 										key={ name }
-										label={ name }
+										label={
+											isRecommended ? (
+												<>
+													{ name }{ ' ' }
+													<span className="aldus-personality-recommended">
+														{ __(
+															'Recommended',
+															'aldus'
+														) }
+													</span>
+												</>
+											) : (
+												name
+											)
+										}
 										help={ tagline }
 										checked={ checked }
 										onChange={ ( next ) => {
@@ -3792,6 +4083,12 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							loadPreset={ loadPreset }
 							onboardingStep={ onboardingStep }
 							onOnboardingNext={ advanceOnboarding }
+							contentHints={ contentHints }
+							onDismissHint={ ( hint ) =>
+								setContentHints( ( prev ) =>
+									prev.filter( ( h ) => h !== hint )
+								)
+							}
 						/>
 					</div>
 				) }
@@ -3832,6 +4129,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							packs={ PACK_META }
 							activePreviewPack={ activePreviewPack }
 							onSwitchPack={ runPreview }
+							autoStyle={ autoStyle }
 						/>
 					</div>
 				) }
@@ -3852,6 +4150,18 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							}
 						/>
 					</div>
+				) }
+				{ screen === 'inserted' && (
+					<InsertedScreen
+						onRedesign={ () => setScreen( 'results' ) }
+						onDetach={ () => {
+							const innerBlocks =
+								wp.data
+									.select( blockEditorStore )
+									.getBlock( clientId )?.innerBlocks ?? [];
+							replaceBlocks( clientId, innerBlocks );
+						} }
+					/>
 				) }
 				{ screen === 'error' && (
 					<div className="aldus-screen">
@@ -4025,6 +4335,8 @@ function BuildingScreen( {
 	loadPreset,
 	onboardingStep,
 	onOnboardingNext,
+	contentHints = [],
+	onDismissHint,
 } ) {
 	const dragIdRef = useRef( null );
 	const removeTimerRef = useRef( null );
@@ -4492,6 +4804,23 @@ function BuildingScreen( {
 						</OnboardingTooltip>
 					) }
 				</>
+			) }
+			{ contentHints.length > 0 && (
+				<div className="aldus-hint-pills">
+					{ contentHints.map( ( hint ) => (
+						<span key={ hint } className="aldus-hint-pill">
+							{ hint }
+							<button
+								type="button"
+								className="aldus-hint-pill-dismiss"
+								aria-label={ __( 'Dismiss hint', 'aldus' ) }
+								onClick={ () => onDismissHint?.( hint ) }
+							>
+								&times;
+							</button>
+						</span>
+					) ) }
+				</div>
 			) }
 		</div>
 	);
@@ -6251,6 +6580,7 @@ function ResultsScreen( {
 	packs = [],
 	activePreviewPack = null,
 	onSwitchPack,
+	autoStyle = '',
 } ) {
 	const hasSections = layouts.some( ( l ) => l.sections?.length > 0 );
 	const [ isCompact, setIsCompact ] = useState( layouts.length >= 8 );
@@ -6375,6 +6705,15 @@ function ResultsScreen( {
 										'aldus'
 								  ) }
 						</span>
+						{ autoStyle && ! isPreview && (
+							<p className="aldus-style-hint">
+								{ sprintf(
+									/* translators: %s: detected content style direction */
+									__( 'Detected style: %s', 'aldus' ),
+									autoStyle
+								) }
+							</p>
+						) }
 						<span className="aldus-results-count">
 							{ sprintf(
 								/* translators: %d is the number of layouts generated */
@@ -6600,7 +6939,7 @@ function LayoutCard( {
 			return [];
 		}
 	}, [ layout.blocks ] );
-	const tagline = LAYOUT_TAGLINES[ layout.label ] ?? '';
+	const tagline = layout.description || LAYOUT_TAGLINES[ layout.label ] || '';
 
 	// Compute which user items appear in this layout's blocks (item 11).
 	const consumedSet = useMemo( () => {
@@ -6771,6 +7110,20 @@ function LayoutCard( {
 					{ tagline && ! isCompact && (
 						<span className="aldus-card-tagline">{ tagline }</span>
 					) }
+					{ ! isCompact && layout.unusedTypes?.length > 0 && (
+						<span className="aldus-coverage-badge">
+							{ sprintf(
+								/* translators: %d: number of unused content items */
+								_n(
+									'%d item unused',
+									'%d items unused',
+									layout.unusedTypes.length,
+									'aldus'
+								),
+								layout.unusedTypes.length
+							) }
+						</span>
+					) }
 					{ items.length > 0 && (
 						<div
 							className="aldus-card-consumption"
@@ -6862,6 +7215,43 @@ function LayoutCard( {
 // ---------------------------------------------------------------------------
 // Screen: Confirming
 // ---------------------------------------------------------------------------
+
+/**
+ * Inserted (wrapper mode) screen.
+ *
+ * Renders the inner blocks as editable content and exposes Redesign / Detach
+ * toolbar buttons. The Aldus block stays in the tree so its PHP render callback
+ * can output the .aldus-layout semantic wrapper on the front end.
+ *
+ * @param {Object}   props
+ * @param {Function} props.onRedesign Callback to go back to the results screen.
+ * @param {Function} props.onDetach   Callback to unwrap inner blocks and remove Aldus.
+ */
+function InsertedScreen( { onRedesign, onDetach } ) {
+	const innerBlocksProps = useInnerBlocksProps(
+		{ className: 'aldus-wrapper-inner' },
+		{ templateLock: 'contentOnly' }
+	);
+	return (
+		<>
+			<BlockControls>
+				<ToolbarGroup>
+					<ToolbarButton
+						icon={ refreshIcon }
+						label={ __( 'Redesign with Aldus', 'aldus' ) }
+						onClick={ onRedesign }
+					/>
+					<ToolbarButton
+						icon={ unlockIcon }
+						label={ __( 'Detach from Aldus', 'aldus' ) }
+						onClick={ onDetach }
+					/>
+				</ToolbarGroup>
+			</BlockControls>
+			<div { ...innerBlocksProps } />
+		</>
+	);
+}
 
 function ConfirmingScreen( { label } ) {
 	return (

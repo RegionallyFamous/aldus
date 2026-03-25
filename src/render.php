@@ -7,19 +7,36 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Server-side render callback for the Aldus block.
  *
- * Aldus is an editor-only tool — it replaces itself with standard core blocks
- * the moment the user picks a layout. A saved post therefore never contains an
- * Aldus block, so this file intentionally renders nothing.
+ * Classic mode (wrapperMode = false):
+ *   Aldus replaces itself with standard core blocks the moment the user picks
+ *   a layout. A saved post therefore never contains an Aldus block in classic
+ *   mode, so this file renders nothing.
  *
- * If a future version adds a "draft preview" mode (showing a placeholder on
- * the front end before the user has chosen a layout), the output would be
- * generated here using the $attributes array.
+ * Wrapper mode (wrapperMode = true):
+ *   The user opted-in to "persistent wrapper" in the Inspector. Aldus inserts
+ *   the generated blocks as inner blocks and stays in the tree as a named
+ *   container. $content holds the serialised inner block markup rendered by
+ *   WordPress. We wrap it in a semantic <div> carrying the personality name as
+ *   a data attribute, which enables per-personality CSS and the Interactivity
+ *   API store to target it without class-name collisions.
  *
  * @param array<string, mixed> $attributes Block attributes.
- * @param string               $content    Inner block content (unused).
- * @param WP_Block             $block      Block instance.
+ * @param string               $content    Inner block content (empty in classic mode).
+ * @param WP_Block             $block      Block instance (unused).
  */
 
-// $attributes, $content, and $block are available but intentionally unused.
-// phpcs:disable VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
-return '';
+// phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable -- $block required by WP callback signature.
+$aldus_wrapper_mode = ! empty( $attributes['wrapperMode'] );
+$aldus_content      = trim( $content );
+
+if ( ! $aldus_wrapper_mode || '' === $aldus_content ) {
+	return '';
+}
+
+$aldus_personality = sanitize_html_class( $attributes['insertedPersonality'] ?? '' );
+
+printf(
+	'<div class="aldus-layout" data-personality="%s">%s</div>',
+	esc_attr( $aldus_personality ),
+	$aldus_content // Already safe — rendered inner block HTML from WP core.
+);

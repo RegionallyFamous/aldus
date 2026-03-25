@@ -69,6 +69,14 @@
 		"useMeta": {
 			"type": "boolean",
 			"default": false
+		},
+		"wrapperMode": {
+			"type": "boolean",
+			"default": false
+		},
+		"insertedPersonality": {
+			"type": "string",
+			"default": ""
 		}
 	},
 	"example": {
@@ -287,6 +295,7 @@
 		"lock": false
 	},
 	"style": "file:./frontend.css",
+	"viewScriptModule": "file:./frontend-interactivity.js",
 	"editorScript": "file:./index.js",
 	"editorStyle": "file:./index.css"
 }
