@@ -2844,3 +2844,38 @@
 		background: #f0f0f0;
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Error screen — technical details disclosure
+// ---------------------------------------------------------------------------
+
+.aldus-error-details {
+	margin-top: 12px;
+	border: 1px solid rgba(0, 0, 0, 0.1);
+	border-radius: 4px;
+	overflow: hidden;
+
+	summary {
+		padding: 6px 10px;
+		cursor: pointer;
+		font-size: 12px;
+		color: #787c82;
+		user-select: none;
+
+		&:hover {
+			color: #1e1e1e;
+		}
+	}
+}
+
+.aldus-error-details-pre {
+	margin: 0;
+	padding: 8px 10px;
+	background: #f6f7f7;
+	font-size: 11px;
+	line-height: 1.5;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	word-break: break-all;
+	border-top: 1px solid rgba(0, 0, 0, 0.08);
+}

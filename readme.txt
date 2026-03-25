@@ -3,7 +3,7 @@ Contributors: regionallyfamous
 Tags: blocks, gutenberg, layout, design, composer
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 1.6.0
+Stable tag: 1.7.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -127,6 +127,12 @@ An optional free-text field on the building screen that steers the layout model 
 
 == Changelog ==
 
+= 1.7.0 =
+* When the layout model outputs unreadable JSON, Aldus now retries automatically — silently, just once — before showing an error. Most transient failures resolve on their own without you ever seeing a message.
+* Error screens now have a "Technical details" disclosure for those who want to see the raw error data.
+* Assembled layouts are cached for 5 minutes so repeated requests for the same content + personality return instantly.
+* The WebLLM runtime chunk is now hinted with both `modulepreload` and `prefetch` so more browsers begin downloading it as soon as you open the editor.
+
 = 1.6.0 =
 * Themes and plugins can now register custom layout personalities via `aldus_register_personality()`.
 * New `GET /aldus/v1/config` REST endpoint returns all available personalities, theme layout settings, and version info — useful for headless or tooling integrations.
@@ -159,6 +165,9 @@ An optional free-text field on the building screen that steers the layout model 
 * Initial release. Describe your content, pick a personality, and Aldus generates a complete block layout — no external services, no API keys, nothing leaves your browser until you hit generate.
 
 == Upgrade Notice ==
+
+= 1.7.0 =
+Automatic retry on LLM parse failures reduces error rates. Assembled layout caching for repeat requests.
 
 = 1.6.0 =
 Adds developer APIs for registering custom personalities and a REST config endpoint. No user-facing changes.

@@ -2471,7 +2471,9 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 	);
 	const [ layouts, setLayouts ] = useState( [] );
 	const [ errorCode, setErrorCode ] = useState( '' );
+	const [ errorDetail, setErrorDetail ] = useState( null ); // raw error for technical details
 	const [ retryCount, setRetryCount ] = useState( 0 );
+	const autoRetryDoneRef = useRef( false ); // prevent infinite auto-retry loops
 	const [ msgIndex, setMsgIndex ] = useState( 0 );
 	const [ msgVisible, setMsgVisible ] = useState( true );
 	const [ dlProgress, setDlProgress ] = useState( { progress: 0, text: '' } );
@@ -3024,6 +3026,27 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 				) {
 					code = 'api_error';
 				}
+				setErrorDetail( err );
+
+				// Auto-retry once on llm_parse_failed — the model occasionally
+				// outputs malformed JSON on the first attempt. A second run with
+				// a fresh call usually succeeds. The autoRetryDoneRef guard
+				// prevents an infinite retry loop.
+				if (
+					code === 'llm_parse_failed' &&
+					! autoRetryDoneRef.current
+				) {
+					autoRetryDoneRef.current = true;
+					runGenerate(
+						currentItems,
+						activePersonalities,
+						currentStyleNote,
+						currentPostContext
+					);
+					return;
+				}
+
+				autoRetryDoneRef.current = false;
 				setErrorCode( code );
 				setRetryCount( ( c ) => c + 1 );
 				setScreen( 'error' );
@@ -3287,6 +3310,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 	);
 
 	const generate = useCallback( () => {
+		autoRetryDoneRef.current = false; // reset auto-retry flag for each new user-triggered generation
 		setIsGenerating( true );
 		const siteName = window.__aldusSite?.name ?? '';
 		const siteDesc = window.__aldusSite?.description ?? '';
@@ -3819,6 +3843,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 						<ErrorScreen
 							code={ errorCode }
 							retryCount={ retryCount }
+							errorDetail={ errorDetail }
 							onRetry={ () => setScreen( 'building' ) }
 							onRegenerate={ regenerate }
 						/>
@@ -7031,9 +7056,28 @@ function MixingScreen( { layouts, onInsert, onBack } ) {
 // Screen: Error (structured messages + retry hint)
 // ---------------------------------------------------------------------------
 
-function ErrorScreen( { code, retryCount, onRetry, onRegenerate } ) {
+function ErrorScreen( {
+	code,
+	retryCount,
+	errorDetail,
+	onRetry,
+	onRegenerate,
+} ) {
 	const msg = ERROR_MESSAGES[ code ] ?? ERROR_MESSAGES.parse_failed;
 	const canRegenerate = code !== 'connection_failed';
+
+	const technicalInfo = errorDetail
+		? JSON.stringify(
+				{
+					code,
+					message: errorDetail?.message,
+					status: errorDetail?.data?.status,
+					detail: errorDetail?.data,
+				},
+				null,
+				2
+		  )
+		: null;
 
 	return (
 		<div className="aldus-error">
@@ -7049,6 +7093,16 @@ function ErrorScreen( { code, retryCount, onRetry, onRegenerate } ) {
 							'aldus'
 						) }
 					</p>
+				) }
+				{ technicalInfo && (
+					<details className="aldus-error-details">
+						<summary>
+							{ __( 'Technical details', 'aldus' ) }
+						</summary>
+						<pre className="aldus-error-details-pre">
+							{ technicalInfo }
+						</pre>
+					</details>
 				) }
 			</div>
 			<Flex gap={ 2 } className="aldus-error-actions">

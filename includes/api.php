@@ -582,6 +582,21 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 	$use_bindings  = (bool) $request->get_param( 'use_bindings' );
 	$custom_styles = (array) $request->get_param( 'custom_styles' );
 
+	// Check assembly cache before doing any heavy rendering work.
+	// TTL: 5 minutes. Key includes all inputs that affect the output.
+	$cache_key = 'aldus_asm_' . substr(
+		md5(
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize
+			serialize( compact( 'tokens', 'items', 'personality', 'reroll_count', 'use_bindings', 'custom_styles' ) )
+		),
+		0,
+		20
+	);
+	$cached_response = get_transient( $cache_key );
+	if ( false !== $cached_response && is_array( $cached_response ) ) {
+		return rest_ensure_response( $cached_response );
+	}
+
 	$dist = new Aldus_Content_Distributor( $items );
 	$dist->prepare();
 
@@ -648,15 +663,18 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 	 */
 	do_action( 'aldus_layout_generated', $personality, $tokens, $markup );
 
-	return rest_ensure_response(
-		array(
-			'success'  => true,
-			'label'    => $personality,
-			'blocks'   => $markup,
-			'tokens'   => $tokens,
-			'sections' => $sections,
-		)
+	$response_data = array(
+		'success'  => true,
+		'label'    => $personality,
+		'blocks'   => $markup,
+		'tokens'   => $tokens,
+		'sections' => $sections,
 	);
+
+	// Cache the assembled response for 5 minutes to serve repeat requests instantly.
+	set_transient( $cache_key, $response_data, 5 * MINUTE_IN_SECONDS );
+
+	return rest_ensure_response( $response_data );
 }
 
 /**

@@ -18,8 +18,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  * redirect or the "How to use" link in the plugin row.
  */
 function aldus_register_admin_page(): void {
+	// Passing an empty string hides the page from the admin menu while still making
+	// it accessible via its URL (admin.php?page=aldus-welcome). This avoids the
+	// PHPStan type error that a literal null would trigger and matches the WP core
+	// behaviour for hidden subpages.
 	add_submenu_page(
-		null,
+		'',
 		__( 'Welcome to Aldus', 'aldus' ),
 		__( 'Welcome to Aldus', 'aldus' ),
 		'edit_posts',
