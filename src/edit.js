@@ -96,7 +96,7 @@ import {
 	starFilled,
 	copy,
 	reusableBlock,
-	refresh as refreshIcon,
+	replace as refreshIcon,
 	unlock as unlockIcon,
 } from '@wordpress/icons';
 import {
