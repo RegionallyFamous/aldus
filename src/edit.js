@@ -25,6 +25,8 @@ import {
 	recommendPersonalities,
 	analyzeContentHints,
 } from './lib/intelligence.js';
+import { robustParse } from './lib/robustParse.js';
+import { batchAssemble } from './lib/batchAssemble.js';
 import {
 	useBlockProps,
 	useInnerBlocksProps,
@@ -2107,6 +2109,20 @@ const ERROR_MESSAGES = {
 			'aldus'
 		),
 	},
+	gpu_device_lost: {
+		headline: __( 'The GPU disconnected.', 'aldus' ),
+		detail: __(
+			'This sometimes happens when the tab is backgrounded. Clicking "Try again" usually works.',
+			'aldus'
+		),
+	},
+	out_of_memory: {
+		headline: __( 'Not enough GPU memory.', 'aldus' ),
+		detail: __(
+			'Close some other browser tabs and try again. The model needs around 500 MB of free memory.',
+			'aldus'
+		),
+	},
 	rate_limited: {
 		headline: __( 'Too many requests.', 'aldus' ),
 		detail: __( 'Wait a moment, then try again.', 'aldus' ),
@@ -2324,6 +2340,7 @@ const TOKEN_HUMAN_LABELS = {
 	'spacer:xlarge': 'Large spacer',
 	separator: 'Separator',
 	list: 'List',
+	'fallback:generic': 'Fallback layout',
 };
 
 function tokenHumanLabel( token ) {
@@ -2471,42 +2488,29 @@ async function inferTokens(
 
 	const raw = completion.choices[ 0 ]?.message?.content ?? '{}';
 
-	let parsed = {};
-	try {
-		const stripped = raw
-			.replace( /^```(?:json)?\s*/i, '' )
-			.replace( /\s*```$/i, '' )
-			.trim();
-		// First attempt: parse the stripped string directly.
-		try {
-			parsed = JSON.parse( stripped );
-		} catch {
-			// Second attempt: the model sometimes wraps the JSON in preamble text
-			// (e.g. "Sure! Here is the JSON: {...}"). Extract the first {...} block.
-			const objMatch = stripped.match( /\{[\s\S]*\}/ );
-			if ( objMatch ) {
-				parsed = JSON.parse( objMatch[ 0 ] );
-			} else {
-				throw new Error( 'No JSON object found in LLM output' );
-			}
-		}
-	} catch ( parseErr ) {
-		// Fall back to empty — enforceAnchors supplies required tokens.
-		if ( window?.aldusDebug ) {
-			// eslint-disable-next-line no-console
-			console.debug(
-				'[Aldus] token parse failed:',
-				parseErr,
-				'raw:',
-				raw
-			);
-		}
+	const parsed = robustParse( raw );
+	if ( window?.aldusDebug && Object.keys( parsed ).length === 0 ) {
+		// eslint-disable-next-line no-console
+		console.debug( '[Aldus] token parse produced empty result. Raw:', raw );
 	}
+
 	const rawTokens = Array.isArray( parsed?.tokens ) ? parsed.tokens : [];
 
-	const clean = rawTokens.filter(
-		( t ) => typeof t === 'string' && VALID_TOKENS_SET.has( t )
-	);
+	// Trim whitespace and normalise case before filtering so the model
+	// emitting " headline " or "Headline" still matches the token set.
+	const clean = rawTokens
+		.filter( ( t ) => typeof t === 'string' )
+		.map( ( t ) => t.trim().toLowerCase() )
+		.filter( ( t ) => VALID_TOKENS_SET.has( t ) );
+
+	// If the LLM produced no usable tokens, fall back to the personality's
+	// first example sequence so the user always gets a fully-styled layout
+	// rather than bare anchor-only markup.
+	if ( clean.length === 0 ) {
+		const fallback =
+			personality.exampleSequences?.[ 0 ] ?? personality.anchors ?? [];
+		return enforceAnchors( personality, fallback );
+	}
 
 	return enforceAnchors( personality, clean );
 }
@@ -2559,6 +2563,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 	const [ msgIndex, setMsgIndex ] = useState( 0 );
 	const [ msgVisible, setMsgVisible ] = useState( true );
 	const [ dlProgress, setDlProgress ] = useState( { progress: 0, text: '' } );
+	const [ dlStalled, setDlStalled ] = useState( false );
 	const [ isGenerating, setIsGenerating ] = useState( false );
 	const [ buildingMode, setBuildingMode ] = useState( 'content' ); // 'content' | 'preview'
 	const [ isPreview, setIsPreview ] = useState( false );
@@ -3031,10 +3036,16 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 				manifest[ item.type ] = ( manifest[ item.type ] ?? 0 ) + 1;
 			}
 
+			// Tracks whether the LLM engine was usable before any error was thrown.
+			// If true, the engine itself is fine — only the inference or assemble
+			// call failed, so we keep it alive for the next attempt.
+			let engineWasReady = false;
+
 			try {
 				if ( ! engineRef.current ) {
 					setScreen( 'downloading' );
 					setDlProgress( { progress: 0, text: '' } );
+					setDlStalled( false );
 
 					const { CreateMLCEngine } = await import(
 						'@mlc-ai/web-llm'
@@ -3043,18 +3054,60 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 					const dlController = new AbortController();
 					abortRef.current = () => dlController.abort();
 
-					engineRef.current = await CreateMLCEngine(
-						'SmolLM2-360M-Instruct-q4f16_1-MLC',
-						{
-							signal: dlController.signal,
-							initProgressCallback: ( info ) => {
-								setDlProgress( {
-									progress: info.progress ?? 0,
-									text: info.text ?? '',
-								} );
-							},
+					// Stall detection: if download progress does not advance for
+					// 30 s, show a dismissible notice.
+					let dlLastProgress = -1;
+					let dlLastProgressTime = Date.now();
+					let dlStallFired = false;
+
+					const engineOptions = {
+						signal: dlController.signal,
+						initProgressCallback: ( info ) => {
+							const now = Date.now();
+							const pct = info.progress ?? 0;
+
+							if ( pct > dlLastProgress ) {
+								dlLastProgress = pct;
+								dlLastProgressTime = now;
+							} else if (
+								! dlStallFired &&
+								now - dlLastProgressTime > 30_000
+							) {
+								dlStallFired = true;
+								setDlStalled( true );
+							}
+
+							setDlProgress( {
+								progress: pct,
+								text: info.text ?? '',
+							} );
+						},
+					};
+
+					// First attempt; retry once on transient GPU device-lost.
+					try {
+						engineRef.current = await CreateMLCEngine(
+							'SmolLM2-360M-Instruct-q4f16_1-MLC',
+							engineOptions
+						);
+					} catch ( firstEngineErr ) {
+						const isTransient =
+							firstEngineErr?.message
+								?.toLowerCase()
+								.includes( 'device lost' ) ||
+							firstEngineErr?.message
+								?.toLowerCase()
+								.includes( 'gpudevice' );
+						if ( ! isTransient ) {
+							throw firstEngineErr;
 						}
-					);
+						// Wait 2 s for the browser to reallocate the GPU context.
+						await new Promise( ( r ) => setTimeout( r, 2000 ) );
+						engineRef.current = await CreateMLCEngine(
+							'SmolLM2-360M-Instruct-q4f16_1-MLC',
+							engineOptions
+						);
+					}
 
 					abortRef.current = null;
 					// Mark that the model has been downloaded so the first-time hint disappears.
@@ -3064,6 +3117,9 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 						true
 					);
 				}
+
+				// Engine is live — errors from here on should not destroy it.
+				engineWasReady = true;
 
 				setScreen( 'loading' );
 
@@ -3174,46 +3230,36 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 					total: personalities.length,
 					lastLabel: null,
 				} );
-				const assembleSettled = await Promise.allSettled(
-					tokenResults.map( async ( tokens, i ) => {
-						try {
-							return await apiFetch( {
-								path: '/aldus/v1/assemble',
-								method: 'POST',
-								data: {
-									items: currentItems,
-									personality: personalities[ i ].name,
-									tokens,
-									use_bindings: useMeta,
-									custom_styles: customBlockStyles,
-									post_id: postId || 0,
-								},
-							} );
-						} finally {
-							setGenProgress( ( p ) => ( {
-								...p,
-								done: p.done + 1,
-								lastLabel: personalities[ i ].name,
-							} ) );
-						}
-					} )
+
+				const assembleJobs = tokenResults.map( ( tokens, i ) => ( {
+					label: personalities[ i ].name,
+					data: {
+						items: currentItems,
+						personality: personalities[ i ].name,
+						tokens,
+						use_bindings: useMeta,
+						custom_styles: customBlockStyles,
+						post_id: postId || 0,
+					},
+				} ) );
+
+				const assembleResponses = await batchAssemble(
+					assembleJobs,
+					( done, total, lastLabel ) =>
+						setGenProgress( { done, total, lastLabel } )
 				);
 
-				const assembled = assembleSettled
-					.filter(
-						( r ) =>
-							r.status === 'fulfilled' &&
-							isValidAssembleResponse( r.value )
-					)
+				const assembled = assembleResponses
+					.filter( isValidAssembleResponse )
 					.map( ( r ) => {
 						const pIdx = personalities.findIndex(
-							( p ) => p.name === r.value.label
+							( p ) => p.name === r.label
 						);
 						return {
-							label: r.value.label,
-							blocks: r.value.blocks,
-							tokens: r.value.tokens ?? [],
-							sections: r.value.sections ?? [],
+							label: r.label,
+							blocks: r.blocks,
+							tokens: r.tokens ?? [],
+							sections: r.sections ?? [],
 							unusedTypes:
 								pIdx >= 0 &&
 								coverageSettled[ pIdx ]?.status === 'fulfilled'
@@ -3259,21 +3305,36 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 					'aldus-connection-error'
 				);
 			} catch ( err ) {
-				engineRef.current = null;
+				// If the engine was ready before this error, keep it alive —
+				// the failure was in inference or the assemble call, not the engine.
+				if ( ! engineWasReady ) {
+					engineRef.current = null;
+				}
 
 				// Distinguish error sources for better user guidance.
-				// WASM CompileError or WebGPU device-lost → wasm_compile_failed.
+				// GPU OOM → out_of_memory.
+				// GPU device-lost → gpu_device_lost.
+				// WASM CompileError → wasm_compile_failed.
 				// HTTP 429 → rate_limited.
 				// HTTP 4xx/5xx from the REST API → api_error.
 				// Network/service errors → connection_failed or timeout.
 				// Model-side failures (JSON parse, token hallucination) → llm_parse_failed.
 				let code = 'llm_parse_failed';
 				if (
+					err?.message?.toLowerCase().includes( 'out of memory' ) ||
+					err?.message?.toLowerCase().includes( 'oom' )
+				) {
+					code = 'out_of_memory';
+				} else if (
+					err?.message?.toLowerCase().includes( 'device lost' ) ||
+					err?.message?.toLowerCase().includes( 'gpudevice' )
+				) {
+					code = 'gpu_device_lost';
+				} else if (
 					// CompileError is a browser global — thrown when WASM compilation fails.
 					// eslint-disable-next-line no-undef
 					err instanceof CompileError ||
-					err?.message?.toLowerCase().includes( 'device lost' ) ||
-					err?.message?.toLowerCase().includes( 'webgpu' )
+					err?.message?.toLowerCase().includes( 'webassembly' )
 				) {
 					code = 'wasm_compile_failed';
 				} else if ( err?.data?.status === 429 ) {
@@ -3361,50 +3422,39 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 					total: personalities.length,
 					lastLabel: null,
 				} );
-				const settled = await Promise.allSettled(
-					personalities.map( async ( p ) => {
-						try {
-							// Guard: prefer exampleSequences, fall back to anchors; never index an empty array.
-							const seqs =
-								p.exampleSequences?.length > 0
-									? p.exampleSequences
-									: [ p.anchors ];
-							return await apiFetch( {
-								path: '/aldus/v1/assemble',
-								method: 'POST',
-								data: {
-									items: packItems,
-									personality: p.name,
-									tokens: seqs[
-										Math.floor(
-											Math.random() * seqs.length
-										)
-									],
-									use_bindings: useMeta,
-									custom_styles: customBlockStyles,
-								},
-							} );
-						} finally {
-							setGenProgress( ( prev ) => ( {
-								...prev,
-								done: prev.done + 1,
-								lastLabel: p.name,
-							} ) );
-						}
-					} )
+
+				const previewJobs = personalities.map( ( p ) => {
+					const seqs =
+						p.exampleSequences?.length > 0
+							? p.exampleSequences
+							: [ p.anchors ];
+					return {
+						label: p.name,
+						data: {
+							items: packItems,
+							personality: p.name,
+							tokens: seqs[
+								Math.floor( Math.random() * seqs.length )
+							],
+							use_bindings: useMeta,
+							custom_styles: customBlockStyles,
+						},
+					};
+				} );
+
+				const previewResponses = await batchAssemble(
+					previewJobs,
+					( done, total, lastLabel ) =>
+						setGenProgress( { done, total, lastLabel } )
 				);
 
-				const assembled = settled
-					.filter(
-						( r ) =>
-							r.status === 'fulfilled' &&
-							isValidAssembleResponse( r.value )
-					)
+				const assembled = previewResponses
+					.filter( isValidAssembleResponse )
 					.map( ( r ) => ( {
-						label: r.value.label,
-						blocks: r.value.blocks,
-						tokens: r.value.tokens ?? [],
-						sections: r.value.sections ?? [],
+						label: r.label,
+						blocks: r.blocks,
+						tokens: r.tokens ?? [],
+						sections: r.sections ?? [],
 					} ) );
 
 				if ( assembled.length === 0 ) {
@@ -4167,6 +4217,23 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							progress={ dlProgress }
 							onAbort={ abortGenerate }
 						/>
+						{ dlStalled && (
+							<div className="aldus-stall-notice">
+								<p>
+									{ __(
+										'Download seems stuck. Check your connection or try refreshing.',
+										'aldus'
+									) }
+								</p>
+								<Button
+									variant="link"
+									onClick={ () => setDlStalled( false ) }
+									className="aldus-stall-dismiss"
+								>
+									{ __( 'Dismiss', 'aldus' ) }
+								</Button>
+							</div>
+						) }
 					</div>
 				) }
 				{ screen === 'loading' && (

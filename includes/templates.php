@@ -910,7 +910,10 @@ function aldus_block_cover(
 	$text      = esc_html( $headline['content'] ?? '' );
 	$image_url = $image ? esc_url( $image['url'] ) : '';
 
-	// When no image was provided by the user, use the post's featured image as background.
+	// When no image was provided by the user, use the post's featured image as
+	// background — but only when the thumbnail actually exists.  Omitting the
+	// check would set useFeaturedImage=true even when the featured image slot
+	// is empty, which causes WordPress to render a blank white cover block.
 	$use_featured = false;
 	if ( ! $image_url && $post_id > 0 && has_post_thumbnail( $post_id ) ) {
 		$use_featured = true;

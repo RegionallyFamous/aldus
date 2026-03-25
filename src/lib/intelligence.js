@@ -13,6 +13,8 @@
  * which is constrained to a short sentence.
  */
 
+import { robustParse } from './robustParse.js';
+
 // ---------------------------------------------------------------------------
 // Shared helpers
 // ---------------------------------------------------------------------------
@@ -45,23 +47,12 @@ async function runInference( engine, prompt, temperature, maxTokens ) {
 		return {};
 	}
 
-	try {
-		const stripped = raw
-			.replace( /^```(?:json)?\s*/i, '' )
-			.replace( /\s*```$/i, '' )
-			.trim();
-		return JSON.parse( stripped );
-	} catch ( err ) {
-		if ( window?.aldusDebug ) {
-			// eslint-disable-next-line no-console
-			console.debug(
-				'[Aldus intelligence] JSON parse failed. Raw:',
-				raw,
-				err
-			);
-		}
-		return {};
+	const result = robustParse( raw );
+	if ( window?.aldusDebug && Object.keys( result ).length === 0 ) {
+		// eslint-disable-next-line no-console
+		console.debug( '[Aldus intelligence] JSON parse failed. Raw:', raw );
 	}
+	return result;
 }
 
 /**

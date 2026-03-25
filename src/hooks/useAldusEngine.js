@@ -13,6 +13,7 @@
  * @param {Function} options.onDownloadProgress Called with { progress, text } during download.
  * @param {Function} options.onDownloadDone     Called when the engine is ready.
  * @param {Function} options.onModelDownloaded  Called once on first successful download (for prefs).
+ * @param {Function} [options.onDownloadStall]  Called once if download makes no progress for 30 s.
  * @return {{
  *   engineRef: React.MutableRefObject,
  *   abortRef: React.MutableRefObject,
@@ -30,6 +31,7 @@ export function useAldusEngine( {
 	onDownloadProgress,
 	onDownloadDone,
 	onModelDownloaded,
+	onDownloadStall,
 } ) {
 	const engineRef = useRef( null );
 	const abortRef = useRef( null );
@@ -97,16 +99,63 @@ export function useAldusEngine( {
 			const dlController = new AbortController();
 			abortRef.current = () => dlController.abort();
 
+			// Stall detection: if progress does not advance for 30 s, fire the
+			// optional onDownloadStall callback so the UI can show a notice.
+			let lastProgressValue = -1;
+			let lastProgressTime = Date.now();
+			let stallFired = false;
+
+			const engineOptions = {
+				signal: dlController.signal,
+				initProgressCallback: ( info ) => {
+					const now = Date.now();
+					const pct = info.progress ?? 0;
+
+					if ( pct > lastProgressValue ) {
+						lastProgressValue = pct;
+						lastProgressTime = now;
+					} else if (
+						! stallFired &&
+						now - lastProgressTime > 30_000
+					) {
+						stallFired = true;
+						onDownloadStall?.();
+					}
+
+					onDownloadProgress?.( {
+						progress: pct,
+						text: info.text ?? '',
+					} );
+				},
+			};
+
 			try {
-				engineRef.current = await CreateMLCEngine( MODEL_ID, {
-					signal: dlController.signal,
-					initProgressCallback: ( info ) => {
-						onDownloadProgress?.( {
-							progress: info.progress ?? 0,
-							text: info.text ?? '',
-						} );
-					},
-				} );
+				// First attempt.
+				try {
+					engineRef.current = await CreateMLCEngine(
+						MODEL_ID,
+						engineOptions
+					);
+				} catch ( firstErr ) {
+					// On transient GPU device-lost events the browser reallocates the
+					// GPU context within a second or two. Retry once after a short
+					// pause; re-throw everything else immediately.
+					const isTransient =
+						firstErr?.message
+							?.toLowerCase()
+							.includes( 'device lost' ) ||
+						firstErr?.message
+							?.toLowerCase()
+							.includes( 'gpudevice' );
+					if ( ! isTransient ) {
+						throw firstErr;
+					}
+					await new Promise( ( r ) => setTimeout( r, 2000 ) );
+					engineRef.current = await CreateMLCEngine(
+						MODEL_ID,
+						engineOptions
+					);
+				}
 			} finally {
 				abortRef.current = null;
 			}
@@ -127,6 +176,7 @@ export function useAldusEngine( {
 		onDownloadProgress,
 		onDownloadDone,
 		onModelDownloaded,
+		onDownloadStall,
 	] );
 
 	/**

@@ -147,7 +147,7 @@ class Aldus_REST_Controller extends WP_REST_Controller {
 					'properties' => array(
 						'type'     => array(
 							'type' => 'string',
-							'enum' => array( 'headline', 'subheading', 'paragraph', 'quote', 'image', 'cta', 'list', 'video', 'table', 'gallery' ),
+							'enum' => array( 'headline', 'subheading', 'paragraph', 'quote', 'image', 'cta', 'list', 'video', 'table', 'gallery', 'code', 'details' ),
 						),
 						'id'       => array( 'type' => 'string' ),
 						'content'  => array( 'type' => 'string' ),
@@ -618,7 +618,23 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 		$context           = $base_context;
 		$context['rhythm'] = array( 'prev_heavy' => $prev_heavy );
 		$token_markup      = aldus_render_block_token( $token, $dist, $palette, $font_sizes, $index, $layout_seed, $context );
-		$markup           .= $token_markup;
+
+		// Skip tokens that produced markup with no visible text AND no visual
+		// block type (image, cover, gallery, etc.).  This prevents empty
+		// placeholders — e.g. a cover rendered without an image or headline —
+		// from silently inflating the layout with invisible whitespace.
+		if ( ! empty( $token_markup ) ) {
+			$stripped_text = trim( wp_strip_all_tags( $token_markup ) );
+			$has_visual    = (bool) preg_match(
+				'/wp-block-(?:image|cover|gallery|embed|video|separator|spacer)/',
+				$token_markup
+			);
+			if ( '' === $stripped_text && ! $has_visual ) {
+				continue;
+			}
+		}
+
+		$markup .= $token_markup;
 		// Trim once and reuse to avoid double trim() per iteration.
 		$token_markup_trimmed = ltrim( $token_markup );
 		if ( '' !== $token_markup_trimmed ) {
@@ -632,7 +648,18 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 	}
 
 	if ( '' === trim( $markup ) ) {
-		return new WP_Error( 'empty_markup', __( 'Could not build markup for this layout. Try again.', 'aldus' ), array( 'status' => 422 ) );
+		$fallback_markup = aldus_render_fallback_markup( $items );
+		if ( '' !== trim( $fallback_markup ) ) {
+			$markup   = $fallback_markup;
+			$sections = array(
+				array(
+					'token'  => 'fallback:generic',
+					'blocks' => $fallback_markup,
+				),
+			);
+		} else {
+			return new WP_Error( 'empty_markup', __( 'Could not build markup for this layout. Try again.', 'aldus' ), array( 'status' => 422 ) );
+		}
 	}
 
 	/**
@@ -648,7 +675,18 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 	$markup = (string) apply_filters( 'aldus_assembled_blocks', $markup, $personality, $items );
 	// Guard against filters that zero out the markup.
 	if ( '' === trim( $markup ) ) {
-		return new WP_Error( 'empty_markup', __( 'Could not build markup for this layout. Try again.', 'aldus' ), array( 'status' => 422 ) );
+		$fallback_markup = aldus_render_fallback_markup( $items );
+		if ( '' !== trim( $fallback_markup ) ) {
+			$markup   = $fallback_markup;
+			$sections = array(
+				array(
+					'token'  => 'fallback:generic',
+					'blocks' => $fallback_markup,
+				),
+			);
+		} else {
+			return new WP_Error( 'empty_markup', __( 'Could not build markup for this layout. Try again.', 'aldus' ), array( 'status' => 422 ) );
+		}
 	}
 
 	/**
@@ -705,6 +743,8 @@ const ALDUS_VALID_ITEM_TYPES = array(
 	'video',
 	'table',
 	'gallery',
+	'code',
+	'details',
 );
 
 /**
@@ -763,6 +803,154 @@ function aldus_sanitize_item( mixed $raw ): array {
 	}
 
 	return $item;
+}
+
+/**
+ * Renders a single sanitized item as a generic core block.
+ *
+ * This is a safety net for cases where the chosen token sequence cannot
+ * produce any markup for the current item mix.
+ *
+ * @param array<string, mixed> $item Sanitized item.
+ * @return string Serialized block markup.
+ */
+function aldus_render_fallback_item( array $item ): string {
+	$type    = sanitize_key( (string) ( $item['type'] ?? '' ) );
+	$content = trim( (string) ( $item['content'] ?? '' ) );
+	$url     = esc_url( (string) ( $item['url'] ?? '' ) );
+
+	switch ( $type ) {
+		case 'headline':
+			if ( '' === $content ) {
+				return '';
+			}
+			return "<!-- wp:heading -->\n<h2>" . esc_html( $content ) . "</h2>\n<!-- /wp:heading -->\n";
+
+		case 'subheading':
+			if ( '' === $content ) {
+				return '';
+			}
+			return "<!-- wp:heading {\"level\":3} -->\n<h3>" . esc_html( $content ) . "</h3>\n<!-- /wp:heading -->\n";
+
+		case 'paragraph':
+		case 'details':
+			if ( '' === $content ) {
+				return '';
+			}
+			return "<!-- wp:paragraph -->\n<p>" . esc_html( $content ) . "</p>\n<!-- /wp:paragraph -->\n";
+
+		case 'quote':
+			if ( '' === $content ) {
+				return '';
+			}
+			return "<!-- wp:quote -->\n<blockquote class=\"wp-block-quote\"><p>" . esc_html( $content ) . "</p></blockquote>\n<!-- /wp:quote -->\n";
+
+		case 'image':
+			if ( '' === $url ) {
+				return '';
+			}
+			return sprintf(
+				"<!-- wp:image -->\n<figure class=\"wp-block-image\"><img src=\"%s\" alt=\"%s\"/></figure>\n<!-- /wp:image -->\n",
+				$url,
+				esc_attr( $content )
+			);
+
+		case 'cta':
+			if ( '' === $content ) {
+				return '';
+			}
+			$button_url = '' !== $url ? $url : '#';
+			return sprintf(
+				"<!-- wp:buttons -->\n<div class=\"wp-block-buttons\"><!-- wp:button --><div class=\"wp-block-button\"><a class=\"wp-block-button__link wp-element-button\" href=\"%s\">%s</a></div><!-- /wp:button --></div>\n<!-- /wp:buttons -->\n",
+				esc_url( $button_url ),
+				esc_html( $content )
+			);
+
+		case 'list':
+			$lines = preg_split( '/\r\n|\r|\n/', $content ) ?: array();
+			$lines = array_values( array_filter( array_map( 'trim', $lines ) ) );
+			if ( empty( $lines ) ) {
+				return '';
+			}
+			$list_items = implode(
+				'',
+				array_map(
+					static fn( string $line ): string => '<li>' . esc_html( $line ) . '</li>',
+					$lines
+				)
+			);
+			return "<!-- wp:list -->\n<ul>" . $list_items . "</ul>\n<!-- /wp:list -->\n";
+
+		case 'video':
+			if ( '' === $url ) {
+				return '';
+			}
+			return sprintf(
+				"<!-- wp:embed {\"url\":\"%s\",\"type\":\"video\"} -->\n<figure class=\"wp-block-embed is-type-video\"><div class=\"wp-block-embed__wrapper\">%s</div></figure>\n<!-- /wp:embed -->\n",
+				esc_url( $url ),
+				esc_html( $url )
+			);
+
+		case 'table':
+			if ( '' === $content ) {
+				return '';
+			}
+			return "<!-- wp:preformatted -->\n<pre class=\"wp-block-preformatted\">" . esc_html( $content ) . "</pre>\n<!-- /wp:preformatted -->\n";
+
+		case 'gallery':
+			$gallery_urls = array();
+			if ( isset( $item['urls'] ) && is_array( $item['urls'] ) ) {
+				$gallery_urls = array_values(
+					array_filter(
+						array_map(
+							static fn( string $gallery_url ): string => esc_url( $gallery_url ),
+							$item['urls']
+						)
+					)
+				);
+			}
+			if ( empty( $gallery_urls ) && '' !== $url ) {
+				$gallery_urls = array( $url );
+			}
+			if ( empty( $gallery_urls ) ) {
+				return '';
+			}
+			$images = implode(
+				'',
+				array_map(
+					static fn( string $gallery_url ): string => '<figure class="wp-block-image size-large"><img src="' . esc_url( $gallery_url ) . '" alt=""/></figure>',
+					array_slice( $gallery_urls, 0, 6 )
+				)
+			);
+			return "<!-- wp:gallery -->\n<figure class=\"wp-block-gallery has-nested-images columns-default is-cropped\">" . $images . "</figure>\n<!-- /wp:gallery -->\n";
+
+		case 'code':
+			if ( '' === $content ) {
+				return '';
+			}
+			return "<!-- wp:code -->\n<pre class=\"wp-block-code\"><code>" . esc_html( $content ) . "</code></pre>\n<!-- /wp:code -->\n";
+
+		default:
+			return '';
+	}
+}
+
+/**
+ * Builds generic fallback markup from sanitized items.
+ *
+ * @param array<int, array<string, mixed>> $items Sanitized items.
+ * @return string Serialized block markup.
+ */
+function aldus_render_fallback_markup( array $items ): string {
+	$blocks = array();
+	foreach ( $items as $item ) {
+		$block = aldus_render_fallback_item( $item );
+		if ( '' !== trim( $block ) ) {
+			$blocks[] = $block;
+		}
+	}
+
+	return implode( "\n", $blocks );
 }
 
 // ---------------------------------------------------------------------------

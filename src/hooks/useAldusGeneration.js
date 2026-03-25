@@ -35,10 +35,10 @@
  */
 
 import { useState, useCallback, useRef } from '@wordpress/element';
-import apiFetch from '@wordpress/api-fetch';
 import { __, sprintf } from '@wordpress/i18n';
 import { speak } from '@wordpress/a11y';
 import { dispatch as wpDispatch } from '@wordpress/data';
+import { batchAssemble } from '../lib/batchAssemble.js';
 
 export function useAldusGeneration( {
 	initEngine,
@@ -111,9 +111,14 @@ export function useAldusGeneration( {
 				}
 			}
 
+			// Tracks whether the engine was successfully initialised before any error.
+			// Kept outside the try so it is accessible in the catch block.
+			let engineWasReady = false;
+
 			try {
 				// Step 1: initialise/download the engine.
 				const engine = await initEngine();
+				engineWasReady = true;
 				onScreenChange( 'loading' );
 
 				// Step 2: pre-generation intelligence — runs in parallel.
@@ -174,11 +179,17 @@ export function useAldusGeneration( {
 					} )
 				);
 
-				const tokenResults = tokenSettled.map( ( result, i ) =>
-					result.status === 'fulfilled'
-						? result.value
-						: enforceAnchors( personalities[ i ], [] )
-				);
+				const tokenResults = tokenSettled.map( ( result, i ) => {
+					if ( result.status === 'fulfilled' ) {
+						return result.value;
+					}
+					// Inference failed — fall back to the personality's first example
+					// sequence so the user still gets a meaningful layout.
+					const p = personalities[ i ];
+					const fallback =
+						p.exampleSequences?.[ 0 ] ?? p.anchors ?? [];
+					return enforceAnchors( p, fallback );
+				} );
 
 				// Step 4: post-generation intelligence — coverage and descriptions.
 				// Runs in parallel with each other; results indexed by personality.
@@ -207,49 +218,37 @@ export function useAldusGeneration( {
 					lastLabel: null,
 				} );
 
-				const assembleSettled = await Promise.allSettled(
-					tokenResults.map( async ( tokens, i ) => {
-						const label = personalities[ i ].name;
-						const rerollCount =
-							rerollCountsRef.current[ label ] ?? 0;
-						try {
-							return await apiFetch( {
-								path: '/aldus/v1/assemble',
-								method: 'POST',
-								data: {
-									items,
-									personality: label,
-									tokens,
-									reroll_count: rerollCount,
-								},
-							} );
-						} finally {
-							onProgress( ( p ) => ( {
-								...p,
-								done: p.done + 1,
-								lastLabel: label,
-							} ) );
-						}
-					} )
+				const assembleJobs = tokenResults.map( ( tokens, i ) => {
+					const label = personalities[ i ].name;
+					const rerollCount = rerollCountsRef.current[ label ] ?? 0;
+					return {
+						label,
+						data: {
+							items,
+							personality: label,
+							tokens,
+							reroll_count: rerollCount,
+						},
+					};
+				} );
+
+				const assembleResponses = await batchAssemble(
+					assembleJobs,
+					( done, total, lastLabel ) =>
+						onProgress( { done, total, lastLabel } )
 				);
 
-				const assembled = assembleSettled
-					.filter(
-						( r ) =>
-							r.status === 'fulfilled' &&
-							r.value?.success &&
-							r.value?.blocks
-					)
+				const assembled = assembleResponses
+					.filter( ( r ) => r?.success && r?.blocks )
 					.map( ( r ) => {
-						// Map back to the original personality index by label.
 						const personalityIdx = personalities.findIndex(
-							( p ) => p.name === r.value.label
+							( p ) => p.name === r.label
 						);
 						return {
-							label: r.value.label,
-							blocks: r.value.blocks,
-							tokens: r.value.tokens ?? [],
-							sections: r.value.sections ?? [],
+							label: r.label,
+							blocks: r.blocks,
+							tokens: r.tokens ?? [],
+							sections: r.sections ?? [],
 							unusedTypes:
 								personalityIdx >= 0 &&
 								coverageSettled[ personalityIdx ]?.status ===
@@ -294,10 +293,33 @@ export function useAldusGeneration( {
 					'aldus-connection-error'
 				);
 			} catch ( err ) {
-				destroyEngine();
+				// Only destroy the engine if it never finished initialising.
+				// If it was already running when the error occurred (inference or
+				// assemble failure) it is still in a good state and can be reused.
+				if ( ! engineWasReady ) {
+					destroyEngine();
+				}
 
 				let code = 'llm_parse_failed';
 				if (
+					err?.message?.toLowerCase().includes( 'out of memory' ) ||
+					err?.message?.toLowerCase().includes( 'oom' )
+				) {
+					code = 'out_of_memory';
+				} else if (
+					err?.message?.toLowerCase().includes( 'device lost' ) ||
+					err?.message?.toLowerCase().includes( 'gpudevice' )
+				) {
+					code = 'gpu_device_lost';
+				} else if (
+					// eslint-disable-next-line no-undef
+					err instanceof CompileError ||
+					err?.message?.toLowerCase().includes( 'webassembly' )
+				) {
+					code = 'wasm_compile_failed';
+				} else if ( err?.data?.status === 429 ) {
+					code = 'rate_limited';
+				} else if (
 					err?.data?.status === 503 ||
 					err?.code === 'fetch_error'
 				) {
