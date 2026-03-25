@@ -10,6 +10,7 @@ export const plume = {
 		accent: '#C4773A',
 		light: '#FBF5EE',
 		image: [ '#4A3728', '#1C1410', '#C4773A', '#8B5E3C' ],
+		imagePattern: 'strata',
 	},
 	content: {
 		'heading:h1': [
@@ -28,12 +29,12 @@ export const plume = {
 		],
 		paragraph: [
 			"The train from Sarajevo to Mostar takes two and a half hours and passes through scenery that doesn't fit on a phone screen. We almost flew. We are so glad we didn't. There are things you can't learn about a country at 35,000 feet, and most of them happen in the dining car.",
-			"The best travel advice we've ever received: stay longer. Everyone who's been somewhere once wishes they'd had another week. The second visit is always better. The third starts to feel like something else entirely — not tourism, but a kind of temporary belonging.",
-			"We started Plume because we were tired of travel writing that was secretly just a restaurant list with adjectives. We wanted the kind that made you feel like you'd already been somewhere before you arrived — and the kind that admitted when the writer got lost, ate something regrettable, and called it a highlight.",
+			"The best travel advice we've ever received: stay longer. Everyone who's been somewhere once wishes they'd had another week. The second visit is always better. The third starts to feel like something else entirely; not tourism, but a kind of temporary belonging.",
+			"We started Plume because we were tired of travel writing that was secretly just a restaurant list with adjectives. We wanted the kind that made you feel like you'd already been somewhere before you arrived, and that admitted when the writer got lost, ate something regrettable, and called it a highlight.",
 		],
 		'paragraph:dropcap': [
-			'There is a quality of light in the Azores in October that photographers have been trying to describe for a century. The closest anyone has come: "it looks like the afternoon decided to stay for dinner." We spent six weeks verifying this.',
-			'Not all who wander are lost. But the best ones are, briefly, and they come back with the kind of stories that make everyone at the dinner table put down their phones.',
+			'There is a quality of light in the Azores in October that photographers have been trying to describe for a century. The closest anyone has come: it looks like the afternoon decided to stay for dinner. We spent six weeks, and we think that is correct.',
+			'Not all who wander are lost. But the best ones are, briefly; and they come back with the kind of stories that make everyone at the dinner table put down their phones and ask where, exactly, and was it safe, and would you go back.',
 		],
 		quote: [
 			'"Plume is the only travel magazine I read cover to cover, then read again while pretending to work. It makes me want to go everywhere and rush nowhere." — Reader since issue 4',
@@ -41,24 +42,24 @@ export const plume = {
 		],
 		'pullquote:wide': [
 			"The best souvenir is a story you're still telling five years later.",
-			"Travel is the only expense that makes you richer. (We're quoting ourselves. We don't care.)",
+			"Travel is the only expense that makes you richer. We've never found a convincing counterargument, and we've looked.",
 		],
 		'pullquote:full-solid': [
 			"We don't write about destinations. We write about what happens when you stop performing tourism and start paying attention.",
-			"The place is never the point. The point is who you become while you're there — ideally someone who eats the thing they can't identify.",
+			"The place is never the point. The point is who you become while you're there; and whether you try the thing you can't identify on the menu.",
 		],
 		list: [
 			[
 				'Six weeks in the Azores: what the off-season reveals when the influencers leave',
 				'The overnight train network connecting a Europe that forgot it existed',
 				'Staying with strangers: a practical guide to trust, hospitality, and shared bathrooms',
-				"The 40 best markets in the world, ranked by things you can't buy on Amazon",
+				'The 40 best markets in the world, ranked by things unavailable on Amazon',
 			],
 			[
-				"How to travel for three months on a teacher's salary (by an actual teacher)",
+				"How to travel for three months on a teacher's salary, by an actual teacher",
 				"The photographer's guide to waking up before the light forgives you",
 				'Border crossings: the bureaucracy, the anxiety, and the coffee available in between',
-				'Eating alone in restaurants: a defense, a guide, and a love letter',
+				'Eating alone in restaurants: a defense, a guide, and a love letter to the corner table',
 			],
 		],
 		'buttons:cta': [
@@ -109,7 +110,7 @@ export const plume = {
 		'columns:28-72': [
 			{
 				label: 'Feature',
-				body: "This issue follows a writer the length of Albania by bus. A country most Europeans can't place on a map — and can't stop recommending once they've been. The bus was sometimes late. The country was always on time.",
+				body: "This issue follows a writer the length of Albania by bus. A country most Europeans can't place on a map, and can't stop recommending once they've been. The bus was sometimes late. The country was always on time.",
 			},
 			{
 				label: 'Photography',

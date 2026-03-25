@@ -50,6 +50,9 @@ jobs:
       - name: Lint — PHP syntax
         run: npm run lint:php
 
+      - name: Validate block HTML
+        run: npm run test:php
+
   # ─────────────────────────────────────────────────────────────────────────────
   # Test — JS unit tests (run in parallel with lint)
   # ─────────────────────────────────────────────────────────────────────────────

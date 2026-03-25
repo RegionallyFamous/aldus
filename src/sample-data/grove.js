@@ -10,6 +10,7 @@ export const grove = {
 		accent: '#7AAF35',
 		light: '#F5F8EF',
 		image: [ '#3A5A1C', '#1B2A0E', '#7AAF35', '#5A8A28' ],
+		imagePattern: 'grain',
 	},
 	content: {
 		'heading:h1': [
@@ -63,7 +64,7 @@ export const grove = {
 		],
 		'buttons:cta': [
 			'Start Your Harvest Box',
-			"See What's Growing Right Now (Spoiler: It's Good)",
+			"See What's Growing Right Now",
 		],
 		'image:wide': [
 			{
@@ -120,7 +121,7 @@ export const grove = {
 			},
 			{
 				label: 'Pricing',
-				body: "We pay farmers 40% above conventional wholesale. That's the margin that keeps small farms in business. Your subscription isn't just food — it's a bet that the land matters. (It does.)",
+				body: "We pay farmers 40% above conventional wholesale. That's the margin that keeps small farms farming. Your subscription isn't just food. It's an argument that the land matters. The land matters.",
 			},
 		],
 		'columns:3-equal': [

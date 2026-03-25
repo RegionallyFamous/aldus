@@ -36,24 +36,25 @@ Every layout proposal comes from a named personality — a distinct visual voice
 ## How it works
 
 **1. Tell Aldus what you have.**
-Add a headline, paragraphs, images, quotes, a button, a list — whatever your page needs. You're describing your content, not designing a layout.
+Click a content type — Headline, Paragraph, Image, Quote, Button, and more. The type buttons are the first thing you see. Once you've added at least one piece of content, style chips and the generate button appear below. You can also import your post title or existing page copy as a starting point.
 
 **2. Aldus proposes sixteen layouts.**
 A small AI model downloads once to your browser — about 200 MB, cached forever after that. It looks at the *shape* of your content (how many paragraphs, whether you have an image, etc.) and proposes a different layout sequence for each personality. Your actual words never leave your site.
 
 **3. You pick one and it becomes real blocks.**
-Browse the sixteen layout cards. Each shows a wireframe so you can scan the rhythm at a glance. Click any card to preview it fully, then hit **Use this one**. Aldus replaces itself with standard, editable WordPress blocks — no lock-in, no custom markup, nothing you can't move or delete.
+Browse the sixteen layout cards. Each shows a wireframe so you can scan the rhythm at a glance. Hover a card to reveal the **Use this one** button at the bottom — or click the eye icon in the top-right corner to expand a full preview first. Hit **Use this one** and Aldus replaces itself with standard, editable WordPress blocks — no lock-in, no custom markup, nothing you can't move or delete.
 
 ---
 
 ## Tools that help you get there
 
-- **Style Notes** — nudge every personality in a direction before generating: image-forward, minimal, dark mood, bold CTA, magazine, and more
+- **Style Notes** — nudge every personality in a direction before generating: image-forward, minimal, dark mood, bold CTA, magazine, and more. Appear automatically once you've added content.
 - **Per-card re-roll** — not quite right? Regenerate one personality without touching the rest
+- **Copy blocks / Try with my content** — compact icon buttons in each card footer let you copy a layout to clipboard or preview it with your own content, without leaving the results screen
 - **Mix & Match** — combine the best sections from different personalities into a single custom layout
 - **Saved Sessions** — snapshot your content and results, come back to them later
-- **Quick Start presets** — jump in with a sensible content structure for a blog post, landing page, feature story, or product pitch
-- **Seven sample packs** — try all sixteen personalities instantly with themed content (no model download needed)
+- **Quick Start presets** — jump in with a sensible content structure for a blog post, landing page, feature story, product pitch, visual portfolio, or product comparison — accessible right from the empty state
+- **Nine sample packs** — try all sixteen personalities instantly with themed content including Forge (industrial craft) and Slim (minimal — shows exactly what lean input looks like across all styles) — no model download needed
 - **Completeness hints** — colored prompts that tell you which content type would unlock more layout options
 
 ---

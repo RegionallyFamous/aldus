@@ -10,6 +10,7 @@ export const hearth = {
 		accent: '#5C9E5C',
 		light: '#F2F7F2',
 		image: [ '#2D5A2D', '#1A2E1A', '#5C9E5C', '#3D7A3D' ],
+		imagePattern: 'strata',
 	},
 	content: {
 		'heading:h1': [
@@ -27,13 +28,13 @@ export const hearth = {
 			'Housing That Stays',
 		],
 		paragraph: [
-			"Hearth has been in the same six neighborhoods since 2009. We didn't parachute in with a press release and leave when the grant cycle ended. We stayed. We hired locally. We learned the names of every crossing guard. That's not a metaphor for community building — it literally is community building.",
+			"Hearth has been in the same six neighborhoods since 2009. We didn't parachute in with a press release and leave when the grant cycle ended. We stayed. We hired locally. We learned the names of every crossing guard. That's not a metaphor for community building. That is community building.",
 			'Our model is almost offensively simple: find the people already doing the work quietly, fund them adequately, and get out of the way. Then show up again when they need something. The best community organizations are the ones that were already there before anyone with a clipboard arrived.',
 			'People ask us for our "theory of change." It\'s this: proximity. You cannot understand what a community needs from a satellite office downtown. Every program we run was designed by the people who use it. Every staff member lives within the neighborhoods we serve. This is not a policy. It\'s a requirement.',
 		],
 		'paragraph:dropcap': [
 			"Fifteen years ago, a group of neighbors in the Eastfield district started meeting in a church basement because their kids couldn't buy fresh groceries within a three-mile walk. Nobody from city hall came to that meeting. Hearth grew out of it anyway.",
-			'The word "nonprofit" makes people think of galas and silent auctions. We\'ve never hosted a gala. We have hosted 4,200 grocery pickups, 800 mentorship sessions, and one really good block party where someone brought a bounce house without asking.',
+			'The word "nonprofit" makes people think of galas and silent auctions. We\'ve never hosted a gala. We have hosted 4,200 grocery pickups, 800 mentorship sessions, and one really memorable block party. The bounce house was a surprise to everyone.',
 		],
 		quote: [
 			'"Hearth was the first organization that asked me what my neighborhood needed instead of telling me. Turns out I had a pretty good answer." — Denise R., Eastfield resident and program coordinator',
@@ -49,16 +50,16 @@ export const hearth = {
 		],
 		list: [
 			[
-				'3 community pantries serving 800 families per week — no intake form longer than one page',
+				'3 community pantries serving 800 families per week. No intake form longer than one page.',
 				'After-school mentorship for 240 young people, paired with adults from their own neighborhoods',
-				'Emergency rental assistance for 600+ households per year — average response time: 72 hours',
-				'Community organizing training for 80 local leaders this year (and counting)',
+				'Emergency rental assistance for 600+ households per year. Average response time: 72 hours.',
+				'Community organizing training for 80 local leaders this year and counting',
 			],
 			[
 				'100% of program staff hired from the neighborhoods we work in',
 				'Multi-year funding commitments honored every year since 2011',
 				'No program launched without 6 months of community co-design',
-				'Open financial reporting — every expenditure published quarterly, including this one',
+				'Open financial reporting. Every expenditure published quarterly, including this one.',
 			],
 		],
 		'buttons:cta': [
@@ -100,7 +101,7 @@ export const hearth = {
 		'media-text:right': [
 			{
 				heading: 'Emergency Housing',
-				body: "When a family faces eviction, we move fast. Rapid rental assistance, utility support, and case management that addresses root causes — not just the bill that's due. Our average response time is 72 hours. Most of us think that's still too slow.",
+				body: "When a family faces eviction, we move fast. Rapid rental assistance, utility support, and case management that addresses root causes. Not just the bill that's due. Our average response time is 72 hours. Most of us think that's still too slow.",
 				colorIndex: 2,
 			},
 			{
@@ -131,7 +132,7 @@ export const hearth = {
 				},
 				{
 					heading: '15 years',
-					body: "Same neighborhoods. Same commitment. Same church basement (we've upgraded the chairs).",
+					body: 'Same neighborhoods. Same commitment. Same church basement. The chairs are better now.',
 				},
 				{
 					heading: '$4.20',
@@ -149,7 +150,7 @@ export const hearth = {
 		'group:accent-full': [
 			{
 				heading: 'Volunteer Orientation — First Saturday, Every Month',
-				body: 'Two hours. Meet the team. See the neighborhoods. Find where you fit. Comfortable shoes recommended. Savior complex not required.',
+				body: 'Two hours. Meet the team. See the neighborhoods. Find where you fit. We ask only that you listen more than you advise, at least at first. Comfortable shoes help.',
 				cta: 'Reserve Your Spot',
 			},
 		],
@@ -162,7 +163,7 @@ export const hearth = {
 		video: [
 			{
 				caption: 'A day in the Eastfield pantry — 6 AM to close',
-				url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+				url: 'https://www.youtube.com/watch?v=REPLACE_WITH_REAL_VIDEO',
 			},
 		],
 	},

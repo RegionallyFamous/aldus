@@ -169,6 +169,25 @@
 	margin-top: 16px;
 }
 
+// Divider between primary type grid and secondary import options
+.aldus-empty-divider {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 16px 0 4px;
+	width: 100%;
+	color: #949494;
+	font-size: 12px;
+
+	&::before,
+	&::after {
+		content: "";
+		flex: 1;
+		height: 1px;
+		background: var(--wp-admin-border-color, #e0e0e0);
+	}
+}
+
 // Import-from-post button — shown in empty state and below items list
 .aldus-import-post-btn.components-button {
 	margin-bottom: 8px;
@@ -310,8 +329,52 @@
 		border-style: dashed;
 	}
 
+	// Item 5: insertion indicator replaces the top-border approach.
 	&.is-drag-over {
-		border-top: 2px solid var(--wp-admin-theme-color, #007cba);
+		border-top-color: transparent;
+	}
+
+	&.is-drag-over::before {
+		content: "";
+		position: absolute;
+		top: -1px;
+		left: 0;
+		right: 0;
+		height: 2px;
+		background: var(--wp-admin-theme-color, #007cba);
+		z-index: 1;
+	}
+
+	&.is-drag-over::after {
+		content: "";
+		position: absolute;
+		top: -5px;
+		left: 0;
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--wp-admin-theme-color, #007cba);
+		z-index: 1;
+	}
+
+	// Item 4: colored left border by content type category.
+	&.aldus-item--headline,
+	&.aldus-item--subheading,
+	&.aldus-item--paragraph,
+	&.aldus-item--quote {
+		border-left: 3px solid #4a90d9;
+	}
+
+	&.aldus-item--image,
+	&.aldus-item--video,
+	&.aldus-item--gallery {
+		border-left: 3px solid #34a853;
+	}
+
+	&.aldus-item--cta,
+	&.aldus-item--list,
+	&.aldus-item--table {
+		border-left: 3px solid #f4a100;
 	}
 
 	// Pass 6: animated remove
@@ -905,12 +968,20 @@
 	margin: 4px 0 0;
 }
 
+// Item 7: sticky header wraps title, hint, and filter rows.
+.aldus-results-sticky {
+	position: sticky;
+	top: 0;
+	z-index: 10;
+	background: var(--wp-components-color-background, #fff);
+	padding-bottom: 4px;
+	margin-bottom: 4px;
+}
+
 .aldus-grid {
 	display: grid;
 	grid-template-columns: repeat(2, 1fr);
 	gap: 8px;
-	max-height: 700px;
-	overflow-y: auto;
 	padding-inline-end: 2px;
 
 	@media ( max-width: 600px ) {
@@ -980,9 +1051,9 @@
 	}
 }
 
-// Pass 2: taller preview; Pass 3: overlay anchor
+// Item 8: aspect-ratio based cards instead of fixed heights.
 .aldus-card-preview {
-	height: 260px;
+	aspect-ratio: 3 / 4;
 	overflow: hidden;
 	background: #f6f7f7;
 	border-bottom: 1px solid var(--wp-admin-border-color, #e0e0e0);
@@ -1008,21 +1079,23 @@
 	transition: opacity 0.15s ease;
 }
 
-// Compact grid mode — reduced height, tagline ellipsized, recipe visible.
+// Item 8: Compact grid mode — wider aspect ratio, recipe visible.
 .aldus-grid.is-compact {
 
 	.aldus-card-preview {
-		height: 150px;
-	}
-
-	.aldus-card-tagline {
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
+		aspect-ratio: 4 / 3;
 	}
 
 	.aldus-card-recipe {
 		opacity: 1;
+	}
+
+	.aldus-card-tagline {
+		font-size: 12px;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
 	}
 }
 
@@ -1041,17 +1114,17 @@
 	background: #fff;
 }
 
-// Pass 3: hover overlay with selection button
+// Pass 3: hover overlay — bottom bar with gradient, not full cover
 .aldus-card-overlay {
 	position: absolute;
-	inset: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
 	z-index: 1;
 	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: center;
-	gap: 8px;
-	background: rgba(0, 0, 0, 0.5);
+	align-items: flex-end;
+	padding: 24px 10px 10px;
+	background: linear-gradient(transparent, rgba(0, 0, 0, 0.72));
 	opacity: 0;
 	transition: opacity 0.15s ease;
 
@@ -1062,7 +1135,51 @@
 	}
 }
 
-.aldus-card:hover .aldus-card-overlay {
+.aldus-card:hover .aldus-card-overlay,
+.aldus-card:focus-within .aldus-card-overlay {
+	opacity: 1;
+}
+
+// Primary CTA inside the overlay bar
+.aldus-card-use-btn.components-button {
+	background: var(--wp-admin-theme-color, #007cba);
+	color: #fff;
+	border-radius: 4px;
+	padding: 8px 16px;
+	font-weight: 600;
+	border: none;
+	height: auto;
+	line-height: 1.4;
+
+	&:hover:not(:disabled) {
+		background: var(--wp-admin-theme-color-darker-10, #006ba1);
+		color: #fff;
+	}
+}
+
+// Expand button — always subtly visible top-right, fully opaque on hover
+.aldus-card-expand-btn.components-button {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	z-index: 2;
+	pointer-events: auto;
+	opacity: 0.4;
+	background: rgba(0, 0, 0, 0.45);
+	color: #fff;
+	border-radius: 2px;
+	min-width: 0;
+	padding: 4px;
+	transition: opacity 0.15s ease;
+
+	&:hover {
+		background: rgba(0, 0, 0, 0.65);
+		color: #fff;
+		opacity: 1;
+	}
+}
+
+.aldus-card:hover .aldus-card-expand-btn.components-button {
 	opacity: 1;
 }
 
@@ -1531,33 +1648,23 @@
 }
 
 // ---------------------------------------------------------------------------
-// Content preview drawer (item 27)
+// Content minimap — persistent zoomed-out strip (item 6)
 // ---------------------------------------------------------------------------
 
-.aldus-content-preview-drawer {
-	margin-block-start: 8px;
-	margin-block-end: 4px;
-}
-
-.aldus-content-preview-summary {
-	cursor: pointer;
-	font-size: 12px;
-	color: var(--wp-components-color-foreground-inverted, #757575);
-	user-select: none;
-	padding: 4px 0;
-
-	&:hover {
-		color: var(--wp-admin-theme-color, #007cba);
-	}
-}
-
-.aldus-content-preview {
-	height: 360px;
+.aldus-minimap {
+	height: 60px;
 	overflow: hidden;
-	border-radius: 4px;
 	border: 1px solid var(--wp-admin-border-color, #e0e0e0);
-	margin-block-start: 8px;
+	border-radius: 2px;
+	margin-block: 8px;
 	pointer-events: none;
+	background: #f6f7f7;
+	position: relative;
+
+	// The BlockPreview renders its iframe inside; clip it to the strip height.
+	> * {
+		pointer-events: none;
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -1685,41 +1792,39 @@
 	}
 }
 
-// Copy blocks button inside the card overlay
-.aldus-card-copy-btn.components-button {
-	font-size: 12px;
-	padding: 4px 10px;
-	height: auto;
-	color: rgba(255, 255, 255, 0.9);
-	background: rgba(0, 0, 0, 0.35);
-	border: 1px solid rgba(255, 255, 255, 0.3);
-	border-radius: 2px;
-
-	&:hover {
-		background: rgba(0, 0, 0, 0.55);
-		color: #fff;
-	}
-}
-
-// Expand button inside the card overlay
-.aldus-card-expand-btn.components-button {
+// Copy-blocks and try-with-content icon buttons in the card footer
+.aldus-card-copy-btn.components-button,
+.aldus-card-try-btn.components-button {
+	flex-shrink: 0;
 	min-width: unset;
-	color: rgba(255, 255, 255, 0.8);
-	background: transparent;
-	padding: 4px;
+	color: #757575;
 
 	&:hover {
-		color: #fff;
-		background: rgba(255, 255, 255, 0.15);
+		color: var(--wp-components-color-foreground, #1e1e1e);
 	}
 }
 
 // Card footer actions group (re-roll + expand)
 .aldus-card-footer-actions {
 	display: flex;
-	gap: 2px;
+	gap: 4px;
 	align-items: center;
 	flex-shrink: 0;
+}
+
+.aldus-best-match-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	padding: 2px 7px;
+	border-radius: 20px;
+	background: #d1fae5;
+	color: #065f46;
+	font-size: 10px;
+	font-weight: 600;
+	line-height: 16px;
+	white-space: nowrap;
+	cursor: default;
 }
 
 // Full-size preview modal
@@ -1938,19 +2043,115 @@
 }
 
 // ---------------------------------------------------------------------------
-// Quick peek — personality chip strip + inline preview
+// Item 19: Quick peek — compact strip above generate button
 // ---------------------------------------------------------------------------
 
 .aldus-quick-peek {
-	margin-block-start: 12px;
+	margin-block: 8px;
+}
+
+.aldus-quick-peek--compact {
+	padding: 8px 0 4px;
+	border-top: 1px solid var(--wp-admin-border-color, #e0e0e0);
+}
+
+.aldus-peek-header {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+	margin-block-end: 2px;
+}
+
+.aldus-peek-label {
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--wp-components-color-foreground-inverted, #757575);
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+.aldus-peek-more {
+	padding: 3px 8px;
+	border-radius: 20px;
+	border: 1px dashed var(--wp-admin-border-color, #e0e0e0);
+	background: transparent;
+	font-size: 11px;
+	color: var(--wp-components-color-foreground-inverted, #757575);
+	cursor: pointer;
+	line-height: 18px;
+	flex-shrink: 0;
+	transition: border-color 0.1s ease, color 0.1s ease;
+
+	&:hover {
+		border-color: var(--wp-admin-theme-color, #007cba);
+		color: var(--wp-admin-theme-color, #007cba);
+	}
+}
+
+.aldus-scan-all-btn {
+	padding: 3px 10px;
+	border-radius: 20px;
+	border: 1px solid var(--wp-admin-border-color, #e0e0e0);
+	background: transparent;
+	font-size: 11px;
+	line-height: 18px;
+	cursor: pointer;
+	white-space: nowrap;
+	transition: background 0.15s, border-color 0.15s;
+
+	&:hover {
+		border-color: var(--wp-admin-theme-color, #007cba);
+		background: color-mix(in srgb, var(--wp-admin-theme-color, #007cba) 8%, transparent);
+	}
+
+	&.is-active {
+		background: var(--wp-admin-theme-color, #007cba);
+		border-color: var(--wp-admin-theme-color, #007cba);
+		color: #fff;
+	}
+}
+
+.aldus-scan-all {
+	margin-block: 8px;
+	background: var(--wp-components-color-background, #f9f9f9);
+	border: 1px solid var(--wp-admin-border-color, #e0e0e0);
+	border-radius: 4px;
+	padding: 10px;
+}
+
+.aldus-scan-all-hint {
+	font-size: 11px;
+	color: var(--wp-components-color-foreground-inverted, #757575);
+	margin: 0 0 8px;
+}
+
+.aldus-scan-all-grid {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 8px;
+}
+
+.aldus-scan-all-card {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+}
+
+.aldus-scan-all-label {
+	font-size: 10px;
+	font-weight: 600;
+	text-align: center;
+	color: var(--wp-components-color-foreground, #1e1e1e);
+	line-height: 1.2;
 }
 
 .aldus-peek-chips {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 6px;
-	margin-block-start: 6px;
-	margin-block-end: 8px;
+	gap: 4px;
+	flex: 1;
 }
 
 .aldus-peek-chip {
@@ -1996,6 +2197,412 @@
 	border: 1px solid var(--wp-admin-border-color, #e0e0e0);
 	margin-block-end: 12px;
 	pointer-events: none;
+}
+
+// ---------------------------------------------------------------------------
+// Item 1: First-run onboarding two-path screen
+// ---------------------------------------------------------------------------
+
+.aldus-empty--onboarding {
+	padding: 32px 16px;
+}
+
+.aldus-onboarding-paths {
+	display: flex;
+	gap: 12px;
+	margin-top: 20px;
+	width: 100%;
+	max-width: 420px;
+}
+
+.aldus-onboarding-path {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+	padding: 20px 16px;
+	border: 2px solid var(--wp-admin-border-color, #e0e0e0);
+	border-radius: 4px;
+	background: var(--wp-components-color-background, #fff);
+	cursor: pointer;
+	text-align: center;
+	font-family: inherit;
+	transition: border-color 0.15s ease, background 0.15s ease;
+
+	&:hover {
+		border-color: var(--wp-admin-theme-color, #007cba);
+		background: #f0f6fc;
+	}
+
+	strong {
+		font-size: 14px;
+		color: var(--wp-components-color-foreground, #1e1e1e);
+		display: block;
+	}
+
+	&--primary {
+		border-color: var(--wp-admin-theme-color, #007cba);
+		background: color-mix(in srgb, var(--wp-admin-theme-color, #007cba) 5%, transparent);
+
+		strong {
+			color: var(--wp-admin-theme-color, #007cba);
+		}
+
+		&:hover {
+			background: color-mix(in srgb, var(--wp-admin-theme-color, #007cba) 12%, transparent);
+		}
+	}
+}
+
+.aldus-onboarding-path-icon {
+	font-size: 22px;
+	line-height: 1;
+	color: var(--wp-admin-theme-color, #007cba);
+}
+
+.aldus-onboarding-path-hint {
+	font-size: 11px;
+	color: #949494;
+	line-height: 1.3;
+}
+
+// ---------------------------------------------------------------------------
+// Item 2: Tiered content type inserter
+// ---------------------------------------------------------------------------
+
+.aldus-empty-type--primary {
+	font-weight: 600;
+	font-size: 13px;
+	padding: 6px 12px;
+}
+
+.aldus-empty-types--secondary {
+	margin-top: 4px;
+	opacity: 0.8;
+}
+
+.aldus-more-types-trigger {
+	display: inline-flex;
+	align-items: center;
+	padding: 3px 10px;
+	margin-top: 8px;
+	border: 1px dashed #c8c8c8;
+	border-radius: 12px;
+	font-size: 12px;
+	color: #757575;
+	background: transparent;
+	cursor: pointer;
+	font-family: inherit;
+	transition: border-color 0.1s ease, color 0.1s ease;
+
+	&:hover {
+		border-color: var(--wp-admin-theme-color, #007cba);
+		color: var(--wp-admin-theme-color, #007cba);
+	}
+}
+
+.aldus-inserter-more {
+	grid-column: 1 / -1;
+	padding: 6px 12px;
+	border: 1px dashed #c8c8c8;
+	border-radius: 2px;
+	background: transparent;
+	font-size: 12px;
+	color: #757575;
+	cursor: pointer;
+	font-family: inherit;
+	text-align: start;
+	transition: border-color 0.1s ease, color 0.1s ease;
+	margin: 2px 0;
+
+	&:hover {
+		border-color: var(--wp-admin-theme-color, #007cba);
+		color: var(--wp-admin-theme-color, #007cba);
+	}
+}
+
+.aldus-inserter-item--secondary {
+	opacity: 0.85;
+
+	.aldus-inserter-label {
+		font-weight: 400;
+	}
+}
+
+// Item 3: Trailing + button after item list
+.aldus-add-after-list {
+	margin-block: 4px;
+}
+
+.aldus-add-wrap--inline {
+	display: inline-flex;
+}
+
+.aldus-add-trigger--inline.components-button {
+	min-width: unset;
+	color: var(--wp-admin-theme-color, #007cba);
+}
+
+// ---------------------------------------------------------------------------
+// Item 9: Favorites / shortlist
+// ---------------------------------------------------------------------------
+
+.aldus-card--favorited {
+	border-color: var(--wp-admin-theme-color, #007cba);
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--wp-admin-theme-color, #007cba) 40%, transparent);
+}
+
+.aldus-card-favorite-btn.components-button {
+	flex-shrink: 0;
+	min-width: unset;
+	color: #bbb;
+	transition: color 0.1s ease;
+
+	&.is-favorited,
+	&:hover {
+		color: #f6a200;
+	}
+}
+
+.aldus-favorites-hint {
+	font-size: 12px;
+	color: #757575;
+	margin: 0;
+	padding: 6px 0;
+}
+
+.aldus-favorites-mix-link {
+	background: none;
+	border: none;
+	color: var(--wp-admin-theme-color, #007cba);
+	cursor: pointer;
+	font-size: 12px;
+	padding: 0;
+	font-family: inherit;
+	text-decoration: underline;
+
+	&:hover {
+		text-decoration: none;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Item 11: Content consumption dots
+// ---------------------------------------------------------------------------
+
+.aldus-card-consumption {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 3px;
+	padding: 6px 12px 6px;
+}
+
+.aldus-consumption-dot {
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: #e0e0e0;
+	flex-shrink: 0;
+
+	&.is-used {
+		background: #34a853;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Item 14: Generation steps breadcrumb
+// ---------------------------------------------------------------------------
+
+.aldus-gen-steps {
+	display: flex;
+	align-items: center;
+	gap: 20px;
+	margin-bottom: 16px;
+}
+
+.aldus-gen-step {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	opacity: 0.3;
+	transition: opacity 0.2s ease;
+
+	&.is-done {
+		opacity: 0.6;
+	}
+
+	&.is-active {
+		opacity: 1;
+	}
+}
+
+.aldus-gen-step-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--wp-admin-theme-color, #007cba);
+	flex-shrink: 0;
+
+	.aldus-gen-step.is-active & {
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--wp-admin-theme-color, #007cba) 25%, transparent);
+	}
+}
+
+.aldus-gen-step-label {
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--wp-components-color-foreground, #1e1e1e);
+}
+
+// ---------------------------------------------------------------------------
+// Item 15: Confirming screen — celebration animation
+// ---------------------------------------------------------------------------
+
+@media ( prefers-reduced-motion: no-preference ) {
+
+	@keyframes aldus-confirm-pop {
+
+		0% {
+			opacity: 0;
+			transform: scale(0.75);
+		}
+
+		60% {
+			opacity: 1;
+			transform: scale(1.05);
+		}
+
+		100% {
+			transform: scale(1);
+		}
+	}
+}
+
+.aldus-confirming-name {
+	font-size: 36px;
+	font-weight: 700;
+	color: var(--wp-admin-theme-color, #007cba);
+	letter-spacing: -0.02em;
+	text-align: center;
+
+	@media ( prefers-reduced-motion: no-preference ) {
+		animation: aldus-confirm-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+	}
+}
+
+.aldus-confirming-sub {
+	font-size: 13px;
+	color: #949494;
+	text-align: center;
+	margin-top: 4px;
+}
+
+// ---------------------------------------------------------------------------
+// Items 16–17: Mix sections recipe strip + redesigned layout
+// ---------------------------------------------------------------------------
+
+.aldus-mix-recipe-strip {
+	display: flex;
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	gap: 6px;
+	padding: 8px 0;
+	border-bottom: 1px solid var(--wp-admin-border-color, #e0e0e0);
+	scrollbar-width: thin;
+
+	&::-webkit-scrollbar {
+		height: 3px;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background: var(--wp-admin-border-color, #e0e0e0);
+	}
+}
+
+.aldus-mix-recipe-pill {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	flex-shrink: 0;
+	gap: 2px;
+	padding: 6px 10px;
+	border: 1px solid var(--wp-admin-border-color, #e0e0e0);
+	border-radius: 4px;
+	background: var(--wp-components-color-background, #fff);
+	cursor: pointer;
+	transition: border-color 0.1s ease, background 0.1s ease;
+
+	&:hover {
+		border-color: var(--wp-admin-theme-color, #007cba);
+	}
+
+	&.is-active {
+		border-color: var(--wp-admin-theme-color, #007cba);
+		background: #f0f6fc;
+	}
+}
+
+.aldus-mix-recipe-source {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--wp-components-color-foreground, #1e1e1e);
+}
+
+.aldus-mix-recipe-token {
+	font-size: 10px;
+	color: #757575;
+	letter-spacing: 0.03em;
+}
+
+.aldus-mixing-alts-section {
+	margin-top: 8px;
+}
+
+.aldus-mix-alts-grid {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 6px;
+	max-height: 480px;
+	overflow-y: auto;
+	margin-top: 6px;
+
+	@media ( max-width: 600px ) {
+		grid-template-columns: 1fr;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Item 18: Personality checklist groups
+// ---------------------------------------------------------------------------
+
+.aldus-personality-group {
+	margin-bottom: 14px;
+}
+
+.aldus-personality-group-label {
+	font-size: 10px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: #949494;
+	margin: 0 0 6px;
+	padding-bottom: 4px;
+	border-bottom: 1px solid var(--wp-admin-border-color, #e0e0e0);
+}
+
+// ---------------------------------------------------------------------------
+// Item 20: Theme color role caption
+// ---------------------------------------------------------------------------
+
+.aldus-theme-colors-caption {
+	font-size: 11px;
+	color: #949494;
+	margin: 6px 0 0;
+	line-height: 1.4;
 }
 
 @media ( prefers-reduced-motion: reduce ) {

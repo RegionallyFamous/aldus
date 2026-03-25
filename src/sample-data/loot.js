@@ -10,6 +10,7 @@ export const loot = {
 		accent: '#E8553D',
 		light: '#F8F4FF',
 		image: [ '#3D2766', '#1A0F2E', '#E8553D', '#8B5CF6' ],
+		imagePattern: 'hex',
 	},
 	content: {
 		'heading:h1': [
@@ -52,8 +53,8 @@ export const loot = {
 			],
 			[
 				'Staff picks shelf updated monthly with honest reviews and player counts that are actually accurate',
-				"Loyalty program: buy 10, pick a free game under $30 (we'll argue about which one — it's part of the experience)",
-				'Birthday party hosting for ages 6+ (we supply the games, you supply the cake, nobody supplies Kevin)',
+				'Loyalty program: buy 10, pick a free game under $30. Alex will have opinions about your choice.',
+				'Birthday party hosting for ages 6+. We supply the games. You supply the cake. Kevin is not invited.',
 				"Trade-in program for gently used games — your shelf loss is someone else's Saturday night",
 			],
 		],
@@ -89,7 +90,7 @@ export const loot = {
 			},
 			{
 				heading: 'The RPG Corner',
-				body: "Forty systems. Fifty sourcebooks. One deeply opinionated staff member named Alex who will talk to you about Mothership for exactly as long as you let them. (Our advice: let them. It's worth it.)",
+				body: 'Forty systems. Fifty sourcebooks. One deeply opinionated staff member named Alex who will talk to you about Mothership for as long as you stand still. Most customers budget thirty minutes. Regulars know to bring a snack.',
 				colorIndex: 1,
 			},
 		],
@@ -112,7 +113,7 @@ export const loot = {
 			},
 			{
 				label: 'Events',
-				body: "Open game nights (Thursday). RPG campaigns (Monday, Wednesday). Miniature painting workshops (first Sunday). Tournament weekends (monthly). Private party bookings (any day, we're flexible, we need the table space).",
+				body: "Open game nights: Thursday. RPG campaigns: Monday and Wednesday. Miniature painting workshops: first Sunday. Tournament weekends: monthly. Private party bookings: any day we're not already at capacity, which is most days. We built a bigger table.",
 			},
 			{
 				label: 'Community',

@@ -10,6 +10,7 @@ export const signal = {
 		accent: '#22C55E',
 		light: '#F0FDF4',
 		image: [ '#2A2A2A', '#0C0C0C', '#22C55E', '#166534' ],
+		imagePattern: 'diagonal',
 	},
 	content: {
 		'heading:h1': [
@@ -28,37 +29,37 @@ export const signal = {
 		],
 		paragraph: [
 			'Signal Mail is email the way it should have been built in the first place: encrypted, private, and completely uninterested in what you\'re writing. No scanning. No profiling. No "personalized ads" that know you searched for back pain remedies at 2 AM. Your messages are yours. That\'s the whole product.',
-			"Most email providers give you a free inbox and charge you with your data. That's not a conspiracy theory — it's their business model, and they're very upfront about it if you read the 47-page terms of service they're counting on you not reading. We charge $4/month and read nothing. Absolutely nothing.",
-			"We built Signal Mail after one of our founders realized he could predict his colleague's pregnancy before she announced it — based entirely on the targeted ads in his own inbox, because they'd exchanged three emails about a baby shower. That was the moment. That was enough.",
+			"Most email providers give you a free inbox and charge you with your data. That's not a conspiracy theory. It's their business model, and they're very upfront about it if you read the 47-page terms of service they're counting on you not reading. We charge $4/month and read nothing. Absolutely nothing.",
+			"We built Signal Mail after one of our founders realized he could predict his colleague's pregnancy before she announced it. The source was targeted ads in his own inbox, because they'd exchanged three emails about a baby shower. That was the moment. That was enough.",
 		],
 		'paragraph:dropcap': [
-			"Privacy isn't a feature. It's the absence of a hundred features that shouldn't have existed in the first place — ad targeting, behavioral profiling, \"smart\" sorting that's really just surveillance with a friendly UI. We removed all of it. What's left is email.",
-			'There are two kinds of tech companies: the ones that make money from your data, and the ones that make money from your subscription. We are aggressively, boringly, unambiguously the second kind.',
+			"Privacy isn't a feature. It's the absence of a hundred features that shouldn't have existed in the first place: ad targeting, behavioral profiling, smart sorting that is surveillance with a cleaner interface. We removed all of it. What's left is email.",
+			'There are two kinds of tech companies: those that make money from your data, and those that make money from your subscription. We are the second kind. This is the entire pitch.',
 		],
 		quote: [
 			'"I switched to Signal Mail and my ads across the internet got noticeably worse. Less relevant. Less creepy. It was the most satisfying downgrade of my life." — Elena V., journalist',
 			'"My IT team evaluated Signal Mail expecting to find a catch. They found end-to-end encryption, zero-access architecture, and a privacy policy shorter than this quote." — CTO, healthcare startup',
 		],
 		'pullquote:wide': [
-			'We can\'t read your email. Not "we promise not to." We architecturally cannot.',
-			'The best privacy policy is one short enough to actually read. Ours is 400 words.',
+			'We cannot read your email. Not "we promise not to." Architecturally cannot.',
+			'The best privacy policy is one short enough to actually read. Ours is 400 words. We counted.',
 		],
 		'pullquote:full-solid': [
 			'$4/month. No ads. No tracking. No business model that requires knowing your secrets.',
-			'Zero-knowledge means zero knowledge. Not "some knowledge." Not "just metadata." Zero.',
+			'Zero-knowledge means zero knowledge. Not some knowledge. Not just metadata. Zero.',
 		],
 		list: [
 			[
 				'End-to-end encryption for every message, sent and received',
-				"Zero-access architecture — we can't read your mail even if someone asks us to",
+				"Zero-access architecture: we can't read your mail even if someone asks us to",
 				'Custom domains with full encryption (yourname@yourdomain.com, privately)',
 				"Calendar and contacts that don't phone home to an advertising network",
 			],
 			[
-				'Import from Gmail, Outlook, or Yahoo in under 10 minutes — we tested with a 14GB inbox',
-				'Browser, desktop, iOS, and Android — same encryption everywhere',
+				'Import from Gmail, Outlook, or Yahoo in under 10 minutes. We tested with a 14GB inbox.',
+				'Browser, desktop, iOS, and Android. Same encryption everywhere.',
 				"Aliases for when you want to sign up for things without becoming a lead in someone's CRM",
-				'Open-source clients — audit the code yourself, we dare you (politely)',
+				'Open-source clients. Audit the code yourself. We encourage it.',
 			],
 		],
 		'buttons:cta': [
@@ -93,7 +94,7 @@ export const signal = {
 			},
 			{
 				heading: 'Import Everything, Leave Nothing Behind',
-				body: "Bring your entire Gmail or Outlook inbox with you. Contacts, folders, labels — all of it. The migration tool handles 14GB+ inboxes and finishes before your coffee does. Your old provider keeps nothing after you leave. (Okay, they probably keep some things. That's their problem now.)",
+				body: "Bring your entire Gmail or Outlook inbox with you. Contacts, folders, labels, the whole archive. The migration tool handles 14GB+ inboxes without drama. What your old provider does with your data afterward is a question for their terms of service, which you won't read, which is exactly why you're switching.",
 				colorIndex: 1,
 			},
 		],
@@ -120,7 +121,7 @@ export const signal = {
 			},
 			{
 				label: 'Compliance',
-				body: 'GDPR, HIPAA-compatible, SOC 2 Type II. Hosted in Switzerland and Iceland — jurisdictions chosen for legal frameworks, not tax advantages. (Okay, also a little for the tax advantages.)',
+				body: 'GDPR, HIPAA-compatible, SOC 2 Type II. Hosted in Switzerland and Iceland. The legal frameworks are excellent. The tax situation is also not bad. We mention both because you would have Googled it anyway.',
 			},
 		],
 		'columns:3-equal': [
@@ -157,7 +158,7 @@ export const signal = {
 		'group:light-full': [
 			{
 				heading: "We Make Money When You Pay Us. That's It.",
-				body: 'No advertising partnerships. No data brokers. No "anonymized insights" that are one database join away from being very not anonymous. We sell email. You buy email. The incentives are aligned. Finally.',
+				body: 'No advertising partnerships. No data brokers. No "anonymized insights" that are one database join away from being not anonymous at all. We sell email. You buy email. The incentives are aligned. This should be unremarkable. It is not.',
 			},
 		],
 	},

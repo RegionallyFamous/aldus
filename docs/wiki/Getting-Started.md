@@ -46,7 +46,7 @@ The Aldus block appears as a full-width workspace with a content input area.
 
 ### Step 1: Add some content
 
-Click **+ Add content** to open the content input. Each piece of content has a type — choose the type that matches what you're adding (Headline, Paragraph, Image, etc.).
+When the Aldus block is empty, the first thing you see is a grid of content type buttons — **Headline, Paragraph, Image, Quote, Button**, and more. Click a type to add that piece of content. A text field (or image picker, depending on the type) opens immediately so you can enter your content.
 
 You need at least one piece of content to generate layouts. A good starting point for a blog post is:
 - 1 Headline
@@ -54,7 +54,13 @@ You need at least one piece of content to generate layouts. A good starting poin
 - 1 Image
 - 1 Button
 
-You can also use a **Quick Start preset** from the block sidebar. The presets fill in a sensible set of content types for common use cases (Blog Post, Landing Page, Feature Story, Product Pitch).
+**Shortcuts to skip the manual entry:**
+
+- If your post already has a title, a **"Use '[title]' as headline"** button appears below the type grid — one click adds your post title as a Headline item.
+- If your post already contains blocks, an **Import content from this page** button appears — Aldus reads the headings and paragraphs from those blocks and offers them as importable items.
+- For common content structures, click one of the **Quick Start preset** text links (Blog post · Landing page · Feature story · Product pitch) that appear in the empty state. The preset fills in the content types automatically — you then fill in your actual text and images.
+
+Once you've added your first item, style chips and the **Make it happen** button appear below the content list.
 
 ### Step 2: Run Aldus
 
@@ -71,7 +77,11 @@ The results screen shows sixteen cards, one per personality. Each card displays:
 - A wireframe thumbnail of the proposed layout
 - A token strip showing the section sequence (e.g. `cover:dark → pullquote → columns → cta`)
 
-Click any card to expand it and see a full block preview. If you like what you see, click **Use this one** to insert the layout.
+**Choosing from the grid:** Hover any card to reveal the **Use this one** button at the bottom. Click it to insert that layout immediately.
+
+**Expanding a card:** Click the eye icon (👁) in the top-right corner of any card to open a full-size block preview. From there you can still click **Use this one** to insert it.
+
+**Footer actions:** Each card footer contains three compact icon buttons — re-roll (↺), copy blocks to clipboard, and "Try with my content" (swap icon). These let you regenerate, export, or pin a personality without inserting the layout.
 
 ### Step 4: Edit as usual
 

@@ -10,6 +10,7 @@ export const roast = {
 		accent: '#D4832A',
 		light: '#F5ECD7',
 		image: [ '#7C4A1E', '#3B1F0A', '#D4832A', '#A0612B' ],
+		imagePattern: 'grain',
 	},
 	content: {
 		'heading:h1': [

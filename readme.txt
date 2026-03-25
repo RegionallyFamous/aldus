@@ -3,16 +3,16 @@ Contributors: regionallyfamous
 Tags: blocks, gutenberg, layout, design, composer
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Your words, sixteen personalities. Drop in your content and Aldus tries it in up to sixteen layout styles — pick the one that fits.
+Turn your content into a professionally designed layout. Add what you've got — Aldus shows you sixteen ways it could look.
 
 == Description ==
 
-Aldus is named after Aldus Manutius — the 15th-century Venetian printer who invented italic type and shaped the modern page. Like him, Aldus takes your raw material and makes it look like it was designed on purpose.
+You wrote the content. Now it needs to look like a real website — not a stack of paragraphs in a default template. Aldus takes what you've written and shows you sixteen different ways to lay it out: editorial spreads, cinematic hero sections, newspaper columns, minimal typography, and more. Pick the one that fits. It becomes real WordPress blocks. Edit them, rearrange them, or just publish. No page builder. No design skills. No subscription.
 
 You know what you want to say. Aldus figures out how it should look.
 
@@ -23,7 +23,7 @@ You know what you want to say. Aldus figures out how it should look.
 3. Aldus tries your content in **up to sixteen layout personalities** — each with its own visual character, mood, and structure.
 4. Pick the one that fits. It's replaced in-place with real, fully-editable core WordPress blocks.
 
-The same content in **Dispatch** feels like breaking news. In **Nocturne** it's cinematic and dark. In **Folio** it reads like a magazine spread. Eight personalities, one set of words — one of them will click.
+The same content in **Dispatch** feels like breaking news. In **Nocturne** it's cinematic and dark. In **Folio** it reads like a magazine spread. Sixteen styles, one set of words — one of them will click.
 
 No settings. No external services. No subscriptions. The model downloads once (~200 MB) and lives in your browser cache forever after.
 
@@ -63,7 +63,7 @@ No settings. No external services. No subscriptions. The model downloads once (~
 
 All output is standard core WordPress blocks — Cover, Columns, Media & Text, Group, Pullquote, and more. No proprietary markup, no shortcodes, no plugin lock-in.
 
-**Try before you commit — Pack Previews.** Not ready to add your own content yet? Pick from five themed packs (Roast, Meridian, Hearth, Plume, Grove) to see how all eight personalities look with real copy. No model download required.
+**Try before you commit — Pack Previews.** Not ready to add your own content yet? Pick from seven themed packs (Roast, Meridian, Hearth, Plume, Grove, Loot, Signal) to see how all sixteen layout styles look with real copy. No model download required.
 
 **Style notes.** Add an optional free-text instruction — "lead with the image", "minimal", "bold CTA" — and the layout model steers toward it.
 
@@ -74,6 +74,8 @@ All output is standard core WordPress blocks — Cover, Columns, Media & Text, G
 **Saved sessions.** Bookmark your current set of content pieces and reload them later.
 
 **Requires WebGPU.** Aldus runs its layout model in the browser using WebGPU. Chrome 113+, Edge 113+, and Safari 18+ all support it. Pack Previews work in any browser.
+
+Aldus is named after Aldus Manutius — the 15th-century Venetian printer who invented italic type and shaped the modern page. Like him, Aldus takes your raw material and makes it look like it was designed on purpose.
 
 == Installation ==
 
@@ -125,6 +127,14 @@ An optional free-text field on the building screen that steers the layout model 
 
 == Changelog ==
 
+= 1.1.0 =
+* Redesigned card overlay: replaced full-cover dark overlay with a slim gradient bar at the bottom of each card. "Use this one" is now the sole primary action in the overlay, styled with the theme accent color.
+* Moved "Expand preview" button to the top-right corner of the card; semi-transparent by default, fully visible on hover.
+* Moved "Copy blocks" and "Try with my content" to the card footer as compact icon-only buttons (clipboard and swap icons) with tooltips. These power-user actions no longer block the layout preview.
+* Redesigned empty state: content type buttons are now the first interactive elements, making the primary action immediately obvious. Import options ("Use post title as headline", "Import content from this page") appear below a visual divider as a secondary path.
+* Style chips, special instructions, and the "Make it happen" button are now hidden in the empty state and only appear once at least one content item has been added.
+* Fixed WordPress 6.9 block serialization: padding shorthand expanded to longhand (padding-top / right / bottom / left), cover inner-container class list corrected, button class order fixed, media-text grid-template updated, group border migrated to longhand with has-border-color class.
+
 = 1.0.0 =
 * Initial public release.
 * Hybrid architecture: client-side WebLLM (SmolLM2-360M) for probabilistic layout planning; server-side PHP for deterministic WordPress block assembly. No external services, no subscriptions.
@@ -143,3 +153,6 @@ An optional free-text field on the building screen that steers the layout model 
 * Full CI via GitHub Actions; Dependabot for npm and Actions updates.
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+Redesigned card overlay and empty state for a cleaner first-use experience. Fixes block serialization errors that appeared after upgrading to WordPress 6.9.

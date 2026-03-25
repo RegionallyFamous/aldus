@@ -10,6 +10,7 @@ export const meridian = {
 		accent: '#0EA5E9',
 		light: '#F0F6FF',
 		image: [ '#0D1B2A', '#1B3A5C', '#0EA5E9', '#0369A1' ],
+		imagePattern: 'grid',
 	},
 	content: {
 		'heading:h1': [
@@ -33,7 +34,7 @@ export const meridian = {
 		],
 		'paragraph:dropcap': [
 			"Every engineering team hits the same wall at around fifty engineers: the tooling that got you here starts actively fighting you. Meridian is built for the team you're growing into, not the one you duct-taped together at Series A.",
-			"Complexity is debt, and every internal abstraction layer is a surface area you maintain forever. We exist to make that surface area someone else's problem. (Ours. It's our problem. We're fine with this.)",
+			"Complexity is debt, and every internal abstraction layer is a surface area you maintain forever. We exist to make that surface area someone else's problem. Specifically ours. We signed up for this.",
 		],
 		quote: [
 			'"We cut deploy time from 40 minutes to 2.4. Our engineers stopped dreading Fridays and started deploying on Fridays. On purpose." — CTO, Series B fintech',
@@ -44,8 +45,8 @@ export const meridian = {
 			"Your engineers didn't accept your offer letter to write Terraform. Give them their weekends back.",
 		],
 		'pullquote:full-solid': [
-			'Mean time to deploy: 2.4 minutes. Mean time to rollback: 11 seconds. Mean time to regret: zero.',
-			'Zero-downtime deploys should not require a "deployment czar." That\'s not a real job.',
+			'Mean time to deploy: 2.4 minutes. Mean time to rollback: 11 seconds. Mean time to regret: not applicable.',
+			'Zero-downtime deploys should not require a dedicated person. That is not a title. That is a symptom.',
 		],
 		list: [
 			[
@@ -93,7 +94,7 @@ export const meridian = {
 			},
 			{
 				heading: 'Cost Controls for Grown-Ups',
-				body: "Meridian tracks spend at the service level and alerts you before the surprise hits. Auto-scales down during off-peak. You'll know exactly why your bill is what it is, which is more than we can say for our phone plans.",
+				body: "Meridian tracks spend at the service level and alerts you before the surprise hits. Auto-scales down during off-peak. You'll know exactly why your bill is what it is. This should not be a competitive advantage but here we are.",
 				colorIndex: 1,
 			},
 		],
@@ -105,7 +106,7 @@ export const meridian = {
 			},
 			{
 				heading: 'Compliance on Day One, Not Month Six',
-				body: "SOC 2 Type II, HIPAA-ready, and audit logs that make your security team smile. (We've seen it happen.) Enterprise deals close faster when compliance isn't a six-month side quest.",
+				body: "SOC 2 Type II, HIPAA-ready, and audit logs that make your security team nod instead of wince. Enterprise deals close faster when compliance isn't a six-month side quest. Your legal team will appreciate this more than you will.",
 				colorIndex: 3,
 			},
 		],
@@ -142,7 +143,7 @@ export const meridian = {
 		'group:dark-full': [
 			{
 				heading: 'Enterprise Infrastructure. Startup Impatience.',
-				body: 'SOC 2. HIPAA. SAML. RBAC. Every acronym your security team requires, ready before your first deploy. No six-month procurement process required (but we can do that too if it makes someone feel better).',
+				body: 'SOC 2. HIPAA. SAML. RBAC. Every acronym your security team requires, ready before your first deploy. No procurement cycle. No dedicated deployment team. Just infrastructure that works on day one.',
 				cta: 'Talk to Enterprise Sales',
 			},
 		],

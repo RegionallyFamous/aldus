@@ -1,15 +1,20 @@
 {
 	"name": "aldus",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "AI Block Compositor for WordPress",
 	"scripts": {
-		"build": "wp-scripts build",
+		"build": "wp-scripts build && npm run i18n:json",
 		"start": "wp-scripts start",
 		"lint:js": "wp-scripts lint-js src/",
 		"lint:css": "wp-scripts lint-style",
-		"lint:php": "find . -name '*.php' -not -path './node_modules/*' -not -path './build/*' | xargs php -l",
+		"lint:php": "find . -name '*.php' -not -path './node_modules/*' -not -path './build/*' -print0 | xargs -0 php -l",
 		"lint": "npm run lint:js && npm run lint:css && npm run lint:php",
 		"test": "wp-scripts test-unit-js --passWithNoTests",
+		"test:php": "php tests/validate-blocks.php",
+		"test:phpunit": "vendor/bin/phpunit",
+		"env:start": "wp-env start",
+		"env:stop": "wp-env stop",
+		"test:e2e": "playwright test",
 		"release": "node scripts/release.js",
 		"release:patch": "node scripts/release.js --bump patch",
 		"release:minor": "node scripts/release.js --bump minor",
@@ -18,8 +23,11 @@
 		"i18n:json": "wp i18n make-json languages/aldus.pot --no-purge"
 	},
 	"devDependencies": {
+		"@playwright/test": "^1.58.2",
+		"@wordpress/e2e-test-utils-playwright": "^1.42.0",
+		"@wordpress/env": "^11.2.0",
 		"@wordpress/icons": "^12.0.0",
-		"@wordpress/scripts": "*"
+		"@wordpress/scripts": "^31.7.0"
 	},
 	"dependencies": {
 		"@mlc-ai/web-llm": "^0.2.82"

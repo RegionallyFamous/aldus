@@ -1,0 +1,24 @@
+// Aldus — frontend styles.
+//
+// Loaded only when the aldus/layout-generator block appears in saved post
+// content (i.e. a post saved before the user accepted a generated layout).
+// The file is intentionally minimal: CSS custom properties are primarily
+// injected via aldus_inject_theme_json(), which runs on every page load.
+// This provides a belt-and-suspenders fallback for themes that override or
+// discard the theme.json data before Aldus's filter can apply its additions.
+
+// The block renders as an empty string on the front end (render.php returns '').
+// Hide any residual wrapper that a cache layer or serialisation edge case might emit.
+.wp-block-aldus-layout-generator {
+	display: none;
+}
+
+// CSS custom properties used by Aldus-generated layouts.
+// Values here mirror the defaults injected by aldus_inject_theme_json().
+:root {
+	--aldus-section-spacing: 80px;
+	--aldus-gap: 40px;
+	--aldus-tight: 20px;
+	--aldus-overlay-dark: rgba(0, 0, 0, 0.55);
+	--aldus-overlay-accent: rgba(0, 0, 0, 0.35);
+}

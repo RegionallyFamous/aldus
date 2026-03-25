@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * REST API endpoints — layout assembly.
  */
@@ -7,63 +8,179 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// ---------------------------------------------------------------------------
+// WP_REST_Controller — structured REST API class
+// ---------------------------------------------------------------------------
+
 /**
- * Registers the /assemble REST route.
+ * REST API controller for all Aldus endpoints.
  *
- * The browser runs WebLLM inference and sends the resulting token list here.
- * PHP assembles WordPress block markup from those tokens — no LLM on the server.
+ * Extends WP_REST_Controller to provide structured route handling,
+ * a formal JSON Schema via get_item_schema(), and canonical prepare_item_for_response().
+ *
+ * Routes:
+ *   POST /aldus/v1/assemble    — assembles block markup from a token sequence
+ *   POST /aldus/v1/record-use  — increments the per-personality usage counter
  */
-function aldus_register_rest_routes(): void {
-	register_rest_route(
-		'aldus/v1',
-		'/assemble',
-		[
-			'methods'             => 'POST',
-			'callback'            => 'aldus_handle_assemble',
-			'permission_callback' => fn() => current_user_can( 'edit_posts' ),
-			'args'                => [
-				'items'       => [
-					'required'    => true,
-					'description' => 'Content items to place into the layout.',
-					'type'        => 'array',
-					'minItems'    => 1,
-					'maxItems'    => 80,
-					'items'       => [
-						'type'       => 'object',
-						'required'   => [ 'type' ],
-						'properties' => [
-							'type'    => [
-								'type' => 'string',
-								'enum' => [ 'headline', 'subheading', 'paragraph', 'quote', 'image', 'cta', 'list', 'video', 'table', 'gallery' ],
-							],
-							'id'      => [ 'type' => 'string' ],
-							'content' => [ 'type' => 'string' ],
-							'url'     => [ 'type' => 'string', 'format' => 'uri' ],
-							'mediaId' => [ 'type' => 'integer' ],
-							'urls'    => [ 'type' => 'array', 'items' => [ 'type' => 'string', 'format' => 'uri' ] ],
-						],
+class Aldus_REST_Controller extends WP_REST_Controller {
+
+	/** @var self|null */
+	private static ?self $instance = null;
+
+	/**
+	 * Boots the controller singleton and calls register_routes() on rest_api_init.
+	 *
+	 * Called from aldus_register_rest_routes() which is hooked to rest_api_init.
+	 */
+	public static function init(): void {
+		if ( null === self::$instance ) {
+			self::$instance = new self();
+		}
+		self::$instance->register_routes();
+	}
+
+	public function __construct() {
+		$this->namespace = 'aldus/v1';
+		$this->rest_base = 'assemble';
+	}
+
+	/**
+	 * Registers all REST routes for the Aldus plugin.
+	 */
+	public function register_routes(): void {
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base,
+			[
+				[
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => [ $this, 'assemble' ],
+					'permission_callback' => [ $this, 'assemble_permissions_check' ],
+					'args'                => $this->get_assemble_args(),
+				],
+				'schema' => [ $this, 'get_item_schema' ],
+			]
+		);
+
+		// Lightweight analytics endpoint — increments a per-personality use counter.
+		register_rest_route(
+			$this->namespace,
+			'/record-use',
+			[
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => [ $this, 'record_use' ],
+				'permission_callback' => [ $this, 'assemble_permissions_check' ],
+				'args'                => [
+					'personality' => [
+						'required'          => true,
+						'type'              => 'string',
+						'maxLength'         => 64,
+						'sanitize_callback' => 'sanitize_text_field',
+						'description'       => 'Personality name to record usage for.',
 					],
-					// Structural validation is now handled by the inline schema above.
-					// sanitize_callback is retained for security (deep sanitization of values).
-					'sanitize_callback' => fn( $items ) => array_map( 'aldus_sanitize_item', (array) $items ),
 				],
-				'personality' => [
-					'required'          => true,
-					'type'              => 'string',
-					'enum'              => array_keys( aldus_anchor_tokens() ),
-					'sanitize_callback' => 'sanitize_text_field',
-					'description'       => 'Layout personality name (e.g. Dispatch, Tribune, Folio).',
-				],
-			'tokens'       => [
+			]
+		);
+	}
+
+	/**
+	 * Permission check for the assemble endpoint — requires edit_posts capability
+	 * and enforces a per-user rate limit of 60 requests per minute.
+	 *
+	 * @param WP_REST_Request $request Full request object.
+	 * @return true|WP_Error
+	 */
+	public function assemble_permissions_check( WP_REST_Request $request ): true|WP_Error {
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			return new WP_Error(
+				'rest_forbidden',
+				__( 'You do not have permission to assemble layouts.', 'aldus' ),
+				[ 'status' => rest_authorization_required_code() ]
+			);
+		}
+
+		// Per-user rate limiter: 60 requests per minute.
+		// Uses atomic wp_cache_incr() when an external object cache (memcached/redis)
+		// is available to prevent race-condition bypasses. Falls back to transients
+		// on single-server installs where the non-atomic window is negligible.
+		$user_id = get_current_user_id();
+		$tk      = "aldus_rl_{$user_id}";
+		if ( wp_using_ext_object_cache() ) {
+			$count = wp_cache_incr( $tk, 1, 'aldus' );
+			if ( false === $count ) {
+				// Key did not exist yet — prime it with a TTL.
+				wp_cache_set( $tk, 1, 'aldus', MINUTE_IN_SECONDS );
+				$count = 1;
+			}
+		} else {
+			$count = (int) get_transient( $tk );
+			if ( $count < 60 ) {
+				set_transient( $tk, $count + 1, MINUTE_IN_SECONDS );
+			}
+		}
+		if ( $count > 60 ) {
+			return new WP_Error(
+				'rate_limited',
+				__( 'Too many requests. Wait a moment and try again.', 'aldus' ),
+				[ 'status' => 429 ]
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Returns the route argument definitions for /assemble.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function get_assemble_args(): array {
+		return [
+			'items'       => [
 				'required'    => true,
-				'description' => 'Ordered list of block token strings.',
+				'description' => 'Content items to place into the layout.',
 				'type'        => 'array',
 				'minItems'    => 1,
-				'maxItems'    => 30,
+				'maxItems'    => 80,
 				'items'       => [
-					'type' => 'string',
+					'type'       => 'object',
+					'required'   => [ 'type' ],
+					'properties' => [
+						'type'    => [
+							'type' => 'string',
+							'enum' => [ 'headline', 'subheading', 'paragraph', 'quote', 'image', 'cta', 'list', 'video', 'table', 'gallery' ],
+						],
+						'id'      => [ 'type' => 'string' ],
+						'content' => [ 'type' => 'string' ],
+						'url'     => [ 'type' => 'string', 'format' => 'uri' ],
+					'mediaId'  => [ 'type' => 'integer' ],
+					'urls'     => [ 'type' => 'array', 'items' => [ 'type' => 'string', 'format' => 'uri' ] ],
+					'mediaIds' => [ 'type' => 'array', 'items' => [ 'type' => 'integer' ] ],
+					],
 				],
-				// Custom validator still used for token allow-list enforcement (not expressible in JSON Schema).
+				// sanitize_callback retained for deep value sanitization.
+				'sanitize_callback' => function ( $items ) {
+					if ( ! is_array( $items ) ) {
+						return [];
+					}
+					return array_map( 'aldus_sanitize_item', $items );
+				},
+			],
+			'personality' => [
+				'required'          => true,
+				'type'              => 'string',
+				'enum'              => array_keys( aldus_anchor_tokens() ),
+				'sanitize_callback' => 'sanitize_text_field',
+				'description'       => 'Layout personality name (e.g. Dispatch, Tribune, Folio).',
+			],
+			'tokens'      => [
+				'required'          => true,
+				'description'       => 'Ordered list of block token strings.',
+				'type'              => 'array',
+				'minItems'          => 1,
+				'maxItems'          => 30,
+				'items'             => [ 'type' => 'string' ],
+				// Custom validator for token allow-list enforcement (not expressible in JSON Schema).
 				'validate_callback' => 'aldus_validate_tokens_arg',
 			],
 			'reroll_count' => [
@@ -71,33 +188,138 @@ function aldus_register_rest_routes(): void {
 				'type'              => 'integer',
 				'minimum'           => 0,
 				'maximum'           => 999,
-			'default'           => 0,
-			'description'       => 'Incremented on each re-roll so variant picks change even when the token sequence is identical.',
-			'sanitize_callback' => 'absint',
-		],
-	],
-	]
-	);
+				'default'           => 0,
+				'description'       => 'Incremented on each re-roll so variant picks change even when the token sequence is identical.',
+				'sanitize_callback' => 'absint',
+			],
+			'use_bindings' => [
+				'required'    => false,
+				'type'        => 'boolean',
+				'default'     => false,
+				'description' => 'When true, generated blocks include Block Bindings attrs referencing _aldus_items post meta by item ID.',
+			],
+		];
+	}
 
-	// Lightweight analytics endpoint — increments a per-personality use counter.
-	register_rest_route(
-		'aldus/v1',
-		'/record-use',
-		[
-			'methods'             => 'POST',
-			'callback'            => 'aldus_handle_record_use',
-			'permission_callback' => fn() => current_user_can( 'edit_posts' ),
-			'args'                => [
-				'personality' => [
-					'required'          => true,
-					'type'              => 'string',
-					'maxLength'         => 64,
-					'sanitize_callback' => 'sanitize_text_field',
-					'description'       => 'Personality name to record usage for.',
+	/**
+	 * Returns the JSON Schema for the /assemble response item.
+	 *
+	 * Registered as the 'schema' callback on the route so that
+	 * OPTIONS /aldus/v1/assemble returns a self-describing schema.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function get_item_schema(): array {
+		if ( $this->schema ) {
+			return $this->add_additional_fields_schema( $this->schema );
+		}
+
+		$this->schema = [
+			'$schema'    => 'http://json-schema.org/draft-04/schema#',
+			'title'      => 'aldus-layout',
+			'type'       => 'object',
+			'properties' => [
+				'success' => [
+					'description' => 'Whether the assembly succeeded.',
+					'type'        => 'boolean',
+					'context'     => [ 'view' ],
+					'readonly'    => true,
+				],
+				'label'   => [
+					'description' => 'The personality name used to assemble this layout.',
+					'type'        => 'string',
+					'context'     => [ 'view' ],
+					'readonly'    => true,
+				],
+				'blocks'  => [
+					'description' => 'Serialized WordPress block markup ready for insertion into the editor.',
+					'type'        => 'string',
+					'context'     => [ 'view' ],
+					'readonly'    => true,
+				],
+				'tokens'  => [
+					'description' => 'Final ordered token list after anchor enforcement.',
+					'type'        => 'array',
+					'items'       => [ 'type' => 'string' ],
+					'context'     => [ 'view' ],
+					'readonly'    => true,
+				],
+				'sections' => [
+					'description' => 'Per-token section breakdown for Mix & Match.',
+					'type'        => 'array',
+					'items'       => [
+						'type'       => 'object',
+						'properties' => [
+							'token'  => [ 'type' => 'string' ],
+							'blocks' => [ 'type' => 'string' ],
+						],
+					],
+					'context'  => [ 'view' ],
+					'readonly' => true,
 				],
 			],
-		]
-	);
+		];
+
+		return $this->add_additional_fields_schema( $this->schema );
+	}
+
+	/**
+	 * Prepares the assembled layout for the REST response.
+	 *
+	 * @param array<string, mixed> $item    Raw assembled layout data.
+	 * @param WP_REST_Request      $request Request object.
+	 * @return WP_REST_Response
+	 */
+	public function prepare_item_for_response( $item, $request ): WP_REST_Response {
+		$data    = [];
+		$schema  = $this->get_item_schema();
+		$props   = array_keys( $schema['properties'] ?? [] );
+
+		foreach ( $props as $prop ) {
+			if ( array_key_exists( $prop, $item ) ) {
+				$data[ $prop ] = $item[ $prop ];
+			}
+		}
+
+		$response = rest_ensure_response( $data );
+		$response->add_links( [
+			'self' => [
+				'href' => rest_url( $this->namespace . '/' . $this->rest_base ),
+			],
+		] );
+
+		return $response;
+	}
+
+	/**
+	 * Handles POST /aldus/v1/assemble.
+	 *
+	 * @param WP_REST_Request $request Full request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function assemble( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		return aldus_handle_assemble( $request );
+	}
+
+	/**
+	 * Handles POST /aldus/v1/record-use.
+	 *
+	 * @param WP_REST_Request $request Full request object.
+	 * @return WP_REST_Response
+	 */
+	public function record_use( WP_REST_Request $request ): WP_REST_Response {
+		return aldus_handle_record_use( $request );
+	}
+}
+
+/**
+ * Bootstraps the REST controller.
+ *
+ * Hooked to rest_api_init. Instantiates Aldus_REST_Controller and
+ * calls register_routes() so all endpoints are registered with WordPress.
+ */
+function aldus_register_rest_routes(): void {
+	Aldus_REST_Controller::init();
 }
 
 /**
@@ -106,6 +328,10 @@ function aldus_register_rest_routes(): void {
  * @return list<string>
  */
 function aldus_valid_tokens(): array {
+	static $cached = null;
+	if ( null !== $cached ) {
+		return $cached;
+	}
 	$tokens = [
 		// Covers
 		'cover:dark',
@@ -169,7 +395,8 @@ function aldus_valid_tokens(): array {
 	 *
 	 * @param string[] $tokens List of valid token strings.
 	 */
-	return (array) apply_filters( 'aldus_valid_tokens', $tokens );
+	$cached = (array) apply_filters( 'aldus_valid_tokens', $tokens );
+	return $cached;
 }
 
 /**
@@ -208,11 +435,25 @@ function aldus_validate_tokens_arg( mixed $value ): bool|WP_Error {
  * @return WP_REST_Response|WP_Error
  */
 function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-	// Items are pre-sanitized by the route's sanitize_callback; tokens still need token-level sanitization.
-	// personality is already sanitized and enum-validated by the route's sanitize/validate callbacks.
-	$items       = (array) $request->get_param( 'items' );
+	// Items arrive pre-sanitized by the route's sanitize_callback. Re-run sanitization
+	// here as defense-in-depth: this guards against any path that bypasses the REST
+	// layer (e.g. direct PHP calls in tests or future internal callers).
+	$items = array_values(
+		array_filter(
+			array_map(
+				'aldus_sanitize_item',
+				(array) $request->get_param( 'items' )
+			),
+			fn( $item ) => is_array( $item ) && ! empty( $item['type'] )
+		)
+	);
 	$personality = $request->get_param( 'personality' );
-	$tokens      = array_map( 'aldus_sanitize_token', (array) $request->get_param( 'tokens' ) );
+	// Sanitize each token; filter out any that reduced to empty strings.
+	$tokens = array_values(
+		array_filter(
+			array_map( 'aldus_sanitize_token', (array) $request->get_param( 'tokens' ) )
+		)
+	);
 
 	// Build manifest so anchor-enforcement knows what content is available.
 	$manifest = [];
@@ -238,6 +479,14 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 	 * @param array    $items       Sanitized content items.
 	 */
 	$tokens = (array) apply_filters( 'aldus_tokens_before_render', $tokens, $personality, $items );
+	// Re-sanitize after filter — third-party code could inject arbitrary strings.
+	$valid_set = array_flip( aldus_valid_tokens() );
+	$tokens    = array_values(
+		array_filter(
+			array_map( 'aldus_sanitize_token', $tokens ),
+			fn( string $t ) => $t !== '' && isset( $valid_set[ $t ] )
+		)
+	);
 
 	// Fetch theme data for block styling — computed once, shared across all tokens.
 	$palette    = aldus_get_theme_palette();
@@ -263,31 +512,34 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 		'gradient' => aldus_pick_gradient( $gradients ),
 	];
 
-	// Personality art-direction rules for variant selection.
-	$style_rules    = aldus_personality_style_rules();
-	$style_ctx      = $style_rules[ $personality ] ?? [];
+	$style_rules   = aldus_personality_style_rules();
+	$style_ctx     = $style_rules[ $personality ] ?? [];
+	$token_weights = aldus_token_weights();
 
-	// Token visual-weight map for rhythm tracking.
-	$token_weights  = aldus_token_weights();
+	$use_bindings = (bool) $request->get_param( 'use_bindings' );
 
-	// Render the token sequence into block markup, capturing per-token sections.
 	$dist = new Aldus_Content_Distributor( $items );
-	// Reservation pass: ensures high-visibility tokens get the best content items.
-	$dist->prioritize( $tokens, $token_weights );
+	$dist->prepare();
+
+	// Build the static parts of context once; only rhythm changes per token.
+	$base_context = [
+		'theme'        => $theme_ctx,
+		'style'        => $style_ctx,
+		'manifest'     => $manifest,
+		'use_bindings' => $use_bindings,
+	];
+
 	$markup     = '';
 	$sections   = [];
 	$prev_heavy = false;
 	foreach ( $tokens as $index => $token ) {
-		$rhythm_ctx   = [ 'prev_heavy' => $prev_heavy ];
-		$context      = [
-			'theme'    => $theme_ctx,
-			'style'    => $style_ctx,
-			'rhythm'   => $rhythm_ctx,
-			'manifest' => $manifest,
-		];
-		$token_markup = aldus_render_block_token( $token, $dist, $palette, $font_sizes, $index, $layout_seed, $context );
-		$markup      .= $token_markup;
-		if ( ! empty( trim( $token_markup ) ) ) {
+		$context           = $base_context;
+		$context['rhythm'] = [ 'prev_heavy' => $prev_heavy ];
+		$token_markup      = aldus_render_block_token( $token, $dist, $palette, $font_sizes, $index, $layout_seed, $context );
+		$markup           .= $token_markup;
+		// Trim once and reuse to avoid double trim() per iteration.
+		$token_markup_trimmed = ltrim( $token_markup );
+		if ( '' !== $token_markup_trimmed ) {
 			$sections[] = [
 				'token'  => $token,
 				'blocks' => $token_markup,
@@ -297,18 +549,25 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 		}
 	}
 
-	if ( empty( trim( $markup ) ) ) {
+	if ( '' === trim( $markup ) ) {
 		return new WP_Error( 'empty_markup', __( 'Could not build markup for this layout. Try again.', 'aldus' ), [ 'status' => 422 ] );
 	}
 
 	/**
 	 * Filter the fully assembled block markup string for a layout.
 	 *
+	 * Must return a non-empty string of serialized WordPress block markup.
+	 * Returning an empty string will cause a 422 error to be returned to the client.
+	 *
 	 * @param string   $markup      Serialized block markup ready for insertion.
 	 * @param string   $personality Personality name.
 	 * @param array    $items       Sanitized content items.
 	 */
 	$markup = (string) apply_filters( 'aldus_assembled_blocks', $markup, $personality, $items );
+	// Guard against filters that zero out the markup.
+	if ( '' === trim( $markup ) ) {
+		return new WP_Error( 'empty_markup', __( 'Could not build markup for this layout. Try again.', 'aldus' ), [ 'status' => 422 ] );
+	}
 
 	/**
 	 * Fires after a layout has been successfully assembled and is about to be returned.
@@ -343,11 +602,17 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
  * @return string
  */
 function aldus_sanitize_token( mixed $token ): string {
-	return preg_replace( '/[^a-z0-9:_\-]/', '', strtolower( (string) $token ) );
+	return preg_replace( '/[^a-z0-9:_\-]/', '', strtolower( (string) $token ) ) ?? '';
 }
 
 /** Maximum character length for a single content string. */
 const ALDUS_MAX_CONTENT_LENGTH = 5000;
+
+/** Content types the distributor and renderers understand. */
+const ALDUS_VALID_ITEM_TYPES = [
+	'headline', 'subheading', 'paragraph', 'quote',
+	'image', 'cta', 'list', 'video', 'table', 'gallery',
+];
 
 /**
  * Sanitizes a single content item from the request.
@@ -360,20 +625,26 @@ function aldus_sanitize_item( mixed $raw ): array {
 		return [ 'type' => '', 'content' => '', 'url' => '', 'id' => '', 'mediaId' => 0 ];
 	}
 
+	$type = sanitize_key( $raw['type'] ?? '' );
+	// Reject items with unrecognised types early so they never reach the distributor.
+	if ( ! in_array( $type, ALDUS_VALID_ITEM_TYPES, true ) ) {
+		return [ 'type' => '', 'content' => '', 'url' => '', 'id' => '', 'mediaId' => 0 ];
+	}
+
 	$content = sanitize_textarea_field( $raw['content'] ?? '' );
 	if ( mb_strlen( $content ) > ALDUS_MAX_CONTENT_LENGTH ) {
 		$content = mb_substr( $content, 0, ALDUS_MAX_CONTENT_LENGTH );
 	}
 
 	$item = [
-		'type'    => sanitize_key( $raw['type'] ?? '' ),
+		'type'    => $type,
 		'content' => $content,
 		'url'     => esc_url_raw( $raw['url'] ?? '' ),
 		'id'      => sanitize_text_field( (string) ( $raw['id'] ?? '' ) ),
 		'mediaId' => absint( $raw['mediaId'] ?? 0 ),
 	];
 
-	// Gallery items carry an array of image URLs.
+	// Gallery items carry an array of image URLs and optional attachment IDs.
 	if ( isset( $raw['urls'] ) && is_array( $raw['urls'] ) ) {
 		$item['urls'] = array_values(
 			array_filter(
@@ -381,6 +652,9 @@ function aldus_sanitize_item( mixed $raw ): array {
 				fn( $u ) => ! empty( $u )
 			)
 		);
+	}
+	if ( isset( $raw['mediaIds'] ) && is_array( $raw['mediaIds'] ) ) {
+		$item['mediaIds'] = array_map( 'absint', array_slice( $raw['mediaIds'], 0, 20 ) );
 	}
 
 	return $item;
@@ -464,23 +738,26 @@ function aldus_enforce_anchors( string $label, array $tokens, array $manifest ):
 	// Prune tokens that need content we don't have.
 	$tokens = aldus_prune_unavailable_tokens( $tokens, $manifest );
 
+	// Build a hash set for O(1) membership checks during anchor insertion.
+	$token_set = array_flip( $tokens );
+
 	if ( $is_loose ) {
-		// Loose: append missing anchors at the end.
 		foreach ( $required as $anchor ) {
-			if ( ! in_array( $anchor, $tokens, true ) ) {
-				$tokens[] = $anchor;
+			if ( ! isset( $token_set[ $anchor ] ) ) {
+				$tokens[]           = $anchor;
+				$token_set[ $anchor ] = true;
 			}
 		}
 	} else {
-		// Strict: prepend missing anchors at the start.
 		foreach ( array_reverse( $required ) as $anchor ) {
-			if ( ! in_array( $anchor, $tokens, true ) ) {
+			if ( ! isset( $token_set[ $anchor ] ) ) {
 				array_unshift( $tokens, $anchor );
+				$token_set[ $anchor ] = true;
 			}
 		}
 	}
 
-	// Deduplicate — keep first occurrence only (preserves ordering).
+	// Deduplicate — keep first occurrence only (preserves LLM ordering).
 	$seen   = [];
 	$unique = [];
 	foreach ( $tokens as $token ) {
@@ -494,53 +771,65 @@ function aldus_enforce_anchors( string $label, array $tokens, array $manifest ):
 }
 
 /**
+ * Maps every token that requires a specific content type to that type.
+ *
+ * Tokens absent from this map (headings, paragraphs, separators, spacers)
+ * have no content requirement and are never pruned. Anchor tokens that appear
+ * here are still never pruned — see aldus_prune_unavailable_tokens().
+ *
+ * This is the single source of truth. Both aldus_prune_unavailable_tokens()
+ * and Aldus_Content_Distributor::prepare() read from here.
+ *
+ * @return array<string, string>
+ */
+function aldus_token_content_requirements(): array {
+	static $map = null;
+	if ( null !== $map ) {
+		return $map;
+	}
+	$map = [
+		'cover:dark'           => 'image',
+		'cover:light'          => 'image',
+		'cover:split'          => 'image',
+		'media-text:left'      => 'image',
+		'media-text:right'     => 'image',
+		'image:wide'           => 'image',
+		'image:full'           => 'image',
+		'pullquote:wide'       => 'quote',
+		'pullquote:full-solid' => 'quote',
+		'pullquote:centered'   => 'quote',
+		'quote'                => 'quote',
+		'quote:attributed'     => 'quote',
+		'buttons:cta'          => 'cta',
+		'list'                 => 'list',
+		'video:hero'           => 'video',
+		'video:section'        => 'video',
+		'table:data'           => 'table',
+		'gallery:2-col'        => 'gallery',
+		'gallery:3-col'        => 'gallery',
+	];
+	return $map;
+}
+
+/**
  * Removes tokens that require content types absent from the manifest.
- * Only prunes non-anchor tokens — anchors are always kept since their renderers
- * degrade gracefully when content is exhausted (return empty string, not broken markup).
+ * Anchor tokens are never pruned — renderers degrade gracefully on empty content.
  *
  * @param list<string>       $tokens
  * @param array<string,int>  $manifest
  * @return list<string>
  */
 function aldus_prune_unavailable_tokens( array $tokens, array $manifest ): array {
-	// Anchors are never pruned — renderers handle graceful empty output.
 	$anchor_maps = array_values( aldus_anchor_tokens() );
-	$all_anchors = $anchor_maps ? array_merge( ...$anchor_maps ) : [];
-
-	// Token → required content type (only for non-anchor tokens).
-	$requirements = [
-		// Image-dependent
-		'media-text:left'      => 'image',
-		'media-text:right'     => 'image',
-		'image:wide'           => 'image',
-		'image:full'           => 'image',
-		'cover:split'          => 'image',
-		// Quote-dependent
-		'pullquote:wide'       => 'quote',
-		'pullquote:full-solid' => 'quote',
-		'pullquote:centered'   => 'quote',
-		'quote'                => 'quote',
-		'quote:attributed'     => 'quote',
-		// CTA-dependent
-		'buttons:cta'          => 'cta',
-		// List-dependent
-		'list'                 => 'list',
-		// Video-dependent
-		'video:hero'           => 'video',
-		'video:section'        => 'video',
-		// Table-dependent
-		'table:data'           => 'table',
-		// Gallery-dependent
-		'gallery:2-col'        => 'gallery',
-		'gallery:3-col'        => 'gallery',
-	];
+	// Build a hash set for O(1) anchor membership checks instead of O(n) in_array.
+	$anchor_set   = $anchor_maps ? array_flip( array_unique( array_merge( ...$anchor_maps ) ) ) : [];
+	$requirements = aldus_token_content_requirements();
 
 	return array_values(
 		array_filter(
 			$tokens,
-			function ( string $token ) use ( $manifest, $all_anchors, $requirements ) {
-				// Never prune anchors.
-				if ( in_array( $token, $all_anchors, true ) ) {
+			function ( string $token ) use ( $manifest, $anchor_set, $requirements ) {
+				if ( isset( $anchor_set[ $token ] ) ) {
 					return true;
 				}
 				$required_type = $requirements[ $token ] ?? null;
@@ -570,7 +859,10 @@ function aldus_get_theme_palette(): array {
 	}
 
 	$settings = wp_get_global_settings( [ 'color', 'palette' ] );
-	$palette  = $settings['theme'] ?? $settings['default'] ?? [];
+	if ( is_wp_error( $settings ) || ! is_array( $settings ) ) {
+		$settings = [];
+	}
+	$palette = $settings['theme'] ?? $settings['default'] ?? [];
 
 	if ( empty( $palette ) ) {
 		$palette = [
@@ -585,7 +877,10 @@ function aldus_get_theme_palette(): array {
 		);
 	}
 
-	wp_cache_set( $cache_key, $palette, 'aldus' );
+	// TTL of one hour prevents stale theme data from persisting indefinitely on
+	// long-lived object-cache backends (Redis, Memcached) when a theme is updated
+	// without flushing the cache manually.
+	wp_cache_set( $cache_key, $palette, 'aldus', HOUR_IN_SECONDS );
 	return $palette;
 }
 
@@ -602,7 +897,10 @@ function aldus_get_theme_font_sizes(): array {
 	}
 
 	$settings = wp_get_global_settings( [ 'typography', 'fontSizes' ] );
-	$sizes    = $settings['theme'] ?? $settings['default'] ?? [];
+	if ( is_wp_error( $settings ) || ! is_array( $settings ) ) {
+		$settings = [];
+	}
+	$sizes = $settings['theme'] ?? $settings['default'] ?? [];
 
 	if ( empty( $sizes ) ) {
 		$sizes = [
@@ -612,7 +910,7 @@ function aldus_get_theme_font_sizes(): array {
 		];
 	}
 
-	wp_cache_set( $cache_key, $sizes, 'aldus' );
+	wp_cache_set( $cache_key, $sizes, 'aldus', HOUR_IN_SECONDS );
 	return $sizes;
 }
 
@@ -719,22 +1017,31 @@ function aldus_handle_record_use( WP_REST_Request $request ): WP_REST_Response {
 	$personality = sanitize_text_field( $request->get_param( 'personality' ) );
 
 	if ( empty( $personality ) ) {
-		return new WP_REST_Response( [ 'success' => false, 'error' => 'missing personality' ], 400 );
+		return new WP_Error( 'missing_personality', __( 'Personality is required.', 'aldus' ), [ 'status' => 400 ] );
 	}
 
 	// Validate against the known personality list (including filtered additions).
 	// This prevents arbitrary option key proliferation from rogue authenticated requests.
 	$known = array_keys( aldus_anchor_tokens() );
 	if ( ! in_array( $personality, $known, true ) ) {
-		return new WP_REST_Response( [ 'success' => false, 'error' => 'unknown personality' ], 400 );
+		return new WP_Error( 'unknown_personality', __( 'Unknown personality.', 'aldus' ), [ 'status' => 400 ] );
 	}
 
 	$option_key = 'aldus_usage_' . strtolower( sanitize_html_class( $personality ) );
 	$current    = (int) get_option( $option_key, 0 );
-	update_option( $option_key, $current + 1, false );
+	$saved      = update_option( $option_key, $current + 1, false );
+
+	if ( ! $saved ) {
+		// update_option returns false when the value is unchanged (already at current+1)
+		// or on a DB write failure. Either way, proceed — analytics is best-effort.
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( "Aldus: could not update usage counter for {$option_key}" );
+		}
+	}
 
 	// Allow external hooks to react (e.g. third-party analytics integrations).
 	do_action( 'aldus_layout_chosen', $personality );
 
-	return new WP_REST_Response( [ 'success' => true, 'count' => $current + 1 ], 200 );
+	return rest_ensure_response( [ 'success' => true, 'count' => $current + 1 ] );
 }

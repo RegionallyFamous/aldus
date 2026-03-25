@@ -17,7 +17,7 @@ Each pack is themed around a specific industry or content type. When you load a 
 
 ---
 
-## The seven packs
+## The nine packs
 
 ### Roast — Specialty Coffee Brand
 
@@ -75,6 +75,22 @@ Dry, principled, sardonic content for a privacy-focused software product. Copy i
 
 ---
 
+### Forge — Handmade Industrial Craft
+
+Warm, uncompromising content for a blacksmithing or maker brand. Copy is direct about process, lead times, and the refusal to cut corners. Palette tones are deep charcoal, warm steel, ember orange, and pale cream.
+
+**Ideal for exploring:** Stratum, Broadside, Dispatch, Codex
+
+---
+
+### Slim — Minimal Input Pack
+
+The minimal pack. Five content items — just enough for every personality to show you what it does with lean input. One headline, one paragraph, one image, one quote, one CTA. Monochrome palette so the layout shape is the only variable.
+
+**Use this one to:** see which personalities thrive on sparse content and which ones want more to work with. The differences become stark when there's nothing to hide behind.
+
+---
+
 ## What packs include
 
 Each pack provides content for every token type Aldus can use:
@@ -94,5 +110,5 @@ The multiple variants per type are important — when a personality uses two med
 ## Tips for using packs
 
 - **Compare personalities side by side** using the same pack. The differences become clear when the content is held constant.
-- **Try Signal last.** Its lean, minimal content shows you exactly how each personality handles a sparse input — which ones thrive and which ones want more to work with.
+- **Try Slim last.** It has the fewest items — just enough to see each personality's point of view. Which ones thrive on lean input? Which ones clearly want a table or a gallery? Slim makes that visible.
 - **Switch packs without regenerating.** Selecting a different pack immediately updates all sixteen preview cards with the new pack's content.

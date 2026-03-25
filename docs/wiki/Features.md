@@ -8,9 +8,11 @@ This page covers every tool and control Aldus provides beyond the basic generate
 
 Style Notes let you give the model a creative direction before generating layouts. Instead of changing your content, you're changing the model's aesthetic brief.
 
+Style chips and the freeform note field appear in the building area automatically once you have at least one content item — they're hidden on the empty state to keep the first-use experience focused.
+
 **How to use it:**
-1. Open the **Style Notes** panel (click the paintbrush icon or scroll down in the input area)
-2. Click one or more style chips, or write a freeform note in the text field
+1. Add at least one content item
+2. Click one or more style chips that appear below the content list, or write a freeform note in the text field
 
 **Available chips:**
 
@@ -32,9 +34,31 @@ Chips and freeform text can be combined. Style Notes affect all personalities �
 If you like a personality's general direction but not the specific layout it proposed, you can regenerate just that one personality without touching the others.
 
 **How to use it:**
-On the results screen, click the **Re-roll** icon on the personality card you want to regenerate. The other fifteen cards stay as they are.
+On the results screen, click the **Re-roll** icon (↺) in the card footer. The other fifteen cards stay as they are.
 
 Each re-roll increments a counter that the model sees — so re-rolling multiple times produces increasingly diverse variations rather than repeating the same layout.
+
+---
+
+## Card footer actions
+
+Each personality card has a row of compact icon buttons in its footer:
+
+| Icon | Action |
+|---|---|
+| ↺ Re-roll | Regenerate just this personality |
+| Clipboard | Copy this layout's blocks to the clipboard for pasting elsewhere |
+| Swap arrows | Try with my content — preview this personality using your own content items instead of the sample pack |
+
+These actions are available on all cards, including Sample Pack preview results.
+
+---
+
+## Expand preview
+
+A small eye icon appears in the top-right corner of each card's preview area. It is faintly visible by default and becomes fully opaque when you hover the card. Clicking it opens a full-size block preview of that layout without leaving the results grid.
+
+To insert the layout after expanding, click **Use this one** in the expanded view.
 
 ---
 
@@ -89,8 +113,10 @@ Instead of building your content list from scratch, you can load a preset that f
 | Landing page | Headline, Subheading, Button |
 | Feature story | Headline, Quote, 2 Paragraphs, Image |
 | Product pitch | Headline, List, Button |
+| Visual portfolio | Headline, Gallery |
+| Product comparison | Headline, Table, Button |
 
-To use a preset, open the **Quick Start** panel in the block sidebar and click the preset name. Aldus populates the content input with the preset's content types — you then fill in your actual text, images, and links.
+Presets are shown as text links directly on the empty state screen — no need to open a sidebar panel. Click a preset name to instantly populate the content list with the appropriate content types, then fill in your actual text, images, and links.
 
 ---
 
@@ -105,7 +131,7 @@ Pack Previews let you see all sixteen personalities with themed sample content �
 
 You can browse the results, expand cards, and get a feel for each personality before using your own content.
 
-Clicking **Try with my content** in the preview results pinned to that personality when you switch to your own content — useful if you already know which personality you want to use.
+Clicking the **swap-arrows** icon in a card's footer (labeled "Try with my content") pins that personality when you switch to your own content — useful if you already know which personality you want to use.
 
 See [Sample Packs](Sample-Packs) for details on each pack.
 
@@ -146,7 +172,12 @@ Your personality selection is saved as a block attribute and persists across ses
 
 ## Content import
 
-If you have existing copy in your WordPress editor, you can pull it into Aldus as content items using the **Import from post** option (available in the content input area when you're editing a post that already has blocks). Aldus reads the headings and paragraphs from other blocks on the same post and offers them as importable items.
+If you have existing copy in your WordPress editor, you can pull it into Aldus without retyping:
+
+- **Use post title as headline** — appears in the empty state if the post has a title. Adds the title as a Headline content item in one click.
+- **Import content from this page** — appears in the empty state when other blocks exist on the post. Aldus reads the headings and paragraphs from those blocks and offers them as importable items.
+
+Both options appear below a divider in the empty state, beneath the content type buttons, as secondary paths for users who already have copy in the editor.
 
 ---
 

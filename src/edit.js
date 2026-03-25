@@ -30,18 +30,18 @@ import {
 } from '@wordpress/block-editor';
 import {
 	Button,
+	CheckboxControl,
 	ConfirmDialog,
 	Flex,
 	FlexItem,
-	FormTokenField,
 	Modal,
 	Notice,
 	TextControl,
 	TextareaControl,
+	ToggleControl,
 	Spinner,
 	PanelBody,
 	Popover,
-	Tooltip,
 	Icon,
 	ToolbarGroup,
 	ToolbarButton,
@@ -51,6 +51,7 @@ import {
 	useSelect,
 	dispatch as wpDispatch,
 } from '@wordpress/data';
+import { useEntityProp } from '@wordpress/core-data';
 import { applyFilters, doAction } from '@wordpress/hooks';
 import apiFetch from '@wordpress/api-fetch';
 import { parse as parseBlocks } from '@wordpress/blocks';
@@ -82,8 +83,19 @@ import {
 	seen,
 	layout as layoutIcon,
 	help,
+	starEmpty,
+	starFilled,
+	copy,
+	reusableBlock,
 } from '@wordpress/icons';
-import { PACKS, packToItems } from './sample-data/index.js';
+import {
+	PACK_META,
+	packToItems,
+	loadPackContent,
+} from './sample-data/index.js';
+
+// Named constant for the default pack index to avoid magic numbers at call sites.
+const DEFAULT_PACK_INDEX = 0;
 import './editor.scss';
 
 // ---------------------------------------------------------------------------
@@ -883,6 +895,182 @@ const VALID_TOKENS = [
 ];
 const VALID_TOKENS_SET = new Set( VALID_TOKENS );
 
+// Maps each token to the content types it requires from the user's items pool.
+// Used by computeBestMatches to find personalities whose anchors are fully fed.
+//
+// NOTE: This mapping intentionally mirrors the PHP token→type maps in
+// Aldus_Content_Distributor::prioritize() (templates.php) and
+// aldus_prune_unavailable_tokens() (api.php). Keep them in sync when adding
+// new tokens — three places, same truth.
+//
+// Tokens with no content requirement (structural, separators, spacers) are
+// omitted; absent keys resolve to [] and pass vacuously, which is correct:
+// a spacer anchor is always satisfiable regardless of content.
+// Group tokens DO require content (paragraph at minimum) so they are listed
+// explicitly to avoid vacuous best-match scoring when items is empty.
+const TOKEN_CONTENT_TYPES = {
+	// Covers
+	'cover:dark': [ 'image' ],
+	'cover:light': [ 'image' ],
+	'cover:split': [ 'image' ],
+	'cover:minimal': [ 'headline' ],
+	// Columns
+	'columns:28-72': [ 'headline', 'paragraph' ],
+	'columns:2-equal': [ 'paragraph' ],
+	'columns:3-equal': [ 'paragraph' ],
+	'columns:4-equal': [ 'subheading' ],
+	// Media
+	'media-text:left': [ 'image' ],
+	'media-text:right': [ 'image' ],
+	'image:wide': [ 'image' ],
+	'image:full': [ 'image' ],
+	'gallery:2-col': [ 'gallery' ],
+	'gallery:3-col': [ 'gallery' ],
+	// Groups — require at least a paragraph to produce meaningful output.
+	'group:dark-full': [ 'paragraph' ],
+	'group:accent-full': [ 'paragraph' ],
+	'group:light-full': [ 'paragraph' ],
+	'group:border-box': [ 'paragraph' ],
+	'group:gradient-full': [ 'paragraph' ],
+	// Pullquotes / quotes
+	'pullquote:wide': [ 'quote' ],
+	'pullquote:full-solid': [ 'quote' ],
+	'pullquote:centered': [ 'quote' ],
+	quote: [ 'quote' ],
+	'quote:attributed': [ 'quote' ],
+	// Headings
+	'heading:h1': [ 'headline' ],
+	'heading:h2': [ 'subheading' ],
+	'heading:h3': [ 'subheading' ],
+	'heading:display': [ 'headline' ],
+	'heading:kicker': [ 'subheading' ],
+	// Text
+	paragraph: [ 'paragraph' ],
+	'paragraph:dropcap': [ 'paragraph' ],
+	list: [ 'list' ],
+	// CTA
+	'buttons:cta': [ 'cta' ],
+	// Video / Table
+	'video:hero': [ 'video' ],
+	'video:section': [ 'video' ],
+	'table:data': [ 'table' ],
+	// Structural tokens (separator, spacer:*) intentionally omitted — no pool
+	// content required; they are always satisfiable and should not block a match.
+};
+
+/**
+ * Returns a Set of personality names that are "best matches" for the given
+ * items — i.e. every anchor token's required content type is present.
+ * Returns at most 3 names, sorted by number of satisfied anchors (descending).
+ *
+ * @param {Array} items User content items array.
+ */
+function computeBestMatches( items ) {
+	const presentTypes = new Set(
+		items.filter( ( i ) => i.type ).map( ( i ) => i.type )
+	);
+	const scored = ACTIVE_PERSONALITIES.map( ( p ) => {
+		const total = p.anchors.length;
+		const satisfied = p.anchors.filter( ( anchor ) => {
+			const needed = TOKEN_CONTENT_TYPES[ anchor ] ?? [];
+			return needed.every( ( t ) => presentTypes.has( t ) );
+		} ).length;
+		return { name: p.name, satisfied, total };
+	} );
+	// Only consider fully-satisfied personalities (all anchors met).
+	const fullyMet = scored.filter(
+		( s ) => s.satisfied === s.total && s.total > 0
+	);
+	// Sort descending by anchor count (more anchors = more specific match).
+	fullyMet.sort( ( a, b ) => b.total - a.total );
+	return new Set( fullyMet.slice( 0, 3 ).map( ( s ) => s.name ) );
+}
+
+// Ordered category groups for prompt formatting — a structured list is easier
+// for the 360M model to parse than a flat comma-separated blob.
+const TOKEN_CATEGORIES = {
+	Covers: [ 'cover:dark', 'cover:light', 'cover:minimal', 'cover:split' ],
+	Columns: [
+		'columns:28-72',
+		'columns:2-equal',
+		'columns:3-equal',
+		'columns:4-equal',
+	],
+	Media: [
+		'media-text:left',
+		'media-text:right',
+		'image:wide',
+		'image:full',
+		'gallery:2-col',
+		'gallery:3-col',
+	],
+	Groups: [
+		'group:dark-full',
+		'group:accent-full',
+		'group:light-full',
+		'group:border-box',
+		'group:gradient-full',
+	],
+	Quotes: [
+		'pullquote:wide',
+		'pullquote:full-solid',
+		'pullquote:centered',
+		'quote',
+		'quote:attributed',
+	],
+	Headings: [
+		'heading:h1',
+		'heading:h2',
+		'heading:h3',
+		'heading:display',
+		'heading:kicker',
+	],
+	Text: [ 'paragraph', 'paragraph:dropcap', 'list' ],
+	Buttons: [ 'buttons:cta' ],
+	Structure: [
+		'separator',
+		'spacer:small',
+		'spacer:large',
+		'spacer:xlarge',
+		'video:hero',
+		'video:section',
+		'table:data',
+	],
+};
+
+// Flat set of every token that appears in any TOKEN_CATEGORIES bucket.
+// Computed once at module init so formatTokenPool never rebuilds it.
+const CATEGORIZED_TOKENS_SET = new Set(
+	Object.values( TOKEN_CATEGORIES ).flat()
+);
+
+/**
+ * Formats a token pool into a grouped string for the LLM prompt.
+ * Only categories with at least one token in the pool are included.
+ * e.g. "Covers: cover:dark / Quotes: pullquote:wide, quote / Buttons: buttons:cta"
+ *
+ * @param {string[]} tokenPool Array of token strings to format.
+ */
+function formatTokenPool( tokenPool ) {
+	const poolSet = new Set( tokenPool );
+	const parts = Object.entries( TOKEN_CATEGORIES )
+		.map( ( [ cat, tokens ] ) => {
+			const available = tokens.filter( ( t ) => poolSet.has( t ) );
+			return available.length
+				? `${ cat }: ${ available.join( ', ' ) }`
+				: null;
+		} )
+		.filter( Boolean );
+	// Fall back to a flat list for any tokens not covered by any category.
+	const uncategorized = tokenPool.filter(
+		( t ) => ! CATEGORIZED_TOKENS_SET.has( t )
+	);
+	if ( uncategorized.length ) {
+		parts.push( `Other: ${ uncategorized.join( ', ' ) }` );
+	}
+	return parts.join( ' / ' );
+}
+
 // ---------------------------------------------------------------------------
 // Content-type meta (Pass 1: descriptions + CTA→Button)
 // ---------------------------------------------------------------------------
@@ -976,6 +1164,21 @@ const CONTENT_TYPES = [
 
 const TYPE_META = Object.fromEntries(
 	CONTENT_TYPES.map( ( t ) => [ t.type, t ] )
+);
+
+// Primary (80% use case) vs secondary (specialist) content types for the tiered inserter.
+const PRIMARY_CONTENT_TYPE_IDS = new Set( [
+	'headline',
+	'paragraph',
+	'image',
+	'quote',
+	'cta',
+] );
+const PRIMARY_CONTENT_TYPES = CONTENT_TYPES.filter( ( t ) =>
+	PRIMARY_CONTENT_TYPE_IDS.has( t.type )
+);
+const SECONDARY_CONTENT_TYPES = CONTENT_TYPES.filter(
+	( t ) => ! PRIMARY_CONTENT_TYPE_IDS.has( t.type )
 );
 
 // ---------------------------------------------------------------------------
@@ -1580,6 +1783,17 @@ const LOADING_MESSAGES = [
 	__( 'Dispatch is being dramatic. Nocturne is being moody…', 'aldus' ),
 	__( 'Your words, every which way…', 'aldus' ),
 	__( 'Almost ready to show you who it wants to be…', 'aldus' ),
+	__( 'Folio is arranging everything very carefully…', 'aldus' ),
+	__(
+		'Broadsheet wants more columns. Broadsheet always wants more columns.',
+		'aldus'
+	),
+	__( "Solstice is removing things. That's its whole personality.", 'aldus' ),
+	__( 'Stratum is stacking. Dark, light, accent. In that order.', 'aldus' ),
+	__( 'Tribune thinks this is front-page material.', 'aldus' ),
+	__( "Codex is choosing fonts and judging everyone else's.", 'aldus' ),
+	__( 'Mirage is adding more gradients. Obviously.', 'aldus' ),
+	__( 'Mosaic keeps asking if there are more images.', 'aldus' ),
 ];
 
 // Pass 9: structured error messages with headline + detail
@@ -1613,16 +1827,40 @@ const ERROR_MESSAGES = {
 			'aldus'
 		),
 	},
+	wasm_compile_failed: {
+		headline: __( 'GPU compilation failed.', 'aldus' ),
+		detail: __(
+			"Your GPU doesn't support the model format. Browse sample layouts in the Personalities tab instead.",
+			'aldus'
+		),
+	},
+	rate_limited: {
+		headline: __( 'Too many requests.', 'aldus' ),
+		detail: __( 'Wait a moment, then try again.', 'aldus' ),
+	},
 	no_layouts: {
 		headline: __( 'None of the personalities clicked.', 'aldus' ),
 		detail: __(
-			'Try adding a headline or image — they give the personalities more to work with.',
+			'Try adding a headline and at least one paragraph — that gives every style something to work with.',
 			'aldus'
 		),
 	},
 };
 
-const uid = () => crypto.randomUUID();
+const uid = () => {
+	if (
+		typeof crypto !== 'undefined' &&
+		typeof crypto.randomUUID === 'function'
+	) {
+		return crypto.randomUUID();
+	}
+	// Fallback for non-secure contexts and older engines.
+	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace( /[xy]/g, ( c ) => {
+		const r = Math.floor( Math.random() * 16 );
+		const v = c === 'x' ? r : ( r % 4 ) + 8;
+		return v.toString( 16 );
+	} );
+};
 
 const VALID_ITEM_TYPES = new Set( [
 	'headline',
@@ -1660,7 +1898,10 @@ function validateSavedItems( raw ) {
 		)
 		.map( ( item ) => {
 			const clean = {
-				id: typeof item.id === 'string' ? item.id : uid(),
+				id:
+					typeof item.id === 'string' && item.id !== ''
+						? item.id
+						: uid(),
 				type: item.type,
 				content: item.content,
 				url: item.url ?? '',
@@ -1692,13 +1933,19 @@ const HINT_TYPE_LABELS = {
 	gallery: __( 'Gallery', 'aldus' ),
 };
 const HINT_TYPE_OUTCOMES = {
-	image: __( 'unlocks hero covers and media panels', 'aldus' ),
-	quote: __( 'unlocks pullquotes and callouts', 'aldus' ),
-	list: __( 'unlocks structured list sections', 'aldus' ),
-	cta: __( 'unlocks call-to-action buttons', 'aldus' ),
-	video: __( 'unlocks video hero and section blocks', 'aldus' ),
+	image: __(
+		'unlocks full-screen hero sections and side-by-side layouts',
+		'aldus'
+	),
+	quote: __(
+		'unlocks large highlighted callouts and styled quotes',
+		'aldus'
+	),
+	list: __( 'unlocks bullet-point sections', 'aldus' ),
+	cta: __( 'unlocks call-to-action sections', 'aldus' ),
+	video: __( 'unlocks video hero sections', 'aldus' ),
 	table: __( 'unlocks data comparison tables', 'aldus' ),
-	gallery: __( 'unlocks photo grid sections', 'aldus' ),
+	gallery: __( 'unlocks photo grid layouts', 'aldus' ),
 };
 
 const TOKEN_CONTENT_REQUIREMENTS = {
@@ -1856,7 +2103,7 @@ function buildPersonalityPrompt(
 	// improves output quality for small models. Fall back to full VALID_TOKENS
 	// list for backward-compat with externally registered personalities.
 	const tokenPool = personality.relevantTokens ?? VALID_TOKENS;
-	const tokensText = tokenPool.join( ', ' );
+	const tokensText = formatTokenPool( tokenPool );
 
 	const anchorsText = personality.anchors.join( ', ' );
 	const examples = personality.exampleSequences ?? [ personality.anchors ];
@@ -1958,8 +2205,12 @@ async function inferTokens(
 			.replace( /\s*```$/i, '' )
 			.trim();
 		parsed = JSON.parse( stripped );
-	} catch {
+	} catch ( parseErr ) {
 		// Fall back to empty — enforceAnchors supplies required tokens.
+		if ( window?.aldusDebug ) {
+			// eslint-disable-next-line no-console
+			console.debug( '[Aldus] token parse failed:', parseErr );
+		}
 	}
 	const rawTokens = Array.isArray( parsed?.tokens ) ? parsed.tokens : [];
 
@@ -1979,7 +2230,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		className: 'wp-block-aldus-layout-generator',
 	} );
 
-	const { enabledPersonalities, savedItems, styleNote } = attributes;
+	const { enabledPersonalities, savedItems, styleNote, useMeta } = attributes;
 
 	// State machine: 'building' | 'downloading' | 'loading' | 'results' | 'confirming' | 'mixing' | 'error' | 'no-gpu'
 	const [ screen, setScreen ] = useState( 'building' );
@@ -1995,6 +2246,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 	const [ isGenerating, setIsGenerating ] = useState( false );
 	const [ buildingMode, setBuildingMode ] = useState( 'content' ); // 'content' | 'preview'
 	const [ isPreview, setIsPreview ] = useState( false );
+	const [ activePreviewPack, setActivePreviewPack ] = useState( null );
 	const [ rerollingLabel, setRerollingLabel ] = useState( null );
 	const [ rerollErrors, setRerollErrors ] = useState( {} ); // label → true while error pill visible
 	const [ genProgress, setGenProgress ] = useState( { done: 0, total: 0 } );
@@ -2010,12 +2262,22 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 	const engineRef = useRef( null );
 	const abortRef = useRef( null ); // set to a cancel fn during downloading/loading
 	const lastPackRef = useRef( null ); // stores last pack used for preview re-roll
+	// Always-current refs so the confirming useEffect reads the latest values even
+	// when it runs inside a stale closure (deps = [screen]).
+	const itemsRef = useRef( items );
+	const useMetaRef = useRef( useMeta );
+	useEffect( () => {
+		itemsRef.current = items;
+	} );
+	useEffect( () => {
+		useMetaRef.current = useMeta;
+	} );
 	const personalityWarningTimerRef = useRef( null );
 	// Tracks how many times each personality layout has been re-rolled so the PHP
 	// variant picker produces different results even when the token sequence is identical.
 	const rerollCountsRef = useRef( {} );
 	const rerollErrorTimersRef = useRef( {} ); // label → timer id, so stale timers are cleared
-	const { replaceBlocks } = useDispatch( blockEditorStore );
+	const { replaceBlocks, selectBlock } = useDispatch( blockEditorStore );
 	const { registerShortcut } = useDispatch( keyboardShortcutsStore );
 
 	// Read live theme colors from the editor settings store — no PHP round-trip needed.
@@ -2032,15 +2294,30 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		[]
 	);
 
+	// First-run onboarding: show simplified entry when the user has never used Aldus.
+	const hasUsedAldus = useSelect(
+		( select ) =>
+			select( preferencesStore ).get( 'aldus', 'hasUsedAldus' ) ?? false,
+		[]
+	);
+	const { set: setPref } = useDispatch( preferencesStore );
+	const markAldusUsed = useCallback( () => {
+		setPref( 'aldus', 'hasUsedAldus', true );
+	}, [ setPref ] );
+
 	// Read post context for LLM prompt enrichment and personality auto-sort.
 	const { postTitle, postType, postExcerpt } = useSelect( ( select ) => {
 		const editor = select( 'core/editor' );
 		return {
-			postTitle: editor.getEditedPostAttribute( 'title' ) ?? '',
-			postType: editor.getCurrentPostType() ?? 'post',
-			postExcerpt: editor.getEditedPostAttribute( 'excerpt' ) ?? '',
+			postTitle: editor?.getEditedPostAttribute( 'title' ) ?? '',
+			postType: editor?.getCurrentPostType() ?? 'post',
+			postExcerpt: editor?.getEditedPostAttribute( 'excerpt' ) ?? '',
 		};
 	}, [] );
+
+	// Entity prop hook for writing _aldus_items to post meta when useMeta is on.
+	// The setter is only called on layout accept; reading the meta is not needed here.
+	const [ , setMeta ] = useEntityProp( 'postType', postType, 'meta' );
 
 	// Read existing editor blocks for the "Import from this page" feature.
 	const editorBlocks = useSelect(
@@ -2132,7 +2409,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		};
 	}, [ screen ] );
 
-	// Apply chosen layout.
+	// Apply chosen layout — delayed by 400ms to allow the confirmation animation to play.
 	useEffect( () => {
 		if ( screen !== 'confirming' ) {
 			return;
@@ -2148,51 +2425,83 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 			newBlocks = [];
 		}
 		if ( newBlocks.length > 0 ) {
-			replaceBlocks( clientId, newBlocks );
-			wpDispatch( 'core/notices' ).createSuccessNotice(
-				__( 'Layout inserted. Not quite right?', 'aldus' ),
-				{
-					actions: [
-						{
-							label: __( 'Undo', 'aldus' ),
-							onClick: () => wpDispatch( 'core/editor' ).undo(),
-						},
-					],
-					type: 'snackbar',
-					id: 'aldus-insert-undo',
+			const timerId = setTimeout( () => {
+				// Read latest items / useMeta from refs to avoid stale closure values
+				// (this effect intentionally only re-runs when screen changes).
+				const latestItems = itemsRef.current;
+				const latestUseMeta = useMetaRef.current;
+				if ( latestUseMeta ) {
+					try {
+						setMeta( {
+							_aldus_items: JSON.stringify( latestItems ),
+						} );
+					} catch ( metaErr ) {
+						if ( window?.aldusDebug ) {
+							// eslint-disable-next-line no-console
+							console.error( '[Aldus] setMeta failed:', metaErr );
+						}
+					}
 				}
-			);
-			/**
-			 * Fires after an Aldus layout has been inserted into the editor.
-			 *
-			 * Action: 'aldus.layoutInserted'
-			 *
-			 * @param {Object}   data
-			 * @param {string}   data.label  Personality name.
-			 * @param {string[]} data.tokens Token sequence used.
-			 * @param {Object[]} data.blocks Parsed block objects.
-			 */
-			doAction( 'aldus.layoutInserted', {
-				label: chosen.label,
-				tokens: chosen.tokens ?? [],
-				blocks: newBlocks,
-			} );
-		} else {
-			setErrorCode( 'api_error' );
-			setRetryCount( ( c ) => c + 1 );
-			setScreen( 'error' );
+				replaceBlocks( clientId, newBlocks );
+				// Move editor focus to the first inserted block so keyboard users land
+				// somewhere meaningful after picking a layout (item 20 — accessibility).
+				const firstBlock = newBlocks[ 0 ];
+				if ( firstBlock?.clientId ) {
+					selectBlock( firstBlock.clientId );
+				}
+				wpDispatch( 'core/notices' ).createSuccessNotice(
+					__( 'Layout inserted. Not quite right?', 'aldus' ),
+					{
+						actions: [
+							{
+								label: __( 'Undo', 'aldus' ),
+								onClick: () =>
+									wpDispatch( 'core/editor' ).undo(),
+							},
+						],
+						type: 'snackbar',
+						id: 'aldus-insert-undo',
+					}
+				);
+				/**
+				 * Fires after an Aldus layout has been inserted into the editor.
+				 *
+				 * Action: 'aldus.layoutInserted'
+				 *
+				 * @param {Object}   data
+				 * @param {string}   data.label  Personality name.
+				 * @param {string[]} data.tokens Token sequence used.
+				 * @param {Object[]} data.blocks Parsed block objects.
+				 */
+				doAction( 'aldus.layoutInserted', {
+					label: chosen.label,
+					tokens: chosen.tokens ?? [],
+					blocks: newBlocks,
+				} );
+			}, 400 );
+			return () => clearTimeout( timerId );
 		}
+		setErrorCode( 'api_error' );
+		setRetryCount( ( c ) => c + 1 );
+		setScreen( 'error' );
 	}, [ screen ] ); // eslint-disable-line react-hooks/exhaustive-deps
 
 	// ---------------------------------------------------------------------------
 	// Item CRUD + reorder
 	// ---------------------------------------------------------------------------
 
-	const addItem = useCallback( ( type ) => {
-		const id = uid();
-		setItems( ( prev ) => [ ...prev, { id, type, content: '', url: '' } ] );
-		lastFocusRef.current = id;
-	}, [] );
+	const addItem = useCallback(
+		( type ) => {
+			const id = uid();
+			setItems( ( prev ) => [
+				...prev,
+				{ id, type, content: '', url: '' },
+			] );
+			lastFocusRef.current = id;
+			markAldusUsed();
+		},
+		[ markAldusUsed ]
+	);
 
 	const updateItem = useCallback(
 		( id, patch ) =>
@@ -2363,6 +2672,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 									items: currentItems,
 									personality: personalities[ i ].name,
 									tokens,
+									use_bindings: useMeta,
 								},
 							} );
 						} finally {
@@ -2421,11 +2731,23 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 				engineRef.current = null;
 
 				// Distinguish error sources for better user guidance.
+				// WASM CompileError or WebGPU device-lost → wasm_compile_failed.
+				// HTTP 429 → rate_limited.
 				// HTTP 4xx/5xx from the REST API → api_error.
 				// Network/service errors → connection_failed or timeout.
 				// Model-side failures (JSON parse, token hallucination) → llm_parse_failed.
 				let code = 'llm_parse_failed';
 				if (
+					// CompileError is a browser global — thrown when WASM compilation fails.
+					// eslint-disable-next-line no-undef
+					err instanceof CompileError ||
+					err?.message?.toLowerCase().includes( 'device lost' ) ||
+					err?.message?.toLowerCase().includes( 'webgpu' )
+				) {
+					code = 'wasm_compile_failed';
+				} else if ( err?.data?.status === 429 ) {
+					code = 'rate_limited';
+				} else if (
 					err?.data?.status === 503 ||
 					err?.code === 'fetch_error'
 				) {
@@ -2458,7 +2780,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 				}
 			}
 		},
-		[]
+		[ useMeta ] // eslint-disable-line react-hooks/exhaustive-deps
 	);
 
 	// Preview path — skips LLM entirely; uses personality.fullSequence directly.
@@ -2471,91 +2793,107 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 			setMsgIndex( 0 );
 			setMsgVisible( true );
 
-			const personalities = ACTIVE_PERSONALITIES.filter( ( p ) =>
-				enabledPersonalities.includes( p.name )
-			);
+			try {
+				const personalities = ACTIVE_PERSONALITIES.filter( ( p ) =>
+					enabledPersonalities.includes( p.name )
+				);
 
-			// Flatten pack content once; all personality requests share the same items array.
-			const packItems = packToItems( pack );
+				// Lazily load the full pack content (dynamically imported chunk),
+				// then flatten once — all personality requests share the same items array.
+				const fullPack = await loadPackContent( pack.id );
+				lastPackRef.current = fullPack ?? pack; // update ref with full content for re-roll
+				const packItems = packToItems( fullPack ?? pack );
 
-			setGenProgress( {
-				done: 0,
-				total: personalities.length,
-				lastLabel: null,
-			} );
-			const settled = await Promise.allSettled(
-				personalities.map( async ( p ) => {
-					try {
-						return await apiFetch( {
-							path: '/aldus/v1/assemble',
-							method: 'POST',
-							data: {
-								items: packItems,
-								personality: p.name,
-								tokens: ( () => {
-									const seqs = p.exampleSequences ?? [
-										p.anchors,
-									];
-									return seqs[
+				setGenProgress( {
+					done: 0,
+					total: personalities.length,
+					lastLabel: null,
+				} );
+				const settled = await Promise.allSettled(
+					personalities.map( async ( p ) => {
+						try {
+							// Guard: prefer exampleSequences, fall back to anchors; never index an empty array.
+							const seqs =
+								p.exampleSequences?.length > 0
+									? p.exampleSequences
+									: [ p.anchors ];
+							return await apiFetch( {
+								path: '/aldus/v1/assemble',
+								method: 'POST',
+								data: {
+									items: packItems,
+									personality: p.name,
+									tokens: seqs[
 										Math.floor(
 											Math.random() * seqs.length
 										)
-									];
-								} )(),
-							},
-						} );
-					} finally {
-						setGenProgress( ( prev ) => ( {
-							...prev,
-							done: prev.done + 1,
-							lastLabel: p.name,
-						} ) );
-					}
-				} )
-			);
+									],
+									use_bindings: useMeta,
+								},
+							} );
+						} finally {
+							setGenProgress( ( prev ) => ( {
+								...prev,
+								done: prev.done + 1,
+								lastLabel: p.name,
+							} ) );
+						}
+					} )
+				);
 
-			const assembled = settled
-				.filter(
-					( r ) =>
-						r.status === 'fulfilled' &&
-						r.value?.success &&
-						r.value?.blocks
-				)
-				.map( ( r ) => ( {
-					label: r.value.label,
-					blocks: r.value.blocks,
-					tokens: r.value.tokens ?? [],
-					sections: r.value.sections ?? [],
-					_packName: pack.label,
-				} ) );
+				const assembled = settled
+					.filter(
+						( r ) =>
+							r.status === 'fulfilled' &&
+							r.value?.success &&
+							r.value?.blocks
+					)
+					.map( ( r ) => ( {
+						label: r.value.label,
+						blocks: r.value.blocks,
+						tokens: r.value.tokens ?? [],
+						sections: r.value.sections ?? [],
+						_packName: pack.label,
+					} ) );
 
-			if ( assembled.length === 0 ) {
-				setErrorCode( 'no_layouts' );
-				setRetryCount( ( c ) => c + 1 );
-				setScreen( 'error' );
+				if ( assembled.length === 0 ) {
+					setErrorCode( 'no_layouts' );
+					setRetryCount( ( c ) => c + 1 );
+					setScreen( 'error' );
+					speak(
+						__(
+							'No layouts generated. Try adding more content.',
+							'aldus'
+						),
+						'assertive'
+					);
+					return;
+				}
+
+				setActivePreviewPack( pack );
+				setIsPreview( true );
+				setLayouts( assembled );
+				setScreen( 'results' );
 				speak(
-					__(
-						'No layouts generated. Try adding more content.',
-						'aldus'
+					sprintf(
+						/* translators: %d: number of generated layouts */
+						__( '%d layouts ready.', 'aldus' ),
+						assembled.length
 					),
 					'assertive'
 				);
-				return;
+			} catch ( err ) {
+				// loadPackContent or a network error before allSettled — reset to error screen.
+				setErrorCode( 'api_error' );
+				setRetryCount( ( c ) => c + 1 );
+				setScreen( 'error' );
+				if ( window?.aldusDebug ) {
+					// eslint-disable-next-line no-console
+					console.error( '[Aldus] runPreview failed:', err );
+				}
 			}
-
-			setIsPreview( true );
-			setLayouts( assembled );
-			setScreen( 'results' );
-			speak(
-				sprintf(
-					/* translators: %d: number of generated layouts */
-					__( '%d layouts ready.', 'aldus' ),
-					assembled.length
-				),
-				'assertive'
-			);
 		},
-		[ enabledPersonalities ]
+		[ enabledPersonalities, useMeta ] // eslint-disable-line react-hooks/exhaustive-deps
 	);
 
 	// Per-card re-roll — regenerates one layout slot without clearing the rest.
@@ -2577,9 +2915,11 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 				let result;
 				if ( isPreview && lastPackRef.current ) {
 					// Pick a random exampleSequences entry for variety on each re-roll.
-					const seqs = personality.exampleSequences ?? [
-						personality.anchors,
-					];
+					// Guard: never index an empty seqs array.
+					const seqs =
+						personality.exampleSequences?.length > 0
+							? personality.exampleSequences
+							: [ personality.anchors ];
 					const seqIndex = Math.floor( Math.random() * seqs.length );
 					result = await apiFetch( {
 						path: '/aldus/v1/assemble',
@@ -2589,6 +2929,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							personality: personality.name,
 							tokens: seqs[ seqIndex ],
 							reroll_count: rerollCount,
+							use_bindings: false,
 						},
 					} );
 				} else {
@@ -2636,6 +2977,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							personality: personality.name,
 							tokens,
 							reroll_count: rerollCount,
+							use_bindings: useMeta,
 						},
 					} );
 				}
@@ -2653,7 +2995,11 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 						)
 					);
 				}
-			} catch {
+			} catch ( err ) {
+				if ( window?.aldusDebug ) {
+					// eslint-disable-next-line no-console
+					console.error( '[Aldus] rerollLayout failed:', err );
+				}
 				setRerollErrors( ( prev ) => ( { ...prev, [ label ]: true } ) );
 				if ( rerollErrorTimersRef.current[ label ] ) {
 					clearTimeout( rerollErrorTimersRef.current[ label ] );
@@ -2669,7 +3015,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 				setRerollingLabel( null );
 			}
 		},
-		[ isPreview, items, styleNote ]
+		[ isPreview, items, styleNote, useMeta ] // eslint-disable-line react-hooks/exhaustive-deps
 	);
 
 	const generate = useCallback( () => {
@@ -2704,12 +3050,34 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 
 	const regenerate = generate;
 
-	const chooseLayout = useCallback( ( label ) => {
-		setLayouts( ( prev ) =>
-			prev.map( ( l ) => ( { ...l, _chosen: l.label === label } ) )
-		);
-		setScreen( 'confirming' );
-	}, [] );
+	const chooseLayout = useCallback(
+		( label ) => {
+			setLayouts( ( prev ) =>
+				prev.map( ( l ) => ( { ...l, _chosen: l.label === label } ) )
+			);
+			setScreen( 'confirming' );
+
+			// Analytics: fire the action hook and POST a lightweight counter update.
+			const chosen = layouts.find( ( l ) => l.label === label );
+			const tokenSeq = chosen?.tokens ?? [];
+			doAction( 'aldus.layout_chosen', {
+				personality: label,
+				tokens: tokenSeq,
+			} );
+			// Fire-and-forget — failure is non-fatal.
+			apiFetch( {
+				path: '/aldus/v1/record-use',
+				method: 'POST',
+				data: { personality: label },
+			} ).catch( ( err ) => {
+				if ( window?.aldusDebug ) {
+					// eslint-disable-next-line no-console
+					console.debug( '[Aldus] record-use failed:', err );
+				}
+			} );
+		},
+		[ layouts ]
+	);
 
 	const startOver = useCallback( () => {
 		setScreen( 'building' );
@@ -2821,6 +3189,11 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 			}
 			if ( newBlocks.length > 0 ) {
 				replaceBlocks( clientId, newBlocks );
+				// Move editor focus to the first inserted block (item 20 — accessibility).
+				const firstBlock = newBlocks[ 0 ];
+				if ( firstBlock?.clientId ) {
+					selectBlock( firstBlock.clientId );
+				}
 				wpDispatch( 'core/notices' ).createSuccessNotice(
 					__( 'Layout inserted. Not quite right?', 'aldus' ),
 					{
@@ -2841,25 +3214,8 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 				setScreen( 'error' );
 			}
 		},
-		[ clientId, replaceBlocks ]
+		[ clientId, replaceBlocks, selectBlock ]
 	);
-
-	// Sort personalities so that post-type-relevant ones surface first in the sidebar.
-	const sortedPersonalities = useMemo( () => {
-		const preferred =
-			{
-				page: [ 'Ledger', 'Broadsheet', 'Folio', 'Codex' ],
-				post: [ 'Dispatch', 'Tribune', 'Nocturne', 'Stratum' ],
-			}[ postType ] ?? [];
-		if ( ! preferred.length ) {
-			return ACTIVE_PERSONALITIES;
-		}
-		const pref = new Set( preferred );
-		return [
-			...ACTIVE_PERSONALITIES.filter( ( p ) => pref.has( p.name ) ),
-			...ACTIVE_PERSONALITIES.filter( ( p ) => ! pref.has( p.name ) ),
-		];
-	}, [ postType ] );
 
 	// ---------------------------------------------------------------------------
 	// Render
@@ -2896,47 +3252,15 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 					) ) }
 				</PanelBody>
 				<PanelBody
-					title={ __( 'Personalities', 'aldus' ) }
+					title={ __( 'Layout styles', 'aldus' ) }
 					initialOpen={ false }
 				>
-					<FormTokenField
-						label={ __( 'Active personalities', 'aldus' ) }
-						value={ enabledPersonalities }
-						suggestions={ sortedPersonalities.map(
-							( p ) => p.name
+					<p className="aldus-panel-hint">
+						{ __(
+							'Choose which personalities generate layouts for you.',
+							'aldus'
 						) }
-						onChange={ ( tokens ) => {
-							if ( tokens.length > 0 ) {
-								setAttributes( {
-									enabledPersonalities: tokens,
-								} );
-								setShowPersonalityWarning( false );
-								if ( personalityWarningTimerRef.current ) {
-									clearTimeout(
-										personalityWarningTimerRef.current
-									);
-									personalityWarningTimerRef.current = null;
-								}
-							} else {
-								setShowPersonalityWarning( true );
-								if ( personalityWarningTimerRef.current ) {
-									clearTimeout(
-										personalityWarningTimerRef.current
-									);
-								}
-								personalityWarningTimerRef.current = setTimeout(
-									() => {
-										setShowPersonalityWarning( false );
-										personalityWarningTimerRef.current =
-											null;
-									},
-									2500
-								);
-							}
-						} }
-						__experimentalExpandOnFocus
-						__nextHasNoMarginBottom
-					/>
+					</p>
 					{ showPersonalityWarning && (
 						<Notice
 							status="warning"
@@ -2949,29 +3273,112 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							) }
 						</Notice>
 					) }
-					{ enabledPersonalities.length > 0 && (
-						<div className="aldus-personality-tips">
-							{ enabledPersonalities.map( ( name ) => {
-								const p = ACTIVE_PERSONALITIES.find(
-									( x ) => x.name === name
-								);
-								return p ? (
-									<Tooltip
+					{ [
+						{
+							label: __( 'Dramatic', 'aldus' ),
+							names: [
+								'Dispatch',
+								'Nocturne',
+								'Manifesto',
+								'Dusk',
+							],
+						},
+						{
+							label: __( 'Editorial', 'aldus' ),
+							names: [
+								'Folio',
+								'Codex',
+								'Ledger',
+								'Broadsheet',
+								'Tribune',
+							],
+						},
+						{
+							label: __( 'Structural', 'aldus' ),
+							names: [ 'Stratum', 'Solstice', 'Prism', 'Mosaic' ],
+						},
+						{
+							label: __( 'Atmospheric', 'aldus' ),
+							names: [ 'Mirage', 'Overture', 'Broadside' ],
+						},
+					].map( ( group ) => (
+						<div
+							key={ group.label }
+							className="aldus-personality-group"
+						>
+							<p className="aldus-personality-group-label">
+								{ group.label }
+							</p>
+							{ group.names.map( ( name ) => {
+								const checked =
+									enabledPersonalities.includes( name );
+								const tagline = LAYOUT_TAGLINES[ name ] ?? '';
+								return (
+									<CheckboxControl
 										key={ name }
-										text={ p.description }
-									>
-										<span className="aldus-personality-tip-name">
-											{ name }
-										</span>
-									</Tooltip>
-								) : null;
+										label={ name }
+										help={ tagline }
+										checked={ checked }
+										onChange={ ( next ) => {
+											const updated = next
+												? [
+														...enabledPersonalities,
+														name,
+												  ]
+												: enabledPersonalities.filter(
+														( n ) => n !== name
+												  );
+											if ( updated.length > 0 ) {
+												setAttributes( {
+													enabledPersonalities:
+														updated,
+												} );
+												setShowPersonalityWarning(
+													false
+												);
+												if (
+													personalityWarningTimerRef.current
+												) {
+													clearTimeout(
+														personalityWarningTimerRef.current
+													);
+													personalityWarningTimerRef.current =
+														null;
+												}
+											} else {
+												setShowPersonalityWarning(
+													true
+												);
+												if (
+													personalityWarningTimerRef.current
+												) {
+													clearTimeout(
+														personalityWarningTimerRef.current
+													);
+												}
+												personalityWarningTimerRef.current =
+													setTimeout( () => {
+														setShowPersonalityWarning(
+															false
+														);
+														personalityWarningTimerRef.current =
+															null;
+													}, 2500 );
+											}
+										} }
+										__nextHasNoMarginBottom
+									/>
+								);
 							} ) }
 						</div>
-					) }
+					) ) }
 					{ themeColors.length > 0 && (
 						<div className="aldus-theme-colors">
 							<p className="aldus-panel-hint">
-								{ __( 'Active theme palette:', 'aldus' ) }
+								{ __(
+									'Aldus uses these colors in your layouts:',
+									'aldus'
+								) }
 							</p>
 							<div className="aldus-theme-color-swatches">
 								{ themeColors.slice( 0, 10 ).map( ( color ) => (
@@ -2985,8 +3392,30 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 									/>
 								) ) }
 							</div>
+							<p className="aldus-theme-colors-caption">
+								{ __(
+									'Dark sections use the darkest color; accent sections use the most vivid.',
+									'aldus'
+								) }
+							</p>
 						</div>
 					) }
+				</PanelBody>
+				<PanelBody
+					title={ __( 'Content storage', 'aldus' ) }
+					initialOpen={ false }
+				>
+					<ToggleControl
+						label={ __( 'Store items in post meta', 'aldus' ) }
+						help={ __(
+							'Saves your content items alongside the layout so you can update them later without re-running generation.',
+							'aldus'
+						) }
+						checked={ useMeta }
+						onChange={ ( val ) =>
+							setAttributes( { useMeta: val } )
+						}
+					/>
 				</PanelBody>
 			</InspectorControls>
 
@@ -3048,6 +3477,8 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							onClearPinnedPersonality={ () =>
 								setPinnedPersonality( null )
 							}
+							hasUsedAldus={ hasUsedAldus }
+							markAldusUsed={ markAldusUsed }
 						/>
 					</div>
 				) }
@@ -3085,6 +3516,10 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							onTryWithContent={
 								isPreview ? tryWithMyContent : null
 							}
+							items={ items }
+							packs={ PACK_META }
+							activePreviewPack={ activePreviewPack }
+							onSwitchPack={ runPreview }
 						/>
 					</div>
 				) }
@@ -3164,11 +3599,11 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 								</span>
 								<div>
 									<strong>
-										{ __( 'Add your content', 'aldus' ) }
+										{ __( "Add what you've got", 'aldus' ) }
 									</strong>
 									<p>
 										{ __(
-											'Add a headline, body text, images, quotes — whatever the section needs.',
+											"A headline, some body text, an image, a quote — whatever the page needs. Don't worry about layout.",
 											'aldus'
 										) }
 									</p>
@@ -3181,13 +3616,13 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 								<div>
 									<strong>
 										{ __(
-											'Hit "Make it happen"',
+											'Aldus does the design part',
 											'aldus'
 										) }
 									</strong>
 									<p>
 										{ __(
-											'Aldus tries your content in every personality and shows you all the results at once.',
+											'It tries your content in sixteen different layout styles — editorial, cinematic, minimal, bold — each with its own structure and mood.',
 											'aldus'
 										) }
 									</p>
@@ -3199,14 +3634,11 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 								</span>
 								<div>
 									<strong>
-										{ __(
-											'Pick the one you like',
-											'aldus'
-										) }
+										{ __( 'Pick, edit, publish', 'aldus' ) }
 									</strong>
 									<p>
 										{ __(
-											'Click "Use this one" on any layout. Or use Mix sections to combine parts from different personalities.',
+											'Choose the one that fits. It becomes real WordPress blocks you can edit, rearrange, or build on. No lock-in.',
 											'aldus'
 										) }
 									</p>
@@ -3215,7 +3647,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 						</div>
 						<p className="aldus-help-tip">
 							{ __(
-								'Tip: Use the "Try the personalities" tab to preview layouts instantly — no download needed.',
+								'Tip: Use the "Browse styles" tab to preview layouts instantly — no download needed.',
 								'aldus'
 							) }
 						</p>
@@ -3279,10 +3711,21 @@ function BuildingScreen( {
 	editorBlocks,
 	pinnedPersonality,
 	onClearPinnedPersonality,
+	hasUsedAldus,
+	markAldusUsed,
 } ) {
 	const dragIdRef = useRef( null );
 	const removeTimerRef = useRef( null );
 	const emptyWarningTimerRef = useRef( null );
+	const hasAutoFiredPreviewRef = useRef( false );
+	useEffect( () => {
+		if ( buildingMode === 'preview' && ! hasAutoFiredPreviewRef.current ) {
+			hasAutoFiredPreviewRef.current = true;
+			onPreview( PACK_META[ DEFAULT_PACK_INDEX ] );
+		} else if ( buildingMode !== 'preview' ) {
+			hasAutoFiredPreviewRef.current = false;
+		}
+	}, [ buildingMode, onPreview ] );
 	const [ dragging, setDragging ] = useState( null );
 	const [ dragOver, setDragOver ] = useState( null );
 	const [ removingId, setRemovingId ] = useState( null ); // Pass 6: exit animation
@@ -3319,7 +3762,12 @@ function BuildingScreen( {
 		if ( postTitle.trim() ) {
 			newItems.push( { type: 'headline', content: postTitle.trim() } );
 		}
-		const cleanExcerpt = postExcerpt.replace( /<[^>]*>/g, '' ).trim();
+		// Strip HTML tags, then decode HTML entities (e.g. &amp; &mdash; &nbsp;)
+		// so the excerpt is clean plain text before passing to the model.
+		const strippedExcerpt = postExcerpt.replace( /<[^>]*>/g, '' );
+		const entityDecoder = document.createElement( 'textarea' );
+		entityDecoder.innerHTML = strippedExcerpt;
+		const cleanExcerpt = entityDecoder.value.trim();
 		if ( cleanExcerpt ) {
 			newItems.push( { type: 'paragraph', content: cleanExcerpt } );
 		}
@@ -3328,8 +3776,9 @@ function BuildingScreen( {
 				...prev,
 				...newItems.map( ( i ) => ( { ...i, id: uid(), url: '' } ) ),
 			] );
+			markAldusUsed();
 		}
-	}, [ postTitle, postExcerpt, setItems ] );
+	}, [ postTitle, postExcerpt, setItems, markAldusUsed ] );
 
 	const importFromEditor = useCallback( () => {
 		const newItems = [];
@@ -3524,14 +3973,18 @@ function BuildingScreen( {
 					<div className="aldus-header-actions">
 						<SavedSessions
 							items={ items }
-							onLoad={ ( loadedItems ) =>
+							styleNote={ styleNote }
+							onLoad={ ( loadedItems, loadedStyleNote ) => {
 								setItems(
 									loadedItems.map( ( i ) => ( {
 										...i,
 										id: uid(),
 									} ) )
-								)
-							}
+								);
+								if ( loadedStyleNote !== undefined ) {
+									onStyleNoteChange( loadedStyleNote );
+								}
+							} }
 						/>
 					</div>
 				</div>
@@ -3556,7 +4009,7 @@ function BuildingScreen( {
 						}` }
 						onClick={ () => setBuildingMode( 'preview' ) }
 					>
-						{ __( 'Try the personalities', 'aldus' ) }
+						{ __( 'Browse styles', 'aldus' ) }
 					</button>
 				</div>
 			</header>
@@ -3568,10 +4021,6 @@ function BuildingScreen( {
 						'aldus'
 					) }
 				</p>
-			) }
-
-			{ buildingMode === 'preview' && (
-				<PackSelector packs={ PACKS } onSelect={ onPreview } />
 			) }
 
 			{ buildingMode === 'content' && (
@@ -3591,6 +4040,8 @@ function BuildingScreen( {
 							onImport={ importFromPost }
 							editorBlocks={ editorBlocks }
 							onImportFromEditor={ importFromEditor }
+							hasUsedAldus={ hasUsedAldus }
+							markAldusUsed={ markAldusUsed }
 						/>
 					) }
 
@@ -3632,6 +4083,9 @@ function BuildingScreen( {
 										onDragOver={ ( e ) =>
 											handleDragOver( e, item.id )
 										}
+										onDragLeave={ () =>
+											setDragOver( null )
+										}
 										onDrop={ ( e ) =>
 											handleDrop( e, item.id )
 										}
@@ -3659,11 +4113,7 @@ function BuildingScreen( {
 						<CompletenessHints items={ items } onAdd={ addItem } />
 					) }
 
-					{ items.length > 0 && <QuickPeek items={ items } /> }
-
-					{ items.length > 0 && (
-						<ContentPreviewDrawer items={ items } />
-					) }
+					{ items.length > 0 && <ContentMinimap items={ items } /> }
 
 					{ items.length > 0 &&
 						postTitle.trim().length > 0 &&
@@ -3689,15 +4139,19 @@ function BuildingScreen( {
 						</Button>
 					) }
 
-					<p className="aldus-section-label">
-						{ __( 'Add content', 'aldus' ) }
-					</p>
-					<AddContentPopover onAdd={ addItem } />
+					{ /* Item 3: Trailing + button replaces the dedicated Add content row */ }
+					{ items.length > 0 && (
+						<div className="aldus-add-after-list">
+							<AddContentPopover onAdd={ addItem } isInline />
+						</div>
+					) }
 
-					<StyleNoteField
-						value={ styleNote }
-						onChange={ onStyleNoteChange }
-					/>
+					{ items.length > 0 && (
+						<StyleNoteField
+							value={ styleNote }
+							onChange={ onStyleNoteChange }
+						/>
+					) }
 
 					{ showEmptyWarning && (
 						<Notice
@@ -3733,40 +4187,40 @@ function BuildingScreen( {
 						</div>
 					) }
 
-					<div className="aldus-generate-row">
-						<Button
-							variant="primary"
-							onClick={ handleGenerate }
-							disabled={
-								! canGenerate || isGenerating || noWebGPU
-							}
-							className="aldus-generate-btn"
-						>
-							{ isGenerating && <Spinner /> }
-							{ ! isGenerating &&
-								( noWebGPU
-									? __( 'Requires WebGPU', 'aldus' )
-									: __( 'Make it happen', 'aldus' ) ) }
-							{ ! isGenerating && ! noWebGPU && (
-								<kbd className="aldus-kbd">⌘↵</kbd>
-							) }
-						</Button>
-						{ ! canGenerate && (
-							<span className="aldus-hint" aria-live="polite">
-								{ __( 'Add something first!', 'aldus' ) }
-							</span>
-						) }
-						{ ! hasEngine &&
-							canGenerate &&
-							! hasDownloadedModel && (
-								<span className="aldus-hint aldus-hint--download">
-									{ __(
-										'First time? A ~200 MB model downloads once and lives in your browser forever.',
-										'aldus'
-									) }
-								</span>
-							) }
-					</div>
+					{ /* Item 19: QuickPeek compact strip — just above the generate button */ }
+					{ items.length > 0 && <QuickPeek items={ items } /> }
+
+					{ items.length > 0 && (
+						<div className="aldus-generate-row">
+							<Button
+								variant="primary"
+								onClick={ handleGenerate }
+								disabled={
+									! canGenerate || isGenerating || noWebGPU
+								}
+								className="aldus-generate-btn"
+							>
+								{ isGenerating && <Spinner /> }
+								{ ! isGenerating &&
+									( noWebGPU
+										? __( 'Requires WebGPU', 'aldus' )
+										: __( 'Make it happen', 'aldus' ) ) }
+								{ ! isGenerating && ! noWebGPU && (
+									<kbd className="aldus-kbd">⌘↵</kbd>
+								) }
+							</Button>
+							{ ! hasEngine &&
+								canGenerate &&
+								! hasDownloadedModel && (
+									<span className="aldus-hint aldus-hint--download">
+										{ __(
+											'First run downloads a small AI model (~200 MB, one time only). After that, Aldus works instantly — even offline.',
+											'aldus'
+										) }
+									</span>
+								) }
+						</div>
+					) }
 				</>
 			) }
 		</div>
@@ -3783,47 +4237,103 @@ function EmptyState( {
 	onImport,
 	editorBlocks,
 	onImportFromEditor,
+	hasUsedAldus,
+	markAldusUsed,
 } ) {
+	const [ showTypes, setShowTypes ] = useState( false );
+	const [ showSecondary, setShowSecondary ] = useState( false );
+
+	// First-time users see a simplified two-path screen.
+	// Once they've used Aldus (or click "Start fresh"), the full type grid appears.
+	const isFirstRun = ! hasUsedAldus && ! showTypes;
+
+	const handleImport = () => {
+		markAldusUsed?.();
+		onImport?.();
+	};
+
+	const handleStartFresh = () => {
+		markAldusUsed?.();
+		setShowTypes( true );
+	};
+
+	if ( isFirstRun ) {
+		return (
+			<div className="aldus-empty aldus-empty--onboarding">
+				<p className="aldus-empty-headline">
+					{ __( 'What do you want to say?', 'aldus' ) }
+				</p>
+				<p className="aldus-empty-sub">
+					{ __(
+						'Add a headline, some text, maybe an image — Aldus will show you sixteen ways to arrange it.',
+						'aldus'
+					) }
+				</p>
+				<div className="aldus-onboarding-paths">
+					{ postTitle?.trim().length > 0 && (
+						<button
+							className="aldus-onboarding-path aldus-onboarding-path--primary"
+							onClick={ handleImport }
+						>
+							<span className="aldus-onboarding-path-icon">
+								↑
+							</span>
+							<strong>
+								{ sprintf(
+									/* translators: %s is the post title */
+									__( 'Use "%s"', 'aldus' ),
+									postTitle.trim().length > 30
+										? postTitle.trim().slice( 0, 30 ) + '…'
+										: postTitle.trim()
+								) }
+							</strong>
+							<span className="aldus-onboarding-path-hint">
+								{ __(
+									'Auto-imports your post title and excerpt',
+									'aldus'
+								) }
+							</span>
+						</button>
+					) }
+					<button
+						className="aldus-onboarding-path"
+						onClick={ handleStartFresh }
+					>
+						<span className="aldus-onboarding-path-icon">+</span>
+						<strong>{ __( 'Start fresh', 'aldus' ) }</strong>
+						<span className="aldus-onboarding-path-hint">
+							{ __( 'Add your content piece by piece', 'aldus' ) }
+						</span>
+					</button>
+				</div>
+			</div>
+		);
+	}
+
+	const truncatedTitle =
+		postTitle?.trim().length > 40
+			? postTitle.trim().slice( 0, 40 ) + '…'
+			: postTitle?.trim();
+	const hasImportOptions =
+		postTitle?.trim().length > 0 || editorBlocks?.length > 0;
+
 	return (
 		<div className="aldus-empty">
-			{ postTitle?.trim().length > 0 && (
-				<Button
-					variant="primary"
-					className="aldus-import-post-btn aldus-import-post-btn--empty"
-					onClick={ onImport }
-				>
-					{ sprintf(
-						/* translators: %s is the post title, e.g. "My Blog Post". */
-						__( 'Start with "%s"', 'aldus' ),
-						postTitle.trim().length > 40
-							? postTitle.trim().slice( 0, 40 ) + '…'
-							: postTitle.trim()
-					) }
-				</Button>
-			) }
-			{ editorBlocks?.length > 0 && (
-				<Button
-					variant="secondary"
-					className="aldus-import-post-btn aldus-import-post-btn--empty"
-					onClick={ onImportFromEditor }
-				>
-					{ __( 'Import content from this page', 'aldus' ) }
-				</Button>
-			) }
 			<p className="aldus-empty-headline">
-				{ __( 'Your words, every personality.', 'aldus' ) }
+				{ __( 'What do you want to say?', 'aldus' ) }
 			</p>
 			<p className="aldus-empty-sub">
 				{ __(
-					'Add your content and Aldus tries it in every personality — pick the one that fits.',
+					'Add a headline, some text, maybe an image — Aldus will show you sixteen ways to arrange it.',
 					'aldus'
 				) }
 			</p>
+			{ /* Tiered inserter — primary types always visible, secondary behind disclosure */ }
 			<div className="aldus-empty-types">
-				{ CONTENT_TYPES.map( ( t ) => (
+				{ PRIMARY_CONTENT_TYPES.map( ( t ) => (
 					<button
 						key={ t.type }
-						className="aldus-empty-type"
+						className="aldus-empty-type aldus-empty-type--primary"
 						onClick={ () => onAdd?.( t.type ) }
 						aria-label={ sprintf(
 							/* translators: %s is a content type, e.g. "Image". */
@@ -3836,6 +4346,60 @@ function EmptyState( {
 					</button>
 				) ) }
 			</div>
+			{ ! showSecondary ? (
+				<button
+					className="aldus-more-types-trigger"
+					onClick={ () => setShowSecondary( true ) }
+				>
+					{ __( 'More types ▾', 'aldus' ) }
+				</button>
+			) : (
+				<div className="aldus-empty-types aldus-empty-types--secondary">
+					{ SECONDARY_CONTENT_TYPES.map( ( t ) => (
+						<button
+							key={ t.type }
+							className="aldus-empty-type"
+							onClick={ () => onAdd?.( t.type ) }
+							aria-label={ sprintf(
+								/* translators: %s is a content type, e.g. "Table". */
+								__( 'Add %s', 'aldus' ),
+								t.label
+							) }
+						>
+							<Icon icon={ t.icon } size={ 16 } />
+							<span>{ t.label }</span>
+						</button>
+					) ) }
+				</div>
+			) }
+			{ /* Import options as secondary path, below a divider */ }
+			{ hasImportOptions && (
+				<div className="aldus-empty-divider">
+					<span>{ __( 'or start from something', 'aldus' ) }</span>
+				</div>
+			) }
+			{ postTitle?.trim().length > 0 && (
+				<Button
+					variant="tertiary"
+					className="aldus-import-post-btn aldus-import-post-btn--empty"
+					onClick={ onImport }
+				>
+					{ sprintf(
+						/* translators: %s is the post title, e.g. "My Blog Post". */
+						__( 'Use "%s" as headline', 'aldus' ),
+						truncatedTitle
+					) }
+				</Button>
+			) }
+			{ editorBlocks?.length > 0 && (
+				<Button
+					variant="tertiary"
+					className="aldus-import-post-btn aldus-import-post-btn--empty"
+					onClick={ onImportFromEditor }
+				>
+					{ __( 'Import content from this page', 'aldus' ) }
+				</Button>
+			) }
 		</div>
 	);
 }
@@ -3844,49 +4408,76 @@ function EmptyState( {
 // Pass 1: AddContentPopover — replaces flat add-button row
 // ---------------------------------------------------------------------------
 
-function AddContentPopover( { onAdd } ) {
+function AddContentPopover( { onAdd, isInline = false } ) {
 	const [ isOpen, setIsOpen ] = useState( false );
+	const [ showSecondary, setShowSecondary ] = useState( false );
 	const wrapRef = useRef( null );
 
+	const renderTypeList = ( types, isSecondaryGroup = false ) =>
+		types.map( ( t ) => (
+			<button
+				key={ t.type }
+				className={ `aldus-inserter-item${
+					isSecondaryGroup ? ' aldus-inserter-item--secondary' : ''
+				}` }
+				onClick={ () => {
+					onAdd( t.type );
+					setIsOpen( false );
+					setShowSecondary( false );
+				} }
+			>
+				<span className="aldus-inserter-icon">
+					<Icon icon={ t.icon } size={ 20 } />
+				</span>
+				<span className="aldus-inserter-label">{ t.label }</span>
+				<span className="aldus-inserter-desc">{ t.description }</span>
+			</button>
+		) );
+
 	return (
-		<div className="aldus-add-wrap" ref={ wrapRef }>
+		<div
+			className={ `aldus-add-wrap${
+				isInline ? ' aldus-add-wrap--inline' : ''
+			}` }
+			ref={ wrapRef }
+		>
 			<Button
 				icon={ plus }
-				variant="secondary"
-				className="aldus-add-trigger"
-				onClick={ () => setIsOpen( ( v ) => ! v ) }
+				variant={ isInline ? 'tertiary' : 'secondary' }
+				className={ `aldus-add-trigger${
+					isInline ? ' aldus-add-trigger--inline' : ''
+				}` }
+				onClick={ () => {
+					setIsOpen( ( v ) => ! v );
+					setShowSecondary( false );
+				} }
 				aria-expanded={ isOpen }
+				label={ isInline ? __( 'Add content', 'aldus' ) : undefined }
 			>
-				{ __( 'Add content', 'aldus' ) }
+				{ ! isInline && __( 'Add content', 'aldus' ) }
 			</Button>
 			{ isOpen && (
 				<Popover
 					anchor={ wrapRef.current }
 					placement="bottom-start"
-					onClose={ () => setIsOpen( false ) }
+					onClose={ () => {
+						setIsOpen( false );
+						setShowSecondary( false );
+					} }
 					noArrow
 				>
 					<div className="aldus-inserter">
-						{ CONTENT_TYPES.map( ( t ) => (
+						{ renderTypeList( PRIMARY_CONTENT_TYPES ) }
+						{ showSecondary ? (
+							renderTypeList( SECONDARY_CONTENT_TYPES, true )
+						) : (
 							<button
-								key={ t.type }
-								className="aldus-inserter-item"
-								onClick={ () => {
-									onAdd( t.type );
-									setIsOpen( false );
-								} }
+								className="aldus-inserter-more"
+								onClick={ () => setShowSecondary( true ) }
 							>
-								<span className="aldus-inserter-icon">
-									<Icon icon={ t.icon } size={ 20 } />
-								</span>
-								<span className="aldus-inserter-label">
-									{ t.label }
-								</span>
-								<span className="aldus-inserter-desc">
-									{ t.description }
-								</span>
+								{ __( 'More types ▾', 'aldus' ) }
 							</button>
-						) ) }
+						) }
 					</div>
 				</Popover>
 			) }
@@ -3898,6 +4489,7 @@ function AddContentPopover( { onAdd } ) {
 // Pack selector — "Preview layouts" mode
 // ---------------------------------------------------------------------------
 
+// eslint-disable-next-line no-unused-vars
 function PackSelector( { packs, onSelect } ) {
 	return (
 		<div className="aldus-pack-selector">
@@ -3906,7 +4498,7 @@ function PackSelector( { packs, onSelect } ) {
 			</p>
 			<p className="aldus-pack-hint">
 				{ __(
-					'See all sixteen personalities with real themed copy — no download needed.',
+					'See what Aldus does with real content — no download required. Pick a theme to preview all sixteen styles.',
 					'aldus'
 				) }
 			</p>
@@ -4000,6 +4592,51 @@ function CompletenessHints( { items, onAdd } ) {
 }
 
 // ---------------------------------------------------------------------------
+// Scan-all wireframes — instant structural grid for all personalities
+// ---------------------------------------------------------------------------
+
+/**
+ * Renders a 4-column grid of layout wireframes for every active personality
+ * using their first exampleSequences entry.  No API call is made.
+ */
+function ScanAllWireframes() {
+	// Sequences are chosen once when this panel mounts, not on every re-render.
+	// Using useMemo with an empty dep array gives stable wireframes during the
+	// user's inspection session; they see a fresh random pick each time they
+	// open the panel (component unmounts/remounts on toggle).
+	const sequences = useMemo(
+		() =>
+			ACTIVE_PERSONALITIES.map( ( p ) => {
+				const seqs =
+					p.exampleSequences?.length > 0
+						? p.exampleSequences
+						: [ p.anchors ];
+				return seqs[ Math.floor( Math.random() * seqs.length ) ];
+			} ),
+		[] // eslint-disable-line react-hooks/exhaustive-deps
+	);
+
+	return (
+		<div className="aldus-scan-all">
+			<p className="aldus-scan-all-hint">
+				{ __(
+					'Structural previews — these show layout shape, not your content.',
+					'aldus'
+				) }
+			</p>
+			<div className="aldus-scan-all-grid">
+				{ ACTIVE_PERSONALITIES.map( ( p, idx ) => (
+					<div key={ p.name } className="aldus-scan-all-card">
+						<LayoutWireframe tokens={ sequences[ idx ] } />
+						<span className="aldus-scan-all-label">{ p.name }</span>
+					</div>
+				) ) }
+			</div>
+		</div>
+	);
+}
+
+// ---------------------------------------------------------------------------
 // Quick peek — instant no-model personality preview with user content
 // ---------------------------------------------------------------------------
 
@@ -4007,9 +4644,20 @@ function QuickPeek( { items } ) {
 	const [ peekPersonality, setPeekPersonality ] = useState( null );
 	const [ peekBlocks, setPeekBlocks ] = useState( null );
 	const [ isPeeking, setIsPeeking ] = useState( false );
+	const [ showScanAll, setShowScanAll ] = useState( false );
+	const [ showAllPills, setShowAllPills ] = useState( false );
 	// Monotonically increasing counter so stale responses from earlier requests
 	// are discarded when a newer request is in flight.
 	const peekRequestIdRef = useRef( 0 );
+
+	// Pick 5 personalities to show in the compact strip.
+	// Stabilised per-mount so the user sees the same set during their session.
+	const compactPersonalities = useMemo( () => {
+		const shuffled = [ ...ACTIVE_PERSONALITIES ].sort(
+			() => Math.random() - 0.5
+		);
+		return shuffled.slice( 0, 5 );
+	}, [] ); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const handlePeek = useCallback(
 		async ( personality ) => {
@@ -4031,9 +4679,11 @@ function QuickPeek( { items } ) {
 			setPeekBlocks( null );
 			setIsPeeking( true );
 			try {
-				const seq = ( personality.exampleSequences ?? [
-					personality.anchors,
-				] )[ 0 ];
+				const seqs =
+					personality.exampleSequences?.length > 0
+						? personality.exampleSequences
+						: [ personality.anchors ];
+				const seq = seqs[ Math.floor( Math.random() * seqs.length ) ];
 				const result = await apiFetch( {
 					path: '/aldus/v1/assemble',
 					method: 'POST',
@@ -4074,33 +4724,75 @@ function QuickPeek( { items } ) {
 		}
 	}, [ peekBlocks ] );
 
+	const pillsToShow = showAllPills
+		? ACTIVE_PERSONALITIES
+		: compactPersonalities;
+
 	return (
-		<div className="aldus-quick-peek">
-			<p className="aldus-section-label">
-				{ __( 'Peek at a personality', 'aldus' ) }
-			</p>
-			<div
-				className="aldus-peek-chips"
-				role="group"
-				aria-label={ __( 'Personality quick peek', 'aldus' ) }
-			>
-				{ ACTIVE_PERSONALITIES.map( ( p ) => (
+		<div className="aldus-quick-peek aldus-quick-peek--compact">
+			<div className="aldus-peek-header">
+				<span className="aldus-peek-label">
+					{ __( 'Peek →', 'aldus' ) }
+				</span>
+				<div
+					className="aldus-peek-chips"
+					role="group"
+					aria-label={ __( 'Personality quick peek', 'aldus' ) }
+				>
+					{ pillsToShow.map( ( p ) => (
+						<button
+							key={ p.name }
+							className={ [
+								'aldus-peek-chip',
+								peekPersonality?.name === p.name
+									? 'is-active'
+									: '',
+							]
+								.filter( Boolean )
+								.join( ' ' ) }
+							onClick={ () => handlePeek( p ) }
+							disabled={ isPeeking }
+							title={ p.description }
+						>
+							{ p.name }
+						</button>
+					) ) }
 					<button
-						key={ p.name }
+						className="aldus-peek-more"
+						onClick={ () => {
+							setShowAllPills( ( v ) => ! v );
+							setShowScanAll( false );
+						} }
+					>
+						{ showAllPills
+							? __( 'Less', 'aldus' )
+							: __( 'All →', 'aldus' ) }
+					</button>
+				</div>
+				{ ! showAllPills && (
+					<button
 						className={ [
-							'aldus-peek-chip',
-							peekPersonality?.name === p.name ? 'is-active' : '',
+							'aldus-scan-all-btn',
+							showScanAll ? 'is-active' : '',
 						]
 							.filter( Boolean )
 							.join( ' ' ) }
-						onClick={ () => handlePeek( p ) }
-						disabled={ isPeeking }
-						title={ p.description }
+						onClick={ () => {
+							setShowScanAll( ( v ) => ! v );
+							setShowAllPills( false );
+						} }
+						title={ __(
+							'See layout shapes for all personalities',
+							'aldus'
+						) }
 					>
-						{ p.name }
+						{ showScanAll
+							? __( 'Hide', 'aldus' )
+							: __( 'Scan all', 'aldus' ) }
 					</button>
-				) ) }
+				) }
 			</div>
+			{ showScanAll && <ScanAllWireframes /> }
 			{ isPeeking && (
 				<div className="aldus-peek-loading">
 					<Spinner />
@@ -4193,6 +4885,41 @@ function itemsToBlocks( items ) {
 							},
 						],
 					};
+				case 'video':
+					return item.url
+						? {
+								name: 'core/embed',
+								isValid: true,
+								attributes: {
+									url: item.url,
+									providerNameSlug: 'youtube',
+								},
+								innerBlocks: [],
+						  }
+						: null;
+				case 'table':
+					return {
+						name: 'core/table',
+						isValid: true,
+						attributes: { caption: '' },
+						innerBlocks: [],
+					};
+				case 'gallery':
+					return ( item.urls ?? [] ).length > 0
+						? {
+								name: 'core/gallery',
+								isValid: true,
+								attributes: { columns: 2 },
+								innerBlocks: ( item.urls ?? [] ).map(
+									( url ) => ( {
+										name: 'core/image',
+										isValid: true,
+										attributes: { url },
+										innerBlocks: [],
+									} )
+								),
+						  }
+						: null;
 				default:
 					return null;
 			}
@@ -4200,22 +4927,23 @@ function itemsToBlocks( items ) {
 		.filter( Boolean );
 }
 
-function ContentPreviewDrawer( { items } ) {
+/**
+ * Persistent minimap strip — a zoomed-out non-interactive preview of the user's
+ * content items, always visible without requiring a click.
+ *
+ * @param {Object} props
+ * @param {Array}  props.items Content items to preview.
+ * @return {null|Element} The minimap or null when there is nothing to show.
+ */
+function ContentMinimap( { items } ) {
 	const blocks = useMemo( () => itemsToBlocks( items ), [ items ] );
-
 	if ( blocks.length === 0 ) {
 		return null;
 	}
-
 	return (
-		<details className="aldus-content-preview-drawer">
-			<summary className="aldus-content-preview-summary">
-				{ __( 'Preview your content', 'aldus' ) }
-			</summary>
-			<div className="aldus-content-preview">
-				<BlockPreview blocks={ blocks } viewportWidth={ 700 } />
-			</div>
-		</details>
+		<div className="aldus-minimap" aria-hidden="true">
+			<BlockPreview blocks={ blocks } viewportWidth={ 900 } />
+		</div>
 	);
 }
 
@@ -4224,18 +4952,12 @@ function ContentPreviewDrawer( { items } ) {
 // ---------------------------------------------------------------------------
 
 const STYLE_CHIPS = [
-	{ label: __( 'Image-forward', 'aldus' ), value: 'lead with images' },
-	{ label: __( 'Text-heavy', 'aldus' ), value: 'prioritize text blocks' },
-	{
-		label: __( 'Minimal', 'aldus' ),
-		value: 'minimal layout, fewer sections',
-	},
-	{
-		label: __( 'Bold CTA', 'aldus' ),
-		value: 'strong call-to-action section',
-	},
-	{ label: __( 'Dark mood', 'aldus' ), value: 'use dark covers and groups' },
-	{ label: __( 'Magazine', 'aldus' ), value: 'editorial magazine layout' },
+	{ label: __( 'Image-forward', 'aldus' ), value: 'image-lead' },
+	{ label: __( 'Text-heavy', 'aldus' ), value: 'text-first' },
+	{ label: __( 'Minimal', 'aldus' ), value: 'minimal' },
+	{ label: __( 'Bold CTA', 'aldus' ), value: 'cta-focus' },
+	{ label: __( 'Dark mood', 'aldus' ), value: 'dark' },
+	{ label: __( 'Magazine', 'aldus' ), value: 'magazine' },
 ];
 
 function StyleNoteField( { value, onChange } ) {
@@ -4304,7 +5026,7 @@ function StyleNoteField( { value, onChange } ) {
 // Saved sessions — localStorage snapshots of item sets
 // ---------------------------------------------------------------------------
 
-function SavedSessions( { items, onLoad } ) {
+function SavedSessions( { items, styleNote, onLoad } ) {
 	const [ isOpen, setIsOpen ] = useState( false );
 	const [ saveName, setSaveName ] = useState( '' );
 	const wrapRef = useRef( null );
@@ -4338,6 +5060,7 @@ function SavedSessions( { items, onLoad } ) {
 			{
 				name,
 				items,
+				styleNote: styleNote || null,
 				savedAt: Date.now(),
 				postTitle: postTitle || null,
 				postId: postId || null,
@@ -4346,7 +5069,16 @@ function SavedSessions( { items, onLoad } ) {
 		].slice( 0, 10 );
 		setPref( 'aldus', 'sessions', updated );
 		setSaveName( '' );
-	}, [ items, sessions, saveName, autoName, postTitle, postId, setPref ] );
+	}, [
+		items,
+		styleNote,
+		sessions,
+		saveName,
+		autoName,
+		postTitle,
+		postId,
+		setPref,
+	] );
 
 	const deleteSession = useCallback(
 		( idx ) => {
@@ -4426,7 +5158,8 @@ function SavedSessions( { items, onLoad } ) {
 									className="aldus-session-load"
 									onClick={ () => {
 										onLoad(
-											validateSavedItems( session.items )
+											validateSavedItems( session.items ),
+											session.styleNote ?? ''
 										);
 										setIsOpen( false );
 									} }
@@ -4484,6 +5217,7 @@ function ContentItem( {
 	onDragStart,
 	onDragEnd,
 	onDragOver,
+	onDragLeave,
 	onDrop,
 	isDragging,
 	isDragOver,
@@ -4512,7 +5246,7 @@ function ContentItem( {
 			className={ classes }
 			role="listitem"
 			onDragOver={ onDragOver }
-			onDragLeave={ () => {} }
+			onDragLeave={ onDragLeave }
 			onDrop={ onDrop }
 		>
 			<div
@@ -4587,11 +5321,21 @@ function ContentItem( {
 						value={ item.content }
 						placeholder={ meta.placeholder }
 						onChange={ ( val ) => onUpdate( { content: val } ) }
-						help={
-							! item.content && item.type === 'paragraph'
-								? __( '2–4 sentences works best', 'aldus' )
-								: undefined
-						}
+						help={ ( () => {
+							if ( item.content?.includes( '<' ) ) {
+								return __(
+									'Plain text only — HTML formatting will be stripped.',
+									'aldus'
+								);
+							}
+							if ( ! item.content && item.type === 'paragraph' ) {
+								return __(
+									'2–4 sentences works best',
+									'aldus'
+								);
+							}
+							return undefined;
+						} )() }
 						rows={ 3 }
 					/>
 				) }
@@ -4952,6 +5696,7 @@ const GalleryInput = forwardRef( function GalleryInput(
 						const arr = Array.isArray( media ) ? media : [ media ];
 						onUpdate( {
 							urls: arr.map( ( m ) => m.url ),
+							mediaIds: arr.map( ( m ) => m.id ?? 0 ),
 							content: arr.length > 0 ? arr[ 0 ].alt || '' : '',
 						} );
 					} }
@@ -4993,6 +5738,44 @@ const GalleryInput = forwardRef( function GalleryInput(
 } );
 
 // ---------------------------------------------------------------------------
+// Generation steps breadcrumb — shown during downloading and loading screens
+// ---------------------------------------------------------------------------
+
+/**
+ * Renders a minimal 3-dot step indicator showing where we are in the generation flow.
+ *
+ * @param {Object} props
+ * @param {number} props.step 0 = downloading model, 1 = generating layouts, 2 = done.
+ * @return {Element} The step indicator.
+ */
+function GenerationSteps( { step } ) {
+	const steps = [
+		__( 'Model ready', 'aldus' ),
+		__( 'Generating', 'aldus' ),
+		__( 'Done', 'aldus' ),
+	];
+	return (
+		<div className="aldus-gen-steps" aria-hidden="true">
+			{ steps.map( ( label, i ) => (
+				<div
+					key={ i }
+					className={ [
+						'aldus-gen-step',
+						i < step ? 'is-done' : '',
+						i === step ? 'is-active' : '',
+					]
+						.filter( Boolean )
+						.join( ' ' ) }
+				>
+					<span className="aldus-gen-step-dot" />
+					<span className="aldus-gen-step-label">{ label }</span>
+				</div>
+			) ) }
+		</div>
+	);
+}
+
+// ---------------------------------------------------------------------------
 // Screen: Downloading model (Pass 4 — staged progress)
 // ---------------------------------------------------------------------------
 
@@ -5020,6 +5803,7 @@ function DownloadingScreen( { progress, onAbort } ) {
 
 	return (
 		<div className="aldus-downloading" role="status" aria-live="polite">
+			<GenerationSteps step={ 0 } />
 			<span className="aldus-stamp aldus-stamp--hero" aria-hidden="true">
 				aldus
 			</span>
@@ -5100,19 +5884,33 @@ function LoadingScreen( { message, msgVisible, onAbort, genProgress } ) {
 				{ message }
 			</p>
 			{ genProgress?.total > 0 && (
-				<p className="aldus-gen-progress">
-					{ sprintf(
+				<div
+					className="aldus-gen-progress"
+					role="progressbar"
+					aria-valuenow={ genProgress.done }
+					aria-valuemin={ 0 }
+					aria-valuemax={ genProgress.total }
+					aria-label={ sprintf(
 						/* translators: 1: number of layouts built so far, 2: total number of layouts */
-						__( 'Building %1$d of %2$d layouts…', 'aldus' ),
+						__( 'Building layouts: %1$d of %2$d', 'aldus' ),
 						genProgress.done,
 						genProgress.total
 					) }
-					{ genProgress?.lastLabel && (
-						<span className="aldus-gen-progress-label">
-							{ genProgress.lastLabel }
-						</span>
-					) }
-				</p>
+				>
+					<p>
+						{ sprintf(
+							/* translators: 1: number of layouts built so far, 2: total number of layouts */
+							__( 'Building %1$d of %2$d layouts…', 'aldus' ),
+							genProgress.done,
+							genProgress.total
+						) }
+						{ genProgress?.lastLabel && (
+							<span className="aldus-gen-progress-label">
+								{ genProgress.lastLabel }
+							</span>
+						) }
+					</p>
+				</div>
 			) }
 			{ onAbort && (
 				<Button
@@ -5147,10 +5945,78 @@ function ResultsScreen( {
 	rerollErrors,
 	onMix,
 	onTryWithContent,
+	items = [],
+	packs = [],
+	activePreviewPack = null,
+	onSwitchPack,
 } ) {
 	const hasSections = layouts.some( ( l ) => l.sections?.length > 0 );
 	const [ isCompact, setIsCompact ] = useState( layouts.length >= 8 );
 	const [ filterText, setFilterText ] = useState( '' );
+	const [ favorites, setFavorites ] = useState( [] );
+
+	// Roving tabindex state for role="grid" arrow-key navigation (item 21).
+	const [ focusedCardIndex, setFocusedCardIndex ] = useState( 0 );
+	const gridRef = useRef( null );
+
+	const handleGridKeyDown = useCallback(
+		( event ) => {
+			if ( ! gridRef.current ) {
+				return;
+			}
+			const cards = Array.from(
+				gridRef.current.querySelectorAll(
+					'.aldus-card[role="gridcell"]'
+				)
+			);
+			if ( cards.length === 0 ) {
+				return;
+			}
+			// Derive column count from CSS grid at runtime so it works at any viewport.
+			const colCount =
+				Math.round(
+					gridRef.current.offsetWidth /
+						( cards[ 0 ].offsetWidth || 1 )
+				) || 1;
+			const current = focusedCardIndex;
+
+			let next = current;
+			if ( event.key === 'ArrowRight' ) {
+				next = Math.min( current + 1, cards.length - 1 );
+			} else if ( event.key === 'ArrowLeft' ) {
+				next = Math.max( current - 1, 0 );
+			} else if ( event.key === 'ArrowDown' ) {
+				next = Math.min( current + colCount, cards.length - 1 );
+			} else if ( event.key === 'ArrowUp' ) {
+				next = Math.max( current - colCount, 0 );
+			} else if ( event.key === 'Home' ) {
+				next = 0;
+			} else if ( event.key === 'End' ) {
+				next = cards.length - 1;
+			} else {
+				return;
+			}
+
+			event.preventDefault();
+			setFocusedCardIndex( next );
+			cards[ next ]?.focus();
+		},
+		[ focusedCardIndex ]
+	);
+
+	const toggleFavorite = useCallback( ( label ) => {
+		setFavorites( ( prev ) =>
+			prev.includes( label )
+				? prev.filter( ( l ) => l !== label )
+				: [ ...prev, label ]
+		);
+	}, [] );
+
+	// Personalities whose anchor content types are fully met by the user's items.
+	const bestMatchSet = useMemo(
+		() => ( isPreview ? new Set() : computeBestMatches( items ) ),
+		[ items, isPreview ]
+	);
 
 	// Track re-roll completion to flash the updated card.
 	const [ justRerolledLabel, setJustRerolledLabel ] = useState( null );
@@ -5169,124 +6035,201 @@ function ResultsScreen( {
 
 	const visibleLayouts = useMemo( () => {
 		const q = filterText.trim().toLowerCase();
-		return q
-			? layouts.filter( ( l ) => l.label.toLowerCase().includes( q ) )
+		const filtered = q
+			? layouts.filter( ( l ) =>
+					( l.label + ' ' + ( LAYOUT_TAGLINES[ l.label ] ?? '' ) )
+						.toLowerCase()
+						.includes( q )
+			  )
 			: layouts;
-	}, [ layouts, filterText ] );
+		// Float favorited cards to the top.
+		if ( favorites.length === 0 ) {
+			return filtered;
+		}
+		const favSet = new Set( favorites );
+		return [
+			...filtered.filter( ( l ) => favSet.has( l.label ) ),
+			...filtered.filter( ( l ) => ! favSet.has( l.label ) ),
+		];
+	}, [ layouts, filterText, favorites ] );
 
 	return (
 		<div className="aldus-results">
-			<Flex
-				align="center"
-				justify="space-between"
-				className="aldus-results-header"
-			>
-				<div>
-					<span className="aldus-results-title">
-						{ isPreview
-							? sprintf(
-									/* translators: %s is the pack name, e.g. "Roast". */
-									__( '%s — sixteen personalities', 'aldus' ),
-									packName
-							  )
-							: __(
-									'All the personalities. Pick yours.',
+			<div className="aldus-results-sticky">
+				<Flex
+					align="center"
+					justify="space-between"
+					className="aldus-results-header"
+				>
+					<div>
+						<span className="aldus-results-title">
+							{ isPreview
+								? sprintf(
+										/* translators: %s is the pack name, e.g. "Roast". */
+										__( '%s — sixteen styles', 'aldus' ),
+										packName
+								  )
+								: __(
+										'Sixteen ways your content could look. Pick the one that fits.',
+										'aldus'
+								  ) }
+						</span>
+						<span className="aldus-results-count">
+							{ sprintf(
+								/* translators: %d is the number of layouts generated */
+								_n(
+									'%d layout',
+									'%d layouts',
+									layouts.length,
 									'aldus'
-							  ) }
-					</span>
-					<span className="aldus-results-count">
+								),
+								layouts.length
+							) }
+						</span>
+					</div>
+					<Flex gap={ 2 }>
+						{ layouts.length >= 8 && (
+							<Button
+								variant="tertiary"
+								size="small"
+								onClick={ () => setIsCompact( ( v ) => ! v ) }
+							>
+								{ isCompact
+									? __( 'Detailed', 'aldus' )
+									: __( 'Compact', 'aldus' ) }
+							</Button>
+						) }
+						{ hasSections && (
+							<Button
+								variant="secondary"
+								size="small"
+								icon={ layoutIcon }
+								onClick={ onMix }
+							>
+								{ __( 'Mix sections', 'aldus' ) }
+							</Button>
+						) }
+						{ ! isPreview && (
+							<Button
+								variant="secondary"
+								size="small"
+								onClick={ regenerate }
+							>
+								{ __( 'Regenerate', 'aldus' ) }
+								<kbd className="aldus-kbd">⇧⌘R</kbd>
+							</Button>
+						) }
+						<Button
+							variant="secondary"
+							size="small"
+							onClick={ startOver }
+						>
+							{ isPreview
+								? __( 'Back to building', 'aldus' )
+								: __( 'Start fresh', 'aldus' ) }
+						</Button>
+					</Flex>
+				</Flex>
+				{ isPreview && packs.length > 0 && (
+					<div
+						className="aldus-pack-pills"
+						role="group"
+						aria-label={ __( 'Switch pack', 'aldus' ) }
+					>
+						{ packs.map( ( p ) => (
+							<button
+								key={ p.id }
+								className={ `aldus-pack-pill${
+									p.id === activePreviewPack?.id
+										? ' is-active'
+										: ''
+								}` }
+								onClick={ () => onSwitchPack( p ) }
+								aria-pressed={ p.id === activePreviewPack?.id }
+							>
+								<span
+									className="aldus-pack-pill-swatches"
+									aria-hidden="true"
+								>
+									{ p.palette.image
+										.slice( 0, 3 )
+										.map( ( c ) => (
+											<span
+												key={ c }
+												style={ { background: c } }
+											/>
+										) ) }
+								</span>
+								{ p.label }
+							</button>
+						) ) }
+					</div>
+				) }
+				<p className="aldus-results-hint">
+					{ hasSections
+						? __(
+								'Pick a layout below, or use Mix sections to combine parts from different personalities.',
+								'aldus'
+						  )
+						: __(
+								'Pick a layout below — click "Use this one" on any card.',
+								'aldus'
+						  ) }
+				</p>
+				{ layouts.length >= 8 && (
+					<div className="aldus-results-filter">
+						<TextControl
+							label={ __( 'Filter layouts', 'aldus' ) }
+							hideLabelFromVision
+							value={ filterText }
+							placeholder={ __(
+								'Filter by personality…',
+								'aldus'
+							) }
+							onChange={ setFilterText }
+							__next40pxDefaultSize
+							__nextHasNoMarginBottom
+						/>
+						{ filterText && (
+							<Button
+								icon={ close }
+								label={ __( 'Clear filter', 'aldus' ) }
+								size="small"
+								className="aldus-results-filter-clear"
+								onClick={ () => setFilterText( '' ) }
+							/>
+						) }
+					</div>
+				) }
+				{ favorites.length >= 2 && (
+					<p className="aldus-favorites-hint">
 						{ sprintf(
-							/* translators: %d is the number of layouts generated */
-							_n(
-								'%d layout',
-								'%d layouts',
-								layouts.length,
+							/* translators: %d: number of favorited layouts */
+							__(
+								'You have %d favorites — mix their sections?',
 								'aldus'
 							),
-							layouts.length
+							favorites.length
+						) }{ ' ' }
+						{ hasSections && (
+							<button
+								className="aldus-favorites-mix-link"
+								onClick={ onMix }
+							>
+								{ __( 'Compare favorites →', 'aldus' ) }
+							</button>
 						) }
-					</span>
-				</div>
-				<Flex gap={ 2 }>
-					{ layouts.length >= 8 && (
-						<Button
-							variant="tertiary"
-							size="small"
-							onClick={ () => setIsCompact( ( v ) => ! v ) }
-						>
-							{ isCompact
-								? __( 'Detailed', 'aldus' )
-								: __( 'Compact', 'aldus' ) }
-						</Button>
-					) }
-					{ hasSections && (
-						<Button
-							variant="secondary"
-							size="small"
-							icon={ layoutIcon }
-							onClick={ onMix }
-						>
-							{ __( 'Mix sections', 'aldus' ) }
-						</Button>
-					) }
-					{ ! isPreview && (
-						<Button
-							variant="secondary"
-							size="small"
-							onClick={ regenerate }
-						>
-							{ __( 'Regenerate', 'aldus' ) }
-							<kbd className="aldus-kbd">⇧⌘R</kbd>
-						</Button>
-					) }
-					<Button
-						variant="secondary"
-						size="small"
-						onClick={ startOver }
-					>
-						{ isPreview
-							? __( 'Back to building', 'aldus' )
-							: __( 'Start fresh', 'aldus' ) }
-					</Button>
-				</Flex>
-			</Flex>
-			<p className="aldus-results-hint">
-				{ hasSections
-					? __(
-							'Pick a layout below, or use Mix sections to combine parts from different personalities.',
-							'aldus'
-					  )
-					: __(
-							'Pick a layout below — click "Use this one" on any card.',
-							'aldus'
-					  ) }
-			</p>
-			{ layouts.length >= 8 && (
-				<div className="aldus-results-filter">
-					<TextControl
-						label={ __( 'Filter layouts', 'aldus' ) }
-						hideLabelFromVision
-						value={ filterText }
-						placeholder={ __( 'Filter by personality…', 'aldus' ) }
-						onChange={ setFilterText }
-						__next40pxDefaultSize
-						__nextHasNoMarginBottom
-					/>
-					{ filterText && (
-						<Button
-							icon={ close }
-							label={ __( 'Clear filter', 'aldus' ) }
-							size="small"
-							className="aldus-results-filter-clear"
-							onClick={ () => setFilterText( '' ) }
-						/>
-					) }
-				</div>
-			) }
+					</p>
+				) }
+			</div>
+			{ /* end aldus-results-sticky */ }
 			<div
+				ref={ gridRef }
 				className={ `aldus-grid${ isCompact ? ' is-compact' : '' }` }
-				role="list"
+				role="grid"
+				tabIndex={ -1 }
 				aria-label={ __( 'Layout options', 'aldus' ) }
+				onKeyDown={ handleGridKeyDown }
 			>
 				{ visibleLayouts.length > 0 ? (
 					visibleLayouts.map( ( layout, index ) => (
@@ -5294,6 +6237,7 @@ function ResultsScreen( {
 							key={ layout.label }
 							layout={ layout }
 							index={ index }
+							isCompact={ isCompact }
 							onChoose={ () => chooseLayout( layout.label ) }
 							onReroll={
 								onReroll ? () => onReroll( layout.label ) : null
@@ -5301,11 +6245,19 @@ function ResultsScreen( {
 							isRerolling={ rerollingLabel === layout.label }
 							hasRerollError={ !! rerollErrors?.[ layout.label ] }
 							justRerolled={ justRerolledLabel === layout.label }
+							isBestMatch={ bestMatchSet.has( layout.label ) }
+							isFavorited={ favorites.includes( layout.label ) }
+							onToggleFavorite={ () =>
+								toggleFavorite( layout.label )
+							}
 							onTryWithContent={
 								onTryWithContent
 									? () => onTryWithContent( layout.label )
 									: null
 							}
+							items={ items }
+							tabIndex={ index === focusedCardIndex ? 0 : -1 }
+							onFocus={ () => setFocusedCardIndex( index ) }
 						/>
 					) )
 				) : (
@@ -5321,12 +6273,19 @@ function ResultsScreen( {
 function LayoutCard( {
 	layout,
 	index,
+	isCompact = false,
 	onChoose,
 	onReroll,
 	isRerolling,
 	hasRerollError,
 	justRerolled,
 	onTryWithContent,
+	isBestMatch = false,
+	isFavorited = false,
+	onToggleFavorite,
+	items = [],
+	tabIndex = -1,
+	onFocus,
 } ) {
 	const [ isExpanded, setIsExpanded ] = useState( false );
 	const blocks = useMemo( () => {
@@ -5338,6 +6297,25 @@ function LayoutCard( {
 	}, [ layout.blocks ] );
 	const tagline = LAYOUT_TAGLINES[ layout.label ] ?? '';
 
+	// Compute which user items appear in this layout's blocks (item 11).
+	const consumedSet = useMemo( () => {
+		if ( ! items.length || ! layout.blocks ) {
+			return new Set();
+		}
+		const blocksStr = layout.blocks.toLowerCase();
+		return new Set(
+			items
+				.filter(
+					( item ) =>
+						item.content?.trim() &&
+						blocksStr.includes(
+							item.content.trim().slice( 0, 20 ).toLowerCase()
+						)
+				)
+				.map( ( item ) => item.id )
+		);
+	}, [ items, layout.blocks ] );
+
 	return (
 		<>
 			<div
@@ -5348,7 +6326,9 @@ function LayoutCard( {
 				]
 					.filter( Boolean )
 					.join( ' ' ) }
-				role="listitem"
+				role="gridcell"
+				tabIndex={ tabIndex }
+				onFocus={ onFocus }
 				style={ { animationDelay: `${ index * 40 }ms` } }
 			>
 				<div className="aldus-card-preview" aria-hidden="true">
@@ -5359,9 +6339,16 @@ function LayoutCard( {
 					) : (
 						<LayoutWireframe tokens={ layout.tokens } />
 					) }
+					<Button
+						icon={ seen }
+						label={ __( 'Expand preview', 'aldus' ) }
+						size="small"
+						className="aldus-card-expand-btn"
+						onClick={ () => setIsExpanded( true ) }
+					/>
 					<div className="aldus-card-overlay">
 						<Button
-							variant="primary"
+							className="aldus-card-use-btn"
 							onClick={ onChoose }
 							aria-label={ sprintf(
 								/* translators: %s is the layout name, e.g. "Editorial". */
@@ -5371,47 +6358,6 @@ function LayoutCard( {
 						>
 							{ __( 'Use this one', 'aldus' ) }
 						</Button>
-						<Button
-							variant="secondary"
-							className="aldus-card-copy-btn"
-							onClick={ async () => {
-								try {
-									await navigator.clipboard.writeText(
-										layout.blocks
-									);
-									wpDispatch(
-										'core/notices'
-									).createSuccessNotice(
-										__(
-											'Blocks copied to clipboard.',
-											'aldus'
-										),
-										{ type: 'snackbar', id: 'aldus-copy' }
-									);
-								} catch {
-									// Clipboard write denied — silent fail.
-								}
-							} }
-						>
-							{ __( 'Copy blocks', 'aldus' ) }
-						</Button>
-						{ onTryWithContent && (
-							<Button
-								variant="secondary"
-								size="small"
-								className="aldus-card-try-btn"
-								onClick={ onTryWithContent }
-							>
-								{ __( 'Try with my content', 'aldus' ) }
-							</Button>
-						) }
-						<Button
-							icon={ seen }
-							label={ __( 'Expand preview', 'aldus' ) }
-							size="small"
-							className="aldus-card-expand-btn"
-							onClick={ () => setIsExpanded( true ) }
-						/>
 					</div>
 					{ hasRerollError && (
 						<div
@@ -5428,11 +6374,42 @@ function LayoutCard( {
 							{ layout.label }
 						</strong>
 						<div className="aldus-card-footer-actions">
+							{ isBestMatch && (
+								<span
+									className="aldus-best-match-badge"
+									title={ __(
+										'This personality is a great match for your content.',
+										'aldus'
+									) }
+								>
+									{ __( '✓ Best match', 'aldus' ) }
+								</span>
+							) }
+							{ onToggleFavorite && (
+								<Button
+									icon={
+										isFavorited ? starFilled : starEmpty
+									}
+									label={
+										isFavorited
+											? __(
+													'Remove from favorites',
+													'aldus'
+											  )
+											: __( 'Add to favorites', 'aldus' )
+									}
+									size="small"
+									className={ `aldus-card-favorite-btn${
+										isFavorited ? ' is-favorited' : ''
+									}` }
+									onClick={ onToggleFavorite }
+								/>
+							) }
 							{ onReroll && ! isRerolling && (
 								<Button
 									icon={ undo }
 									label={ __(
-										'Re-roll this layout',
+										'Try a different arrangement for this personality',
 										'aldus'
 									) }
 									size="small"
@@ -5440,10 +6417,78 @@ function LayoutCard( {
 									onClick={ onReroll }
 								/>
 							) }
+							<Button
+								icon={ copy }
+								label={ __(
+									'Copy blocks to clipboard',
+									'aldus'
+								) }
+								size="small"
+								className="aldus-card-copy-btn"
+								onClick={ async () => {
+									try {
+										await navigator.clipboard.writeText(
+											layout.blocks
+										);
+										wpDispatch(
+											'core/notices'
+										).createSuccessNotice(
+											__(
+												'Blocks copied to clipboard.',
+												'aldus'
+											),
+											{
+												type: 'snackbar',
+												id: 'aldus-copy',
+											}
+										);
+									} catch {
+										// Clipboard write denied — silent fail.
+									}
+								} }
+							/>
+							{ onTryWithContent && (
+								<Button
+									icon={ reusableBlock }
+									label={ __(
+										'Try with my content',
+										'aldus'
+									) }
+									size="small"
+									className="aldus-card-try-btn"
+									onClick={ onTryWithContent }
+								/>
+							) }
 						</div>
 					</div>
-					{ tagline && (
+					{ tagline && ! isCompact && (
 						<span className="aldus-card-tagline">{ tagline }</span>
+					) }
+					{ items.length > 0 && (
+						<div
+							className="aldus-card-consumption"
+							aria-label={ sprintf(
+								/* translators: 1: used count, 2: total count */
+								__(
+									'%1$d of %2$d content pieces used',
+									'aldus'
+								),
+								consumedSet.size,
+								items.length
+							) }
+						>
+							{ items.map( ( item ) => (
+								<span
+									key={ item.id }
+									className={ `aldus-consumption-dot${
+										consumedSet.has( item.id )
+											? ' is-used'
+											: ''
+									}` }
+									title={ item.type }
+								/>
+							) ) }
+						</div>
 					) }
 				</div>
 				{ layout.tokens?.length > 0 && (
@@ -5477,6 +6522,29 @@ function LayoutCard( {
 						>
 							{ __( 'Use this layout', 'aldus' ) }
 						</Button>
+						<Button
+							variant="secondary"
+							onClick={ async () => {
+								try {
+									await navigator.clipboard.writeText(
+										layout.blocks
+									);
+									wpDispatch(
+										'core/notices'
+									).createSuccessNotice(
+										__(
+											'Blocks copied to clipboard.',
+											'aldus'
+										),
+										{ type: 'snackbar', id: 'aldus-copy' }
+									);
+								} catch {
+									// Clipboard write denied — silent fail.
+								}
+							} }
+						>
+							{ __( 'Copy blocks', 'aldus' ) }
+						</Button>
 					</div>
 				</Modal>
 			) }
@@ -5491,16 +6559,25 @@ function LayoutCard( {
 function ConfirmingScreen( { label } ) {
 	return (
 		<div className="aldus-confirming" aria-live="polite">
-			<Spinner />
-			<span>
-				{ label
-					? sprintf(
+			{ label ? (
+				<>
+					<span className="aldus-confirming-name" aria-hidden="true">
+						{ label }
+					</span>
+					<span className="aldus-confirming-sub">
+						{ sprintf(
 							/* translators: %s is the personality name, e.g. "Dispatch". */
 							__( 'Making it %s…', 'aldus' ),
 							label
-					  )
-					: __( 'Dropping it in…', 'aldus' ) }
-			</span>
+						) }
+					</span>
+				</>
+			) : (
+				<>
+					<Spinner />
+					<span>{ __( 'Dropping it in…', 'aldus' ) }</span>
+				</>
+			) }
 		</div>
 	);
 }
@@ -5631,41 +6708,45 @@ function MixingScreen( { layouts, onInsert, onBack } ) {
 					</Button>
 				</Flex>
 			</Flex>
-			<div className="aldus-mixing-body">
-				<div className="aldus-mix-slots">
-					<p className="aldus-section-label">
-						{ __( 'Your layout', 'aldus' ) }
-					</p>
-					{ mixSlots.map( ( section, i ) => (
-						<button
-							key={ i }
-							className={ `aldus-mix-slot${
-								activeSlot === i ? ' is-active' : ''
-							}` }
-							onClick={ () => setActiveSlot( i ) }
-						>
-							<span className="aldus-mix-token">
-								{ tokenHumanLabel( section.token ) }
-							</span>
-							<span className="aldus-mix-source">
-								{ section._label }
-							</span>
-						</button>
-					) ) }
-				</div>
-				<div className="aldus-mix-alts">
-					<p className="aldus-section-label">
-						{ activeSection
-							? sprintf(
-									/* translators: %s is a human-readable section name like "Dark hero" */
-									__(
-										'Replace "%s" with a version from…',
-										'aldus'
-									),
-									tokenHumanLabel( activeSection.token )
-							  )
-							: __( 'Pick a part to change', 'aldus' ) }
-					</p>
+
+			{ /* Item 16: Recipe strip showing personality:token per slot */ }
+			<div
+				className="aldus-mix-recipe-strip"
+				aria-label={ __( 'Current mix recipe', 'aldus' ) }
+			>
+				{ mixSlots.map( ( section, i ) => (
+					<button
+						key={ i }
+						className={ `aldus-mix-recipe-pill${
+							activeSlot === i ? ' is-active' : ''
+						}` }
+						onClick={ () => setActiveSlot( i ) }
+					>
+						<span className="aldus-mix-recipe-source">
+							{ section._label }
+						</span>
+						<span className="aldus-mix-recipe-token">
+							{ tokenHumanLabel( section.token ) }
+						</span>
+					</button>
+				) ) }
+			</div>
+
+			{ /* Item 17: Alternatives grid below the recipe strip */ }
+			<div className="aldus-mixing-alts-section">
+				<p className="aldus-section-label">
+					{ activeSection
+						? sprintf(
+								/* translators: %s is a human-readable section name like "Dark hero" */
+								__(
+									'Replace "%s" with a version from…',
+									'aldus'
+								),
+								tokenHumanLabel( activeSection.token )
+						  )
+						: __( 'Select a section above to swap it', 'aldus' ) }
+				</p>
+				<div className="aldus-mix-alts-grid">
 					{ alternatives.map( ( section, i ) => {
 						const isSelected =
 							mixSlots[ activeSlot ]?._label === section._label;

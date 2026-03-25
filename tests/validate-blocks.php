@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Standalone block HTML validator.
  *
@@ -113,7 +114,7 @@ function check_not_contains( string $label, string $haystack, string $needle ): 
 /**
  * Asserts that $actual equals $expected exactly.
  */
-function check_equals( string $label, string $actual, string $expected ): void {
+function check_equals( string $label, mixed $actual, mixed $expected ): void {
 	global $pass, $fail, $errors;
 	if ( $actual === $expected ) {
 		$pass++;
@@ -188,11 +189,11 @@ check_contains( 'cover/bg: dim class',        $cover_bg, 'has-background-dim' );
 $cover_bg_100 = aldus_cover_bg_classes( 'vivid-red', 100 );
 check_contains( 'cover/bg-100: dim-100',      $cover_bg_100, 'has-background-dim-100' );
 
-// inner container
+// inner container — WP 6.9 removed the is-layout-* classes; only the base class remains.
 $cover_inner = aldus_cover_inner_classes();
-check_contains( 'cover/inner: base',          $cover_inner, 'wp-block-cover__inner-container' );
-check_contains( 'cover/inner: constrained',   $cover_inner, 'is-layout-constrained' );
-check_contains( 'cover/inner: suffix',        $cover_inner, 'wp-block-cover-is-layout-constrained' );
+check_equals( 'cover/inner: exact value',        $cover_inner, 'wp-block-cover__inner-container' );
+check_not_contains( 'cover/inner: no layout',    $cover_inner, 'is-layout-constrained' );
+check_not_contains( 'cover/inner: no suffix',    $cover_inner, 'wp-block-cover-is-layout-constrained' );
 
 // ===========================================================================
 // GROUP 4: core/group helpers
@@ -254,9 +255,9 @@ check_not_contains( 'media-text/right: no-stack', $mt_right, 'is-stacked-on-mobi
 $mt_full = aldus_media_text_classes( 'left', true, 'full' );
 check_contains( 'media-text/full: align',      $mt_full, 'alignfull' );
 
-// media-text style
-check_equals( 'media-text/style-50',     aldus_media_text_style( 50, 'left' ), '' );
-check_equals( 'media-text/style-38-left', aldus_media_text_style( 38, 'left' ), 'grid-template-columns:38% 1fr' );
+// media-text style — WP 6.9 uses `auto` not `1fr` for the flexible column.
+check_equals( 'media-text/style-50',       aldus_media_text_style( 50, 'left' ),  '' );
+check_equals( 'media-text/style-38-left',  aldus_media_text_style( 38, 'left' ),  'grid-template-columns:38% auto' );
 check_equals( 'media-text/style-38-right', aldus_media_text_style( 38, 'right' ), 'grid-template-columns:auto 38%' );
 
 // ===========================================================================
@@ -271,17 +272,21 @@ check_contains( 'integration/columns: full class attr', $sample_cols_html,
 // Build a sample cover inner div and verify it.
 $sample_cover_inner = '<div class="' . aldus_cover_inner_classes() . '">';
 check_contains( 'integration/cover-inner: full attr', $sample_cover_inner,
-	'class="wp-block-cover__inner-container is-layout-constrained wp-block-cover-is-layout-constrained"' );
+	'class="wp-block-cover__inner-container"' );
 
 // Build a sample buttons div.
 $sample_buttons = '<div class="' . aldus_buttons_classes() . '">';
 check_contains( 'integration/buttons: full attr', $sample_buttons,
 	'class="wp-block-buttons is-layout-flex wp-block-buttons-is-layout-flex"' );
 
-// Build a sample button link.
+// Build a sample button link — WP 6.9 places wp-element-button at the end.
 $sample_btn_link = '<a class="' . aldus_button_link_classes() . '" href="#">Click</a>';
 check_contains( 'integration/button-link: full attr', $sample_btn_link,
 	'class="wp-block-button__link wp-element-button"' );
+
+$sample_btn_link_extra = '<a class="' . aldus_button_link_classes( 'has-accent-6-color has-text-color' ) . '" href="#">Click</a>';
+check_contains( 'integration/button-link/extra: order', $sample_btn_link_extra,
+	'class="wp-block-button__link has-accent-6-color has-text-color wp-element-button"' );
 
 // ===========================================================================
 // aldus_cover_min_height() — adaptive minHeight logic

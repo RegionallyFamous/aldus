@@ -24,6 +24,174 @@ function generateId() {
 	} );
 }
 
+// ---------------------------------------------------------------------------
+// Block extraction helper — converts a single block into zero or more Aldus
+// content items. Shared by the core/group and isMultiBlock from-transforms.
+// ---------------------------------------------------------------------------
+
+const VIDEO_HOSTS = /youtube\.com|youtu\.be|vimeo\.com/i;
+
+/**
+ * Safely extracts a plain-text string from a block's content attribute.
+ * In WordPress 6.x the attribute value may be a string or a RichText value object.
+ *
+ * @param {string|Object|*} content Block content attribute value.
+ * @return {string} Plain text without HTML tags.
+ */
+function extractPlainText( content ) {
+	if ( typeof content === 'string' ) {
+		// Strip any embedded HTML (inline formatting, links, etc.) to plain text.
+		return content.replace( /<[^>]*>/g, '' );
+	}
+	// RichText value object — use toHTMLString fallback or return empty.
+	if ( content && typeof content === 'object' ) {
+		const str = String( content.text ?? content.originalHTML ?? '' );
+		return str.replace( /<[^>]*>/g, '' );
+	}
+	return '';
+}
+
+function extractItemFromBlock( block ) {
+	if ( block.name === 'core/heading' ) {
+		return [
+			{
+				id: generateId(),
+				type: block.attributes.level === 1 ? 'headline' : 'subheading',
+				content: extractPlainText( block.attributes.content ?? '' ),
+				url: '',
+			},
+		];
+	}
+	if ( block.name === 'core/paragraph' ) {
+		return [
+			{
+				id: generateId(),
+				type: 'paragraph',
+				content: extractPlainText( block.attributes.content ?? '' ),
+				url: '',
+			},
+		];
+	}
+	if ( block.name === 'core/image' ) {
+		return [
+			{
+				id: generateId(),
+				type: 'image',
+				content: '',
+				url: block.attributes.url ?? '',
+			},
+		];
+	}
+	if ( block.name === 'core/quote' ) {
+		return [
+			{
+				id: generateId(),
+				type: 'quote',
+				content: block.attributes.value ?? '',
+				url: '',
+			},
+		];
+	}
+	if ( block.name === 'core/list' ) {
+		// Join all list-item text into a single newline-separated string.
+		const listText = ( block.innerBlocks ?? [] )
+			.map( ( li ) => li.attributes?.content ?? '' )
+			.filter( Boolean )
+			.join( '\n' );
+		if ( ! listText ) {
+			return [];
+		}
+		return [
+			{
+				id: generateId(),
+				type: 'list',
+				content: listText,
+				url: '',
+			},
+		];
+	}
+	if ( block.name === 'core/buttons' ) {
+		// Take the first button's text and url as a CTA.
+		const firstBtn = ( block.innerBlocks ?? [] ).find(
+			( b ) => b.name === 'core/button'
+		);
+		if ( ! firstBtn ) {
+			return [];
+		}
+		return [
+			{
+				id: generateId(),
+				type: 'cta',
+				content: firstBtn.attributes?.text ?? '',
+				url: firstBtn.attributes?.url ?? '',
+			},
+		];
+	}
+	if ( block.name === 'core/embed' ) {
+		const rawUrl = block.attributes?.url ?? '';
+		// Normalize protocol-relative URLs (//youtube.com/…) to https:// so
+		// PHP's esc_url() and URL validation don't strip them.
+		const embedUrl = rawUrl.startsWith( '//' ) ? 'https:' + rawUrl : rawUrl;
+		if ( embedUrl && VIDEO_HOSTS.test( embedUrl ) ) {
+			return [
+				{
+					id: generateId(),
+					type: 'video',
+					content: '',
+					url: embedUrl,
+				},
+			];
+		}
+		return [];
+	}
+	if ( block.name === 'core/table' ) {
+		// Flatten all cell content into a summary string for the table item.
+		const rows = [
+			...( block.attributes?.head ?? [] ),
+			...( block.attributes?.body ?? [] ),
+		];
+		const cellText = rows
+			.flatMap( ( row ) =>
+				( row.cells ?? [] ).map( ( cell ) => cell.content ?? '' )
+			)
+			.filter( Boolean )
+			.join( ' | ' );
+		if ( ! cellText ) {
+			return [];
+		}
+		return [
+			{
+				id: generateId(),
+				type: 'table',
+				content: cellText,
+				url: '',
+			},
+		];
+	}
+	if ( block.name === 'core/gallery' ) {
+		// Collect up to 4 image URLs and their attachment IDs.
+		const images = ( block.innerBlocks ?? [] )
+			.filter( ( b ) => b.name === 'core/image' )
+			.slice( 0, 4 );
+		const galleryUrls = images
+			.map( ( b ) => b.attributes?.url )
+			.filter( Boolean );
+		if ( galleryUrls.length === 0 ) {
+			return [];
+		}
+		return [
+			{
+				id: generateId(),
+				type: 'gallery',
+				content: '',
+				url: galleryUrls[ 0 ],
+				urls: galleryUrls,
+			},
+		];
+	}
+	return [];
+}
+
 registerBlockType( metadata.name, {
 	edit: Edit,
 	save,
@@ -42,168 +210,42 @@ registerBlockType( metadata.name, {
 					} ),
 			},
 		],
-		/**
-		 * Transform FROM core/group — re-layout existing grouped content.
-		 * Extracts heading, paragraph, image, quote, list, buttons, embed,
-		 * table, and gallery inner blocks into Aldus items.
-		 */
 		from: [
+			/**
+			 * Transform FROM core/group — re-layout existing grouped content.
+			 */
 			{
 				type: 'block',
 				blocks: [ 'core/group' ],
 				transform: ( _, innerBlocks ) => {
-					const VIDEO_HOSTS = /youtube\.com|youtu\.be|vimeo\.com/i;
-
 					const items = innerBlocks
-						.flatMap( ( block ) => {
-							if ( block.name === 'core/heading' ) {
-								return [
-									{
-										id: generateId(),
-										type:
-											block.attributes.level === 1
-												? 'headline'
-												: 'subheading',
-										content: block.attributes.content ?? '',
-										url: '',
-									},
-								];
-							}
-							if ( block.name === 'core/paragraph' ) {
-								return [
-									{
-										id: generateId(),
-										type: 'paragraph',
-										content: block.attributes.content ?? '',
-										url: '',
-									},
-								];
-							}
-							if ( block.name === 'core/image' ) {
-								return [
-									{
-										id: generateId(),
-										type: 'image',
-										content: '',
-										url: block.attributes.url ?? '',
-									},
-								];
-							}
-							if ( block.name === 'core/quote' ) {
-								return [
-									{
-										id: generateId(),
-										type: 'quote',
-										content: block.attributes.value ?? '',
-										url: '',
-									},
-								];
-							}
-							if ( block.name === 'core/list' ) {
-								// Join all list-item text into a single
-								// newline-separated string.
-								const listText = ( block.innerBlocks ?? [] )
-									.map(
-										( li ) => li.attributes?.content ?? ''
-									)
-									.filter( Boolean )
-									.join( '\n' );
-								if ( ! listText ) {
-									return [];
-								}
-								return [
-									{
-										id: generateId(),
-										type: 'list',
-										content: listText,
-										url: '',
-									},
-								];
-							}
-							if ( block.name === 'core/buttons' ) {
-								// Take the first button's text and url as a CTA.
-								const firstBtn = (
-									block.innerBlocks ?? []
-								).find( ( b ) => b.name === 'core/button' );
-								if ( ! firstBtn ) {
-									return [];
-								}
-								return [
-									{
-										id: generateId(),
-										type: 'cta',
-										content:
-											firstBtn.attributes?.text ?? '',
-										url: firstBtn.attributes?.url ?? '',
-									},
-								];
-							}
-							if ( block.name === 'core/embed' ) {
-								const embedUrl = block.attributes?.url ?? '';
-								if (
-									embedUrl &&
-									VIDEO_HOSTS.test( embedUrl )
-								) {
-									return [
-										{
-											id: generateId(),
-											type: 'video',
-											content: '',
-											url: embedUrl,
-										},
-									];
-								}
-								return [];
-							}
-							if ( block.name === 'core/table' ) {
-								// Flatten all cell content into a summary
-								// string for the table item.
-								const rows = [
-									...( block.attributes?.head ?? [] ),
-									...( block.attributes?.body ?? [] ),
-								];
-								const cellText = rows
-									.flatMap( ( row ) =>
-										( row.cells ?? [] ).map(
-											( cell ) => cell.content ?? ''
-										)
-									)
-									.filter( Boolean )
-									.join( ' | ' );
-								if ( ! cellText ) {
-									return [];
-								}
-								return [
-									{
-										id: generateId(),
-										type: 'table',
-										content: cellText,
-										url: '',
-									},
-								];
-							}
-							if ( block.name === 'core/gallery' ) {
-								// Collect up to 4 image URLs.
-								const galleryUrls = ( block.innerBlocks ?? [] )
-									.filter( ( b ) => b.name === 'core/image' )
-									.slice( 0, 4 )
-									.map( ( b ) => b.attributes?.url )
-									.filter( Boolean );
-								if ( galleryUrls.length === 0 ) {
-									return [];
-								}
-								return [
-									{
-										id: generateId(),
-										type: 'gallery',
-										content: '',
-										url: galleryUrls[ 0 ],
-										urls: galleryUrls,
-									},
-								];
-							}
-							return [];
-						} )
+						.flatMap( extractItemFromBlock )
+						.filter( Boolean );
+					return createBlock( metadata.name, { savedItems: items } );
+				},
+			},
+			/**
+			 * Transform FROM a multi-block selection — lets users select any
+			 * combination of content blocks and convert them to Aldus items in
+			 * one action. isMultiBlock fires when 2+ matching blocks are selected.
+			 */
+			{
+				type: 'block',
+				isMultiBlock: true,
+				blocks: [
+					'core/heading',
+					'core/paragraph',
+					'core/image',
+					'core/quote',
+					'core/list',
+					'core/buttons',
+					'core/embed',
+					'core/table',
+					'core/gallery',
+				],
+				transform: ( blocksArray ) => {
+					const items = blocksArray
+						.flatMap( extractItemFromBlock )
 						.filter( Boolean );
 					return createBlock( metadata.name, { savedItems: items } );
 				},
@@ -219,6 +261,10 @@ registerBlockType( metadata.name, {
 // constraint — only one Aldus block per page. Variations are most useful for
 // the first (and often only) Aldus insertion: user opens inserter on an empty
 // page, picks "Blog Post — Aldus", and gets pre-filled placeholder content.
+//
+// TODO: enabledPersonalities lists here must stay in sync with the personality
+// names exported from PERSONALITIES in edit.js (which mirror PHP aldus_anchor_tokens()).
+// If a personality is renamed or removed, update all lists below to match.
 // ---------------------------------------------------------------------------
 
 registerBlockVariation( metadata.name, {
@@ -233,29 +279,24 @@ registerBlockVariation( metadata.name, {
 			{
 				id: '1',
 				type: 'headline',
-				content: 'Every Cup Has a Story Worth Tasting',
+				content: 'The Afternoon Everything Changed',
 				url: '',
 			},
 			{
 				id: '2',
 				type: 'paragraph',
 				content:
-					'We travel to the source — high-altitude farms in Ethiopia, Colombia, and Guatemala — to find coffees that taste like somewhere. Each bag carries GPS coordinates, a harvest date, and a name we know personally.',
+					'It started with a question nobody in the room wanted to answer. Not because it was hard — because the answer meant admitting that everything we\u2019d built for the last eighteen months was pointing in the wrong direction.',
 				url: '',
 			},
 			{
 				id: '3',
 				type: 'paragraph',
 				content:
-					'Our roasting philosophy is simple: get out of the way. Light roasts that let terroir speak. No dark-roast smoke screen hiding mediocre beans. Just coffee, done right.',
+					'What happened next took six weeks, two whiteboards, and a conversation in a parking lot that probably should have happened a year earlier. This is that story.',
 				url: '',
 			},
-			{
-				id: '4',
-				type: 'image',
-				content: 'Coffee farm at sunrise',
-				url: '',
-			},
+			{ id: '4', type: 'image', content: '', url: '' },
 		],
 		enabledPersonalities: [ 'Dispatch', 'Tribune', 'Folio', 'Stratum' ],
 	},
@@ -273,27 +314,27 @@ registerBlockVariation( metadata.name, {
 			{
 				id: '1',
 				type: 'headline',
-				content: 'Designed for What Comes Next',
+				content: 'Build Something People Actually Use',
 				url: '',
 			},
 			{
 				id: '2',
 				type: 'subheading',
-				content:
-					'The platform built for teams that move fast and care about quality.',
+				content: 'From first idea to first customer in one tool',
 				url: '',
 			},
 			{
 				id: '3',
 				type: 'paragraph',
 				content:
-					'Built for modern workflows, Meridian adapts to how your team actually works — no configuration overhead, no compromises on capability.',
+					'Most tools promise to save you time. This one promises to save you from building the wrong thing. Start with what your users need, prototype it in hours, and ship it before the enthusiasm wears off.',
 				url: '',
 			},
+			{ id: '4', type: 'image', content: '', url: '' },
 			{
-				id: '4',
+				id: '5',
 				type: 'cta',
-				content: 'Start Free Trial',
+				content: 'Start building \u2014 free',
 				url: '#',
 			},
 		],
@@ -313,35 +354,31 @@ registerBlockVariation( metadata.name, {
 			{
 				id: '1',
 				type: 'headline',
-				content: 'The Vanishing Art of Hand-Roasting',
+				content: 'The Train That Goes Nowhere on Purpose',
 				url: '',
 			},
 			{
 				id: '2',
 				type: 'quote',
-				content: "We don't roast to a profile. We roast to a place.",
+				content:
+					'The destination was never the point. The point was the four hours between departure and arrival where nobody could reach us.',
 				url: '',
 			},
 			{
 				id: '3',
 				type: 'paragraph',
 				content:
-					'There is a moment, about four minutes into a proper pour-over, when the bloom settles and the coffee begins to open up. This is why we do what we do.',
+					'The overnight train from Belgrade to Bar has been running since 1976. It crosses 435 bridges and passes through 254 tunnels. It is never on time. Nobody who rides it cares.',
 				url: '',
 			},
 			{
 				id: '4',
 				type: 'paragraph',
 				content:
-					'Most specialty roasters talk about flavor notes. We talk about the farmer who picked those cherries at peak ripeness, the mill that processed them over 48 hours, and the exporter who kept the chain of custody intact.',
+					'We rode it three times in two weeks. Each time the landscape revealed something the previous trip had hidden \u2014 a gorge that only catches light at sunset, a village that appears for exactly forty seconds between two tunnels, a river that changes color depending on which direction you\u2019re traveling.',
 				url: '',
 			},
-			{
-				id: '5',
-				type: 'image',
-				content: 'High-altitude farm, Ethiopia',
-				url: '',
-			},
+			{ id: '5', type: 'image', content: '', url: '' },
 		],
 		enabledPersonalities: [ 'Folio', 'Nocturne', 'Broadsheet', 'Codex' ],
 	},
@@ -362,32 +399,107 @@ registerBlockVariation( metadata.name, {
 			{
 				id: '1',
 				type: 'headline',
-				content: 'Introducing the Platform That Scales With You',
+				content: 'Your Data. Your Rules. No Exceptions.',
 				url: '',
 			},
 			{
 				id: '2',
-				type: 'subheading',
-				content: "Everything your team needs. Nothing they don't.",
+				type: 'paragraph',
+				content:
+					'We built this because every alternative required trusting someone who had a financial incentive to read your files. We removed the incentive. What\u2019s left is a tool that does its job and minds its own business.',
 				url: '',
 			},
 			{
 				id: '3',
 				type: 'list',
 				content:
-					'Real-time collaboration across unlimited projects\n' +
-					'Role-based permissions with audit logging\n' +
-					'Native integrations with 80+ tools\n' +
-					'99.99% uptime SLA with dedicated support',
+					'End-to-end encryption on every file, every time\n' +
+					'Zero-knowledge architecture \u2014 we can\u2019t see your data even if we wanted to\n' +
+					'Open-source clients you can audit yourself\n' +
+					'Works offline after the first sync',
 				url: '',
 			},
 			{
 				id: '4',
 				type: 'cta',
-				content: 'See Plans & Pricing',
+				content: 'Try it free \u2014 no credit card',
 				url: '#',
 			},
 		],
 		enabledPersonalities: [ 'Ledger', 'Broadside', 'Tribune', 'Solstice' ],
+	},
+} );
+
+registerBlockVariation( metadata.name, {
+	name: 'aldus/visual-portfolio',
+	title: __( 'Visual Portfolio \u2014 Aldus', 'aldus' ),
+	description: __(
+		'Aldus pre-loaded for a visual portfolio or gallery page.',
+		'aldus'
+	),
+	icon: 'format-gallery',
+	isDefault: false,
+	scope: [ 'inserter' ],
+	attributes: {
+		savedItems: [
+			{
+				id: '1',
+				type: 'headline',
+				content: 'Selected Work, 2023\u20132025',
+				url: '',
+			},
+			{
+				id: '2',
+				type: 'paragraph',
+				content:
+					'A collection of projects from the last two years \u2014 brand identities, editorial layouts, and the occasional thing that started as a napkin sketch and ended up on a billboard.',
+				url: '',
+			},
+			{ id: '3', type: 'gallery', content: '', url: '', urls: [] },
+			{ id: '4', type: 'cta', content: 'Get in touch', url: '#' },
+		],
+		enabledPersonalities: [ 'Mosaic', 'Prism', 'Nocturne', 'Mirage' ],
+	},
+} );
+
+registerBlockVariation( metadata.name, {
+	name: 'aldus/product-comparison',
+	title: __( 'Product Comparison \u2014 Aldus', 'aldus' ),
+	description: __(
+		'Aldus pre-loaded with a comparison table and pitch.',
+		'aldus'
+	),
+	icon: 'editor-table',
+	isDefault: false,
+	scope: [ 'inserter' ],
+	attributes: {
+		savedItems: [
+			{
+				id: '1',
+				type: 'headline',
+				content: 'How We Stack Up',
+				url: '',
+			},
+			{
+				id: '2',
+				type: 'table',
+				content:
+					'Feature,Us,Them\n' +
+					'Price,$9/mo,$29/mo\n' +
+					'Storage,Unlimited,10 GB\n' +
+					'Support,Human,Chatbot\n' +
+					'Data privacy,Zero-knowledge,"Trust us"',
+				url: '',
+			},
+			{
+				id: '3',
+				type: 'paragraph',
+				content:
+					'We could have made this table longer. We didn\u2019t need to.',
+				url: '',
+			},
+			{ id: '4', type: 'cta', content: 'Switch today', url: '#' },
+		],
+		enabledPersonalities: [ 'Ledger', 'Tribune', 'Broadsheet', 'Solstice' ],
 	},
 } );
