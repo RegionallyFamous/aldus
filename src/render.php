@@ -38,5 +38,6 @@ $aldus_personality = sanitize_html_class( $attributes['insertedPersonality'] ?? 
 printf(
 	'<div class="aldus-layout" data-personality="%s">%s</div>',
 	esc_attr( $aldus_personality ),
-	$aldus_content // Already safe — rendered inner block HTML from WP core.
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $aldus_content is WP-rendered inner block HTML, already safe.
+	$aldus_content
 );
