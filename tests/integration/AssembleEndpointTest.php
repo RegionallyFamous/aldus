@@ -149,6 +149,63 @@ class AssembleEndpointTest extends WP_UnitTestCase {
 		$this->assertSame( 200, $response->get_status() );
 	}
 
+	public function test_code_items_are_accepted_and_rendered(): void {
+		wp_set_current_user( $this->editor_id );
+
+		$request = new WP_REST_Request( 'POST', '/aldus/v1/assemble' );
+		$request->set_body_params( [
+			'items'       => [
+				[ 'type' => 'code', 'content' => 'const answer = 42;', 'url' => '', 'id' => 'a' ],
+			],
+			'personality' => 'Dispatch',
+			'tokens'      => [ 'code:block' ],
+		] );
+
+		$response = rest_do_request( $request );
+		$data     = $response->get_data();
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertStringContainsString( '<!-- wp:code -->', $data['blocks'] );
+	}
+
+	public function test_details_items_fall_back_to_generic_markup(): void {
+		wp_set_current_user( $this->editor_id );
+
+		$request = new WP_REST_Request( 'POST', '/aldus/v1/assemble' );
+		$request->set_body_params( [
+			'items'       => [
+				[ 'type' => 'details', 'content' => 'Frequently asked question', 'url' => '', 'id' => 'a' ],
+			],
+			'personality' => 'Dispatch',
+			'tokens'      => [ 'paragraph' ],
+		] );
+
+		$response = rest_do_request( $request );
+		$data     = $response->get_data();
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertStringContainsString( '<!-- wp:paragraph -->', $data['blocks'] );
+	}
+
+	public function test_empty_layouts_fall_back_to_generic_blocks(): void {
+		wp_set_current_user( $this->editor_id );
+
+		$request = new WP_REST_Request( 'POST', '/aldus/v1/assemble' );
+		$request->set_body_params( [
+			'items'       => [
+				[ 'type' => 'paragraph', 'content' => 'Fallback paragraph', 'url' => '', 'id' => 'a' ],
+			],
+			'personality' => 'Dispatch',
+			'tokens'      => [ 'gallery:3-col' ],
+		] );
+
+		$response = rest_do_request( $request );
+		$data     = $response->get_data();
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertStringContainsString( '<!-- wp:paragraph -->', $data['blocks'] );
+	}
+
 	public function test_empty_tokens_still_returns_output(): void {
 		wp_set_current_user( $this->editor_id );
 
