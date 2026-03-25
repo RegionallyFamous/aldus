@@ -1,4 +1,4 @@
-=== Aldus ===
+=== Aldus — Block Compositor ===
 Contributors: regionallyfamous
 Tags: blocks, gutenberg, layout, design, composer
 Requires at least: 6.4

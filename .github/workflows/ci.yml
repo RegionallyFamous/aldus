@@ -232,9 +232,25 @@ jobs:
         uses: wordpress/plugin-check-action@v1
         with:
           build-dir: "./"
-          # plugin_review_phpcs: we already run PHPCS with stricter standards.
-          # i18n_usage: JS translations need a build step that we handle separately.
+          # Exclude dev-only directories so the check only sees distributable files.
+          exclude-directories: |
+            tests
+            vendor
+            node_modules
+            bin
+            scripts
+            docs
+          # plugin_review_phpcs  — we run PHPCS separately with stricter standards.
+          # i18n_usage           — JS translations are handled by our own i18n pipeline.
+          # application_detected — composer/npm/webpack files live in the source tree
+          #                        but are stripped by bin/release-zip.sh on distribution.
+          # hidden_files         — .gitignore, .editorconfig etc. are dev tooling only.
+          # github_directory     — .github/ is excluded from the release zip.
+          # unexpected_markdown_file — HOOKS.md is developer docs, excluded from zip.
           exclude-checks: |
             plugin_review_phpcs
             i18n_usage
-          ignore-warnings: false
+            application_detected
+            hidden_files
+            github_directory
+            unexpected_markdown_file

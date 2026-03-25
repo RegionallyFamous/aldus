@@ -1,5 +1,9 @@
 <?php
 declare(strict_types=1);
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 /**
  * Server-side render callback for the Aldus block.
  *
