@@ -3,7 +3,7 @@ Contributors: regionallyfamous
 Tags: blocks, gutenberg, layout, design, composer
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 1.7.0
+Stable tag: 1.8.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -127,6 +127,11 @@ An optional free-text field on the building screen that steers the layout model 
 
 == Changelog ==
 
+= 1.8.0 =
+* Keyboard and screen-reader users now land on the first inserted block immediately after choosing a layout — no need to hunt for where focus went.
+* The plugin now works correctly in Windows High Contrast Mode: cards, buttons, tooltips, and error panels all use system color keywords so nothing disappears against the background.
+* The model-download progress bar now announces its label to screen readers, matching the behaviour of the generation progress bar already in place.
+
 = 1.7.0 =
 * When the layout model outputs unreadable JSON, Aldus now retries automatically — silently, just once — before showing an error. Most transient failures resolve on their own without you ever seeing a message.
 * Error screens now have a "Technical details" disclosure for those who want to see the raw error data.
@@ -166,7 +171,7 @@ An optional free-text field on the building screen that steers the layout model 
 
 == Upgrade Notice ==
 
-= 1.7.0 =
+= 1.8.0 =
 Automatic retry on LLM parse failures reduces error rates. Assembled layout caching for repeat requests.
 
 = 1.6.0 =

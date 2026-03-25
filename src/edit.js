@@ -2712,6 +2712,14 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 				const firstBlock = newBlocks[ 0 ];
 				if ( firstBlock?.clientId ) {
 					selectBlock( firstBlock.clientId );
+					// Also move DOM focus so keyboard navigation starts at the right block.
+					requestAnimationFrame( () => {
+						document
+							.querySelector(
+								`[data-block="${ firstBlock.clientId }"]`
+							)
+							?.focus();
+					} );
 				}
 				wpDispatch( 'core/notices' ).createSuccessNotice(
 					__( 'Layout inserted. Not quite right?', 'aldus' ),
@@ -3492,6 +3500,13 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 				const firstBlock = newBlocks[ 0 ];
 				if ( firstBlock?.clientId ) {
 					selectBlock( firstBlock.clientId );
+					requestAnimationFrame( () => {
+						document
+							.querySelector(
+								`[data-block="${ firstBlock.clientId }"]`
+							)
+							?.focus();
+					} );
 				}
 				wpDispatch( 'core/notices' ).createSuccessNotice(
 					__( 'Layout inserted. Not quite right?', 'aldus' ),
@@ -6113,6 +6128,11 @@ function DownloadingScreen( { progress, onAbort } ) {
 				aria-valuenow={ pct }
 				aria-valuemin={ 0 }
 				aria-valuemax={ 100 }
+				aria-label={ sprintf(
+					/* translators: %d is download progress as a percentage, e.g. 42. */
+					__( 'Downloading AI model: %d%%', 'aldus' ),
+					pct
+				) }
 			>
 				<div
 					className="aldus-progress-fill"

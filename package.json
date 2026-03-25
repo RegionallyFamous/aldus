@@ -1,6 +1,6 @@
 {
 	"name": "aldus",
-	"version": "1.7.0",
+	"version": "1.8.0",
 	"description": "AI Block Compositor for WordPress",
 	"scripts": {
 		"build": "wp-scripts build",
@@ -49,7 +49,7 @@
 		"@wordpress/e2e-test-utils-playwright": "^1.42.0",
 		"@wordpress/env": "^11.2.0",
 		"@wordpress/icons": "^12.0.0",
-		"@wordpress/scripts": "^31.7.0"
+		"@wordpress/scripts": "^31.8.0"
 	},
 	"dependencies": {
 		"@mlc-ai/web-llm": "^0.2.82"

@@ -2879,3 +2879,55 @@
 	word-break: break-all;
 	border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
+
+// ---------------------------------------------------------------------------
+// Windows High Contrast Mode (forced-colors)
+// ---------------------------------------------------------------------------
+
+@media (forced-colors: active) {
+	// Wireframe card outlines must use a system color keyword so they remain
+	// visible in both white and black high contrast themes.
+	.aldus-card {
+		border: 2px solid ButtonText;
+		background: Canvas;
+		color: CanvasText;
+	}
+
+	// Selected / hovered card uses the Highlight system color so the state
+	// is clearly distinguishable from unselected cards.
+	.aldus-card:focus,
+	.aldus-card--selected,
+	.aldus-card--hover {
+		outline: 3px solid Highlight;
+		outline-offset: 2px;
+	}
+
+	// Overlay button must remain actionable and readable.
+	.aldus-card-overlay-btn {
+		background: ButtonFace;
+		color: ButtonText;
+		border: 1px solid ButtonText;
+	}
+
+	// Ensure onboarding tooltip is legible in high contrast.
+	.aldus-onboarding-tooltip {
+		background: Canvas;
+		color: CanvasText;
+		border: 1px solid ButtonText;
+
+		&::after {
+			border-top-color: ButtonText;
+		}
+	}
+
+	.aldus-onboarding-tooltip-dismiss {
+		background: ButtonFace;
+		color: ButtonText;
+		border: 1px solid ButtonText;
+	}
+
+	// Error details
+	.aldus-error-details {
+		border-color: ButtonText;
+	}
+}
