@@ -28,6 +28,7 @@ import {
 } from './lib/intelligence.js';
 import { robustParse } from './lib/robustParse.js';
 import { batchAssemble } from './lib/batchAssemble.js';
+import { isValidAssembleResponse } from './lib/api-utils.js';
 import {
 	useBlockProps,
 	useInnerBlocksProps,
@@ -108,40 +109,17 @@ import {
 	loadPackContent,
 } from './sample-data/index.js';
 import { safeIcon } from './utils/safeIcon';
+// Hooks imported here; will replace inline logic in a future refactor pass.
+// eslint-disable-next-line no-unused-vars
+import { useAldusEngine } from './hooks/useAldusEngine.js';
+// eslint-disable-next-line no-unused-vars
+import { useAldusGeneration } from './hooks/useAldusGeneration.js';
+// eslint-disable-next-line no-unused-vars
+import { useAldusItems } from './hooks/useAldusItems.js';
 
 // Named constant for the default pack index to avoid magic numbers at call sites.
 const DEFAULT_PACK_INDEX = 0;
 import './editor.scss';
-
-// ---------------------------------------------------------------------------
-// API response validation
-// ---------------------------------------------------------------------------
-
-/**
- * Validates a single response object from /aldus/v1/assemble.
- * Returns false for anything that would cause a crash downstream:
- *   - non-object or missing `success` flag
- *   - `blocks` not a non-empty string (used directly in parseBlocks)
- *   - `label` not a string (used in UI rendering)
- *
- * @param {*} data
- * @return {boolean} Whether the response is valid and safe to use.
- */
-function isValidAssembleResponse( data ) {
-	if ( ! data || typeof data !== 'object' ) {
-		return false;
-	}
-	if ( ! data.success ) {
-		return false;
-	}
-	if ( typeof data.blocks !== 'string' || data.blocks.trim() === '' ) {
-		return false;
-	}
-	if ( typeof data.label !== 'string' ) {
-		return false;
-	}
-	return true;
-}
 
 // ---------------------------------------------------------------------------
 // Layout personalities — mirrors PHP aldus_anchor_tokens()
@@ -2611,18 +2589,18 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		} );
 	}, [] );
 
-	const lastFocusRef = useRef( null );
 	const engineRef = useRef( null );
-	const abortRef = useRef( null ); // set to a cancel fn during downloading/loading
-	const lastPackRef = useRef( null ); // stores last pack used for preview re-roll
-	// Always-current refs so the confirming useEffect reads the latest values even
-	// when it runs inside a stale closure (deps = [screen]).
+	const abortRef = useRef( null );
 	const itemsRef = useRef( items );
-	const useMetaRef = useRef( useMeta );
-	const wrapperModeRef = useRef( wrapperMode );
 	useEffect( () => {
 		itemsRef.current = items;
 	} );
+	const lastFocusRef = useRef( null );
+	const lastPackRef = useRef( null ); // stores last pack used for preview re-roll
+	// Always-current refs so the confirming useEffect reads the latest values even
+	// when it runs inside a stale closure (deps = [screen]).
+	const useMetaRef = useRef( useMeta );
+	const wrapperModeRef = useRef( wrapperMode );
 	useEffect( () => {
 		useMetaRef.current = useMeta;
 	} );
@@ -3202,54 +3180,54 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 						: enforceAnchors( personalities[ i ], [] )
 				);
 
-			// Post-generation intelligence: coverage scoring, layout
-			// descriptions, and Folio section labels — all in parallel.
-			const [ coverageSettled, descriptionSettled, labelSettled ] =
-				await Promise.all( [
-					Promise.allSettled(
-						tokenResults.map( ( tokens ) =>
-							scoreCoverage(
-								engineRef.current,
-								manifest,
-								tokens
+				// Post-generation intelligence: coverage scoring, layout
+				// descriptions, and Folio section labels — all in parallel.
+				const [ coverageSettled, descriptionSettled, labelSettled ] =
+					await Promise.all( [
+						Promise.allSettled(
+							tokenResults.map( ( tokens ) =>
+								scoreCoverage(
+									engineRef.current,
+									manifest,
+									tokens
+								)
 							)
-						)
-					),
-					Promise.allSettled(
-						tokenResults.map( ( tokens, i ) =>
-							inferLayoutDescription(
-								engineRef.current,
-								personalities[ i ],
-								tokens
+						),
+						Promise.allSettled(
+							tokenResults.map( ( tokens, i ) =>
+								inferLayoutDescription(
+									engineRef.current,
+									personalities[ i ],
+									tokens
+								)
 							)
-						)
-					),
-					// Section label for columns:28-72 (Folio's narrow label column).
-					// Only fired when that token is present and a paragraph exists;
-					// resolves immediately with '' otherwise.
-					Promise.allSettled(
-						tokenResults.map( ( tokens ) => {
-							if ( ! tokens.includes( 'columns:28-72' ) ) {
-								return Promise.resolve( { label: '' } );
-							}
-							const firstPara = currentItems.find(
-								( it ) => it.type === 'paragraph'
-							);
-							if ( ! firstPara ) {
-								return Promise.resolve( { label: '' } );
-							}
-							const preview = ( firstPara.content ?? '' )
-								.trim()
-								.split( /\s+/ )
-								.slice( 0, 10 )
-								.join( ' ' );
-							return inferSectionLabel(
-								engineRef.current,
-								preview
-							);
-						} )
-					),
-				] );
+						),
+						// Section label for columns:28-72 (Folio's narrow label column).
+						// Only fired when that token is present and a paragraph exists;
+						// resolves immediately with '' otherwise.
+						Promise.allSettled(
+							tokenResults.map( ( tokens ) => {
+								if ( ! tokens.includes( 'columns:28-72' ) ) {
+									return Promise.resolve( { label: '' } );
+								}
+								const firstPara = currentItems.find(
+									( it ) => it.type === 'paragraph'
+								);
+								if ( ! firstPara ) {
+									return Promise.resolve( { label: '' } );
+								}
+								const preview = ( firstPara.content ?? '' )
+									.trim()
+									.split( /\s+/ )
+									.slice( 0, 10 )
+									.join( ' ' );
+								return inferSectionLabel(
+									engineRef.current,
+									preview
+								);
+							} )
+						),
+					] );
 
 				setGenProgress( {
 					done: 0,
@@ -3257,21 +3235,21 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 					lastLabel: null,
 				} );
 
-			const assembleJobs = tokenResults.map( ( tokens, i ) => ( {
-				label: personalities[ i ].name,
-				data: {
-					items: currentItems,
-					personality: personalities[ i ].name,
-					tokens,
-					use_bindings: useMeta,
-					custom_styles: customBlockStyles,
-					post_id: postId || 0,
-					section_label:
-						labelSettled[ i ]?.status === 'fulfilled'
-							? ( labelSettled[ i ].value?.label ?? '' )
-							: '',
-				},
-			} ) );
+				const assembleJobs = tokenResults.map( ( tokens, i ) => ( {
+					label: personalities[ i ].name,
+					data: {
+						items: currentItems,
+						personality: personalities[ i ].name,
+						tokens,
+						use_bindings: useMeta,
+						custom_styles: customBlockStyles,
+						post_id: postId || 0,
+						section_label:
+							labelSettled[ i ]?.status === 'fulfilled'
+								? labelSettled[ i ].value?.label ?? ''
+								: '',
+					},
+				} ) );
 
 				const assembleResponses = await batchAssemble(
 					assembleJobs,

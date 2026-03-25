@@ -5,7 +5,7 @@
  *   1. Lazy-initialise the WebLLM engine (delegated to useAldusEngine)
  *   2. Pre-generation: style direction, personality recommendation, content hints
  *   3. Run token inference in parallel for all active personalities
- *   4. Post-generation: coverage scoring, layout description per personality
+ *   4. Post-generation: coverage scoring, layout description, section labels
  *   5. POST each token sequence to /aldus/v1/assemble
  *   6. Return the assembled layouts array
  *
@@ -20,6 +20,7 @@
  * @param {Function} options.inferStyleDirection    Intelligence: manifest → style string.
  * @param {Function} options.scoreCoverage          Intelligence: manifest × tokens → unused types.
  * @param {Function} options.inferLayoutDescription Intelligence: personality × tokens → description.
+ * @param {Function} options.inferSectionLabel      Intelligence: engine × preview → section label.
  * @param {Function} options.recommendPersonalities Intelligence: manifest × personalities → top 3 names.
  * @param {Function} options.analyzeContentHints    Intelligence: manifest × items → hint strings.
  * @param {Array}    options.activePersonalities    Filtered personality objects.
@@ -27,11 +28,11 @@
  * @param {Function} options.onLayoutsReady         Called with the assembled layouts array.
  * @param {Function} options.onProgress             Called with { done, total, lastLabel }.
  * @param {Function} options.onError                Called with an error code string.
+ * @param {Function} options.onErrorDetail          Called with the raw Error for technical details panel.
  * @param {Function} options.onStyleDetected        Called with the inferred style string.
  * @param {Function} options.onRecommendationsReady Called with string[] of recommended names.
  * @param {Function} options.onHintsReady           Called with string[] of content hints.
- * @param {Function} options.speak                  @wordpress/a11y speak().
- * @return {{ runGenerate: Function, isGenerating: boolean }}
+ * @return {{ runGenerate: Function, isGenerating: boolean, incrementRerollCount: Function }}
  */
 
 import { useState, useCallback, useRef } from '@wordpress/element';
@@ -39,6 +40,7 @@ import { __, sprintf } from '@wordpress/i18n';
 import { speak } from '@wordpress/a11y';
 import { dispatch as wpDispatch } from '@wordpress/data';
 import { batchAssemble } from '../lib/batchAssemble.js';
+import { isValidAssembleResponse } from '../lib/api-utils.js';
 
 export function useAldusGeneration( {
 	initEngine,
@@ -48,6 +50,7 @@ export function useAldusGeneration( {
 	inferStyleDirection,
 	scoreCoverage,
 	inferLayoutDescription,
+	inferSectionLabel,
 	recommendPersonalities,
 	analyzeContentHints,
 	activePersonalities,
@@ -55,6 +58,7 @@ export function useAldusGeneration( {
 	onLayoutsReady,
 	onProgress,
 	onError,
+	onErrorDetail,
 	onStyleDetected,
 	onRecommendationsReady,
 	onHintsReady,
@@ -73,14 +77,26 @@ export function useAldusGeneration( {
 	 * Runs the full generation pipeline.
 	 *
 	 * @param {Object}   params
-	 * @param {Array}    params.items         Current content items.
-	 * @param {string}   params.styleNote     Optional free-text style direction.
-	 * @param {Object}   [params.postContext] Post title/excerpt for prompt enrichment.
-	 * @param {string[]} params.enabledLabels Personality names enabled in sidebar.
-	 * @param {string}   [params.pinned]      Personality to always include first.
+	 * @param {Array}    params.items          Current content items.
+	 * @param {string}   params.styleNote      Optional free-text style direction.
+	 * @param {Object}   [params.postContext]  Post title/excerpt for prompt enrichment.
+	 * @param {string[]} params.enabledLabels  Personality names enabled in sidebar.
+	 * @param {string}   [params.pinned]       Personality to always include first.
+	 * @param {boolean}  [params.useBindings]  Whether to bind blocks to post meta.
+	 * @param {Object}   [params.customStyles] Custom block style slugs keyed by block type.
+	 * @param {number}   [params.postId]       Current post ID for cover featured-image fallback.
 	 */
 	const runGenerate = useCallback(
-		async ( { items, styleNote, postContext, enabledLabels, pinned } ) => {
+		async ( {
+			items,
+			styleNote,
+			postContext,
+			enabledLabels,
+			pinned,
+			useBindings = false,
+			customStyles = {},
+			postId = 0,
+		} ) => {
 			if ( isGeneratingRef.current ) {
 				return;
 			}
@@ -191,9 +207,10 @@ export function useAldusGeneration( {
 					return enforceAnchors( p, fallback );
 				} );
 
-				// Step 4: post-generation intelligence — coverage and descriptions.
-				// Runs in parallel with each other; results indexed by personality.
-				const [ coverageSettled, descriptionSettled ] =
+				// Step 4: post-generation intelligence — coverage, descriptions, and
+				// the columns:28-72 section label (Folio's narrow label column).
+				// All run in parallel; results are indexed by personality.
+				const [ coverageSettled, descriptionSettled, labelSettled ] =
 					await Promise.all( [
 						Promise.allSettled(
 							tokenResults.map( ( tokens ) =>
@@ -208,6 +225,30 @@ export function useAldusGeneration( {
 									tokens
 								)
 							)
+						),
+						// Section label only fired when columns:28-72 is present and
+						// a paragraph exists; resolves immediately with '' otherwise.
+						Promise.allSettled(
+							tokenResults.map( ( tokens ) => {
+								if (
+									! tokens.includes( 'columns:28-72' ) ||
+									! inferSectionLabel
+								) {
+									return Promise.resolve( { label: '' } );
+								}
+								const firstPara = items.find(
+									( it ) => it.type === 'paragraph'
+								);
+								if ( ! firstPara ) {
+									return Promise.resolve( { label: '' } );
+								}
+								const preview = ( firstPara.content ?? '' )
+									.trim()
+									.split( /\s+/ )
+									.slice( 0, 10 )
+									.join( ' ' );
+								return inferSectionLabel( engine, preview );
+							} )
 						),
 					] );
 
@@ -228,6 +269,13 @@ export function useAldusGeneration( {
 							personality: label,
 							tokens,
 							reroll_count: rerollCount,
+							use_bindings: useBindings,
+							custom_styles: customStyles,
+							post_id: postId || 0,
+							section_label:
+								labelSettled[ i ]?.status === 'fulfilled'
+									? labelSettled[ i ].value?.label ?? ''
+									: '',
 						},
 					};
 				} );
@@ -239,7 +287,7 @@ export function useAldusGeneration( {
 				);
 
 				const assembled = assembleResponses
-					.filter( ( r ) => r?.success && r?.blocks )
+					.filter( isValidAssembleResponse )
 					.map( ( r ) => {
 						const personalityIdx = personalities.findIndex(
 							( p ) => p.name === r.label
@@ -333,6 +381,7 @@ export function useAldusGeneration( {
 					code = 'api_error';
 				}
 
+				onErrorDetail?.( err );
 				onError( code );
 				speak(
 					__( 'Layout generation failed.', 'aldus' ),
@@ -364,6 +413,7 @@ export function useAldusGeneration( {
 			inferStyleDirection,
 			scoreCoverage,
 			inferLayoutDescription,
+			inferSectionLabel,
 			recommendPersonalities,
 			analyzeContentHints,
 			activePersonalities,
@@ -371,6 +421,7 @@ export function useAldusGeneration( {
 			onLayoutsReady,
 			onProgress,
 			onError,
+			onErrorDetail,
 			onStyleDetected,
 			onRecommendationsReady,
 			onHintsReady,

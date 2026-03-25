@@ -1,68 +1,175 @@
 /**
- * useAldusItems — content item CRUD and reorder logic.
+ * useAldusItems — content items lifecycle.
  *
- * Owns the `items` state array and exposes a stable API for adding, updating,
- * removing, reordering, and importing content items. Extracted from the
- * monolithic Edit component so item logic can be tested independently.
+ * Owns the items array, its attribute-persistence, undo/redo sync, and all
+ * CRUD operations. Extracted from the monolithic Edit component so item
+ * management can be reasoned about independently.
  *
  * @param {Object}   options
- * @param {Array}    options.savedItems    Initial items from block attributes.
- * @param {Function} options.validateItems Function to validate/sanitize saved items.
- * @param {Function} options.generateId    Function that returns a unique id string.
- * @param {Function} [options.onFirstItem] Called when the user adds their first item.
+ * @param {Array}    options.savedItems    Current value of the savedItems attribute.
+ * @param {Function} options.setAttributes Block setAttributes callback.
+ * @param {Function} options.markAldusUsed Marks the plugin as used in preferences.
+ * @param {Object}   options.lastFocusRef  Ref to track last-focused item id (for scroll).
  * @return {{
- *   items: Array,
- *   setItems: Function,
- *   addItem: Function,
- *   updateItem: Function,
- *   removeItem: Function,
+ *   items:        Array,
+ *   itemsRef:     React.MutableRefObject,
+ *   setItems:     Function,
+ *   addItem:      Function,
+ *   updateItem:   Function,
+ *   removeItem:   Function,
  *   reorderItems: Function,
- *   moveItem: Function,
- *   loadPreset: Function,
- *   clearItems: Function,
+ *   moveItem:     Function,
+ *   loadPreset:   Function,
  * }}
  */
 
-import { useState, useCallback, useRef } from '@wordpress/element';
+import { useState, useEffect, useRef, useCallback } from '@wordpress/element';
+
+// ---------------------------------------------------------------------------
+// Helpers (duplicated from module scope in edit.js; kept local so the hook
+// is self-contained and can be unit-tested without the full edit.js bundle)
+// ---------------------------------------------------------------------------
+
+const uid = () => {
+	if (
+		typeof crypto !== 'undefined' &&
+		typeof crypto.randomUUID === 'function'
+	) {
+		return crypto.randomUUID();
+	}
+	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace( /[xy]/g, ( c ) => {
+		const r = Math.floor( Math.random() * 16 );
+		const v = c === 'x' ? r : ( r % 4 ) + 8;
+		return v.toString( 16 );
+	} );
+};
+
+const VALID_ITEM_TYPES = new Set( [
+	'headline',
+	'subheading',
+	'paragraph',
+	'quote',
+	'image',
+	'cta',
+	'list',
+	'video',
+	'table',
+	'gallery',
+	'code',
+	'details',
+] );
+
+/**
+ * Filters and normalises items loaded from block attributes or localStorage.
+ * Drops any entry with an unrecognised type so corrupted data cannot crash the UI.
+ *
+ * @param {unknown} raw Value from savedItems attribute or a stored session.
+ * @return {Array} Validated, normalised item array.
+ */
+function validateSavedItems( raw ) {
+	if ( ! Array.isArray( raw ) ) {
+		return [];
+	}
+	return raw
+		.filter(
+			( item ) =>
+				item !== null &&
+				typeof item === 'object' &&
+				VALID_ITEM_TYPES.has( item.type ) &&
+				typeof item.content === 'string' &&
+				typeof ( item.url ?? '' ) === 'string'
+		)
+		.map( ( item ) => {
+			const clean = {
+				id:
+					typeof item.id === 'string' && item.id !== ''
+						? item.id
+						: uid(),
+				type: item.type,
+				content: item.content,
+				url: item.url ?? '',
+			};
+			if ( Number.isInteger( item.mediaId ) ) {
+				clean.mediaId = item.mediaId;
+			}
+			if ( Array.isArray( item.urls ) ) {
+				clean.urls = item.urls.filter( ( u ) => typeof u === 'string' );
+			}
+			return clean;
+		} );
+}
+
+// ---------------------------------------------------------------------------
+// Hook
+// ---------------------------------------------------------------------------
 
 export function useAldusItems( {
 	savedItems,
-	validateItems,
-	generateId,
-	onFirstItem,
-	setScreen,
+	setAttributes,
+	markAldusUsed,
+	lastFocusRef,
 } ) {
-	const [ items, setItems ] = useState( () => validateItems( savedItems ) );
+	const [ items, setItems ] = useState( () =>
+		validateSavedItems( savedItems )
+	);
 
-	// Track the id of the most recently added item so the editor can auto-focus it.
-	const lastFocusRef = useRef( null );
+	// Always-current ref so callbacks and effects read the latest items even
+	// when they're inside stale closures.
+	const itemsRef = useRef( items );
+	useEffect( () => {
+		itemsRef.current = items;
+	} );
+
+	// Guard: distinguish our own attribute writes from external undo/redo changes.
+	const selfWriteRef = useRef( false );
+
+	// Persist items in block attributes on every change.
+	useEffect( () => {
+		selfWriteRef.current = true;
+		setAttributes( { savedItems: items } );
+		const id = setTimeout( () => {
+			selfWriteRef.current = false;
+		}, 0 );
+		return () => clearTimeout( id );
+	}, [ items ] ); // eslint-disable-line react-hooks/exhaustive-deps
+
+	// Pull attribute changes back into state when undo/redo fires externally.
+	useEffect( () => {
+		if ( selfWriteRef.current ) {
+			return;
+		}
+		setItems( validateSavedItems( savedItems ) );
+	}, [ savedItems ] ); // eslint-disable-line react-hooks/exhaustive-deps
+
+	// ---------------------------------------------------------------------------
+	// CRUD
+	// ---------------------------------------------------------------------------
 
 	const addItem = useCallback(
 		( type ) => {
-			const id = generateId();
+			const id = uid();
 			setItems( ( prev ) => [
 				...prev,
 				{ id, type, content: '', url: '' },
 			] );
-			lastFocusRef.current = id;
-			onFirstItem?.();
+			if ( lastFocusRef ) {
+				lastFocusRef.current = id;
+			}
+			markAldusUsed?.();
 		},
-		[ generateId, onFirstItem ]
+		[ markAldusUsed, lastFocusRef ]
 	);
 
 	const updateItem = useCallback(
 		( id, patch ) =>
 			setItems( ( prev ) =>
-				prev.map( ( item ) =>
-					item.id === id ? { ...item, ...patch } : item
-				)
+				prev.map( ( i ) => ( i.id === id ? { ...i, ...patch } : i ) )
 			),
 		[]
 	);
 
 	const removeItem = useCallback(
-		( id ) =>
-			setItems( ( prev ) => prev.filter( ( item ) => item.id !== id ) ),
+		( id ) => setItems( ( prev ) => prev.filter( ( i ) => i.id !== id ) ),
 		[]
 	);
 
@@ -96,35 +203,32 @@ export function useAldusItems( {
 		} );
 	}, [] );
 
-	const loadPreset = useCallback(
-		( preset ) => {
-			setItems(
-				preset.items.map( ( i ) => ( {
-					// Preserve preset content and url so presets with sample text
-					// are shown to the user as-is. Assign a fresh id for uniqueness.
-					content: '',
-					url: '',
-					...i,
-					id: generateId(),
-				} ) )
-			);
-			setScreen?.( 'building' );
-		},
-		[ generateId, setScreen ]
-	);
-
-	const clearItems = useCallback( () => setItems( [] ), [] );
+	/**
+	 * Replaces the current item list with a preset's items.
+	 * Each preset item gets a fresh id so items are always unique.
+	 *
+	 * @param {Object} preset Preset object with an `items` array.
+	 */
+	const loadPreset = useCallback( ( preset ) => {
+		setItems(
+			preset.items.map( ( i ) => ( {
+				id: uid(),
+				content: '',
+				url: '',
+				...i,
+			} ) )
+		);
+	}, [] );
 
 	return {
 		items,
+		itemsRef,
 		setItems,
-		lastFocusRef,
 		addItem,
 		updateItem,
 		removeItem,
 		reorderItems,
 		moveItem,
 		loadPreset,
-		clearItems,
 	};
 }
