@@ -1,5 +1,4 @@
 // Aldus — frontend styles.
-//
 // Loaded only when the aldus/layout-generator block appears in saved post
 // content (i.e. a post saved before the user accepted a generated layout).
 // The file is intentionally minimal: CSS custom properties are primarily
@@ -7,8 +6,8 @@
 // This provides a belt-and-suspenders fallback for themes that override or
 // discard the theme.json data before Aldus's filter can apply its additions.
 
-// The block renders as an empty string on the front end (render.php returns '').
-// Hide any residual wrapper that a cache layer or serialisation edge case might emit.
+// The block renders as an empty string on the front end (render.php returns
+// ''). Hide any residual wrapper that a cache layer might emit.
 .wp-block-aldus-layout-generator {
 	display: none;
 }

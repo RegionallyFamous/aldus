@@ -3,7 +3,7 @@ Contributors: regionallyfamous
 Tags: blocks, gutenberg, layout, design, composer
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -127,6 +127,17 @@ An optional free-text field on the building screen that steers the layout model 
 
 == Changelog ==
 
+= 1.2.0 =
+* Theme awareness: Aldus now reads theme.json layout settings and uses the active theme's contentSize for constrained group blocks instead of a hardcoded 48rem.
+* Theme spacing: padding values in generated blocks now map to the theme's spacing preset scale (via CSS custom properties) when declared; hardcoded rem values are used as fallback.
+* Theme spacer adaptation: spacer block heights are reduced when the theme already has a generous blockGap, preventing double whitespace.
+* Theme appearance tools: tokens that rely on borders or background colors are automatically filtered out when the theme has disabled those appearance tools.
+* Plain button variant: the default CTA button no longer overrides theme colors — it renders as a bare core/button so the theme's global button styles apply natively. Outline and ghost variants are unchanged.
+* Custom block styles: the editor detects registered styles for core/pullquote, core/image, and core/button and passes them to the assembler; pullquotes use a theme's "plain" style when available.
+* Site identity in LLM prompt: the site title and tagline are now passed to the layout model as context ("Site: Name — Tagline"), giving the model a signal about the site's domain and tone.
+* Nav menu URL suggestions: CTA button inputs now show clickable suggestion pills for the site's primary navigation items when the URL field is empty.
+* Recent media thumbnails: image inputs now show the 8 most recently uploaded media library images as clickable thumbnails when no image has been selected yet.
+
 = 1.1.0 =
 * Redesigned card overlay: replaced full-cover dark overlay with a slim gradient bar at the bottom of each card. "Use this one" is now the sole primary action in the overlay, styled with the theme accent color.
 * Moved "Expand preview" button to the top-right corner of the card; semi-transparent by default, fully visible on hover.
@@ -153,6 +164,9 @@ An optional free-text field on the building screen that steers the layout model 
 * Full CI via GitHub Actions; Dependabot for npm and Actions updates.
 
 == Upgrade Notice ==
+
+= 1.2.0 =
+Generated layouts now adapt to your theme's spacing scale, content width, and button styles — output feels native to any block theme out of the box.
 
 = 1.1.0 =
 Redesigned card overlay and empty state for a cleaner first-use experience. Fixes block serialization errors that appeared after upgrading to WordPress 6.9.

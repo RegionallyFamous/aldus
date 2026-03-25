@@ -198,6 +198,28 @@ class Aldus_REST_Controller extends WP_REST_Controller {
 				'default'     => false,
 				'description' => 'When true, generated blocks include Block Bindings attrs referencing _aldus_items post meta by item ID.',
 			],
+			'custom_styles' => [
+				'required'    => false,
+				'type'        => 'object',
+				'default'     => [],
+				'description' => 'Map of block type → registered style names detected in the editor (e.g. {"pullquote":["plain","default"]}).',
+				'additionalProperties' => [
+					'type'  => 'array',
+					'items' => [ 'type' => 'string' ],
+				],
+				'sanitize_callback' => function ( $val ) {
+					if ( ! is_array( $val ) ) {
+						return [];
+					}
+					$out = [];
+					foreach ( $val as $block_type => $styles ) {
+						if ( is_array( $styles ) ) {
+							$out[ sanitize_key( $block_type ) ] = array_map( 'sanitize_key', $styles );
+						}
+					}
+					return $out;
+				},
+			],
 		];
 	}
 
@@ -488,6 +510,18 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 		)
 	);
 
+	// Filter tokens based on which theme appearance tools are enabled.
+	// This prevents Aldus from generating blocks the user can't edit within
+	// their theme's declared constraints.
+	$appearance = aldus_get_theme_appearance_tools();
+	if ( ! $appearance['border_width'] ) {
+		$tokens = array_values( array_diff( $tokens, [ 'group:border-box' ] ) );
+	}
+	if ( ! $appearance['color_background'] ) {
+		$no_bg_tokens = [ 'group:dark', 'group:accent', 'group:light-alt', 'group:gradient-full' ];
+		$tokens       = array_values( array_diff( $tokens, $no_bg_tokens ) );
+	}
+
 	// Fetch theme data for block styling — computed once, shared across all tokens.
 	$palette    = aldus_get_theme_palette();
 	$font_sizes = aldus_get_theme_font_sizes();
@@ -516,17 +550,19 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 	$style_ctx     = $style_rules[ $personality ] ?? [];
 	$token_weights = aldus_token_weights();
 
-	$use_bindings = (bool) $request->get_param( 'use_bindings' );
+	$use_bindings  = (bool) $request->get_param( 'use_bindings' );
+	$custom_styles = (array) $request->get_param( 'custom_styles' );
 
 	$dist = new Aldus_Content_Distributor( $items );
 	$dist->prepare();
 
 	// Build the static parts of context once; only rhythm changes per token.
 	$base_context = [
-		'theme'        => $theme_ctx,
-		'style'        => $style_ctx,
-		'manifest'     => $manifest,
-		'use_bindings' => $use_bindings,
+		'theme'         => $theme_ctx,
+		'style'         => $style_ctx,
+		'manifest'      => $manifest,
+		'use_bindings'  => $use_bindings,
+		'custom_styles' => $custom_styles,
 	];
 
 	$markup     = '';
@@ -912,6 +948,173 @@ function aldus_get_theme_font_sizes(): array {
 
 	wp_cache_set( $cache_key, $sizes, 'aldus', HOUR_IN_SECONDS );
 	return $sizes;
+}
+
+/**
+ * Returns the active theme's content width (contentSize) from layout settings.
+ *
+ * Used by template functions to size constrained group layouts to match the
+ * site's actual content column width instead of a hardcoded 48rem.
+ *
+ * @return string CSS length value, e.g. '650px' or '48rem'.
+ */
+function aldus_theme_content_size(): string {
+	$cache_key = 'aldus_content_size_' . ALDUS_VERSION;
+	$cached    = wp_cache_get( $cache_key, 'aldus' );
+	if ( false !== $cached ) {
+		return (string) $cached;
+	}
+
+	$settings = wp_get_global_settings( [ 'layout' ] );
+	$value    = ( is_array( $settings ) ? $settings['contentSize'] ?? '' : '' );
+	if ( '' === $value ) {
+		$value = '48rem';
+	}
+
+	wp_cache_set( $cache_key, $value, 'aldus', HOUR_IN_SECONDS );
+	return $value;
+}
+
+/**
+ * Returns a theme spacing value mapped to a logical role.
+ *
+ * Roles map to positional percentiles in the theme's spacing preset scale so
+ * the output feels native to any theme regardless of its specific values.
+ *
+ * @param string $role  One of 'sm' (≈1.5rem), 'md' (≈3rem), 'lg' (≈4rem), 'xl' (≈6rem).
+ * @return string CSS value or var(--wp--preset--spacing--{slug}).
+ */
+function aldus_theme_spacing( string $role ): string {
+	static $map = null;
+
+	if ( null === $map ) {
+		$cache_key = 'aldus_spacing_map_' . ALDUS_VERSION;
+		$cached    = wp_cache_get( $cache_key, 'aldus' );
+
+		if ( false !== $cached ) {
+			$map = (array) $cached;
+		} else {
+			$fallbacks = [
+				'sm' => '1.5rem',
+				'md' => '3rem',
+				'lg' => '4rem',
+				'xl' => '6rem',
+			];
+
+			$settings = wp_get_global_settings( [ 'spacing', 'spacingSizes' ] );
+			$presets  = [];
+			if ( is_array( $settings ) ) {
+				$presets = $settings['theme'] ?? $settings['default'] ?? [];
+			}
+
+			if ( empty( $presets ) ) {
+				$map = $fallbacks;
+			} else {
+				$n           = count( $presets );
+				$percentiles = [
+					'sm' => (int) floor( $n * 0.25 ),
+					'md' => (int) floor( $n * 0.55 ),
+					'lg' => (int) floor( $n * 0.75 ),
+					'xl' => max( 0, $n - 1 ),
+				];
+				$map = [];
+				foreach ( $percentiles as $r => $idx ) {
+					$idx  = max( 0, min( $idx, $n - 1 ) );
+					$slug = $presets[ $idx ]['slug'] ?? '';
+					$map[ $r ] = $slug !== '' ? "var(--wp--preset--spacing--{$slug})" : $fallbacks[ $r ];
+				}
+			}
+
+			wp_cache_set( $cache_key, $map, 'aldus', HOUR_IN_SECONDS );
+		}
+	}
+
+	return $map[ $role ] ?? '1.5rem';
+}
+
+/**
+ * Returns 'generous', 'normal', or 'tight' based on the theme's block gap.
+ *
+ * This informs spacer block heights: when the theme already has generous
+ * inter-block spacing, Aldus uses smaller explicit spacers so layouts don't
+ * feel too airy.
+ *
+ * @return string 'generous' | 'normal' | 'tight'
+ */
+function aldus_theme_spacer_scale(): string {
+	static $scale = null;
+
+	if ( null !== $scale ) {
+		return $scale;
+	}
+
+	$cache_key = 'aldus_spacer_scale_' . ALDUS_VERSION;
+	$cached    = wp_cache_get( $cache_key, 'aldus' );
+	if ( false !== $cached ) {
+		$scale = (string) $cached;
+		return $scale;
+	}
+
+	$gap = wp_get_global_settings( [ 'spacing', 'blockGap' ] );
+	if ( ! is_string( $gap ) || '' === $gap ) {
+		$gap = '1.5rem';
+	}
+
+	// Resolve CSS custom property references to their fallback if present.
+	// e.g. "var(--wp--style--block-gap, 1.5rem)" → "1.5rem"
+	if ( preg_match( '/var\([^,]+,\s*([^)]+)\)/', $gap, $m ) ) {
+		$gap = trim( $m[1] );
+	}
+
+	// Convert common units to a rem float for comparison.
+	$rem_val = 1.5;
+	if ( preg_match( '/^([\d.]+)rem$/i', $gap, $m ) ) {
+		$rem_val = (float) $m[1];
+	} elseif ( preg_match( '/^([\d.]+)px$/i', $gap, $m ) ) {
+		$rem_val = (float) $m[1] / 16;
+	} elseif ( preg_match( '/^([\d.]+)em$/i', $gap, $m ) ) {
+		$rem_val = (float) $m[1];
+	}
+
+	if ( $rem_val > 2.0 ) {
+		$scale = 'generous';
+	} elseif ( $rem_val < 1.0 ) {
+		$scale = 'tight';
+	} else {
+		$scale = 'normal';
+	}
+
+	wp_cache_set( $cache_key, $scale, 'aldus', HOUR_IN_SECONDS );
+	return $scale;
+}
+
+/**
+ * Returns which theme appearance tools are enabled.
+ *
+ * When a theme disables a tool (e.g. border controls), Aldus should avoid
+ * generating tokens that produce un-editable output for those features.
+ *
+ * @return array{border_width: bool, color_background: bool}
+ */
+function aldus_get_theme_appearance_tools(): array {
+	$cache_key = 'aldus_appearance_tools_' . ALDUS_VERSION;
+	$cached    = wp_cache_get( $cache_key, 'aldus' );
+	if ( false !== $cached ) {
+		return (array) $cached;
+	}
+
+	// wp_get_global_settings returns false (boolean) when a tool is explicitly
+	// disabled, or the capability array / null when enabled or unset.
+	$border_width     = wp_get_global_settings( [ 'border', 'width' ] );
+	$color_background = wp_get_global_settings( [ 'color', 'background' ] );
+
+	$tools = [
+		'border_width'     => false !== $border_width,
+		'color_background' => false !== $color_background,
+	];
+
+	wp_cache_set( $cache_key, $tools, 'aldus', HOUR_IN_SECONDS );
+	return $tools;
 }
 
 /**

@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Plugin Name:       Aldus — Block Compositor
  * Plugin URI:        https://github.com/RegionallyFamous/aldus
  * Description:       You write it. Aldus designs it. Sixteen layout styles for your content — pick the one that fits, and it becomes real WordPress blocks.
- * Version:           1.1.0
+ * Version:           1.2.0
  * Requires at least: 6.4
  * Requires PHP:      8.0
  * Author:            Regionally Famous
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'ALDUS_VERSION', '1.1.0' );
+define( 'ALDUS_VERSION', '1.2.0' );
 define( 'ALDUS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ALDUS_URL', plugin_dir_url( __FILE__ ) );
 
@@ -254,6 +254,24 @@ function aldus_register_block(): void {
 		);
 	}
 }
+
+/**
+ * Injects site identity (name, description) for the editor LLM prompt.
+ *
+ * Hooked onto enqueue_block_editor_assets so the variable is available
+ * as soon as the editor script loads — before the user interacts.
+ */
+function aldus_inline_site_data(): void {
+	wp_add_inline_script(
+		'aldus-aldus-layout-generator-editor-script',
+		'window.__aldusSite = ' . wp_json_encode( [
+			'name'        => get_bloginfo( 'name' ),
+			'description' => get_bloginfo( 'description' ),
+		] ) . ';',
+		'before'
+	);
+}
+add_action( 'enqueue_block_editor_assets', 'aldus_inline_site_data' );
 
 /**
  * Prints a <link rel="modulepreload"> for the WebLLM runtime chunk on

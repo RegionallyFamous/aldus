@@ -1191,20 +1191,59 @@ const PRESETS = [
 		name: __( 'Blog post', 'aldus' ),
 		description: __( 'Headline · 2 paragraphs · Image', 'aldus' ),
 		items: [
-			{ type: 'headline' },
-			{ type: 'paragraph' },
-			{ type: 'paragraph' },
+			{
+				type: 'headline',
+				content: __( 'The Afternoon Everything Changed', 'aldus' ),
+			},
+			{
+				type: 'paragraph',
+				content: __(
+					"It started with a question nobody in the room wanted to answer. Not because it was hard — because the answer meant admitting that everything we'd built for the last eighteen months was pointing in the wrong direction.",
+					'aldus'
+				),
+			},
+			{
+				type: 'paragraph',
+				content: __(
+					'What happened next took six weeks, two whiteboards, and a conversation in a parking lot that probably should have happened a year earlier. This is that story.',
+					'aldus'
+				),
+			},
 			{ type: 'image' },
 		],
 	},
 	{
 		id: 'landing',
 		name: __( 'Landing page', 'aldus' ),
-		description: __( 'Headline · Subheading · Button', 'aldus' ),
+		description: __(
+			'Headline · Subheading · Paragraph · Image · Button',
+			'aldus'
+		),
 		items: [
-			{ type: 'headline' },
-			{ type: 'subheading' },
-			{ type: 'cta' },
+			{
+				type: 'headline',
+				content: __( 'Build Something People Actually Use', 'aldus' ),
+			},
+			{
+				type: 'subheading',
+				content: __(
+					'From first idea to first customer in one tool',
+					'aldus'
+				),
+			},
+			{
+				type: 'paragraph',
+				content: __(
+					'Most tools promise to save you time. This one promises to save you from building the wrong thing. Start with what your users need, prototype it in hours, and ship it before the enthusiasm wears off.',
+					'aldus'
+				),
+			},
+			{ type: 'image' },
+			{
+				type: 'cta',
+				content: __( 'Start building — free', 'aldus' ),
+				url: '#',
+			},
 		],
 	},
 	{
@@ -1212,18 +1251,116 @@ const PRESETS = [
 		name: __( 'Feature story', 'aldus' ),
 		description: __( 'Headline · Quote · 2 paragraphs · Image', 'aldus' ),
 		items: [
-			{ type: 'headline' },
-			{ type: 'quote' },
-			{ type: 'paragraph' },
-			{ type: 'paragraph' },
+			{
+				type: 'headline',
+				content: __(
+					'The Train That Goes Nowhere on Purpose',
+					'aldus'
+				),
+			},
+			{
+				type: 'quote',
+				content: __(
+					'The destination was never the point. The point was the four hours between departure and arrival where nobody could reach us.',
+					'aldus'
+				),
+			},
+			{
+				type: 'paragraph',
+				content: __(
+					'The overnight train from Belgrade to Bar has been running since 1976. It crosses 435 bridges and passes through 254 tunnels. It is never on time. Nobody who rides it cares.',
+					'aldus'
+				),
+			},
+			{
+				type: 'paragraph',
+				content: __(
+					'We rode it three times in two weeks. Each time the landscape revealed something the previous trip had hidden — a gorge that only catches light at sunset, a village that appears for exactly forty seconds between two tunnels.',
+					'aldus'
+				),
+			},
 			{ type: 'image' },
 		],
 	},
 	{
 		id: 'product',
 		name: __( 'Product pitch', 'aldus' ),
-		description: __( 'Headline · List · Button', 'aldus' ),
-		items: [ { type: 'headline' }, { type: 'list' }, { type: 'cta' } ],
+		description: __( 'Headline · Paragraph · List · Button', 'aldus' ),
+		items: [
+			{
+				type: 'headline',
+				content: __( 'Your Data. Your Rules. No Exceptions.', 'aldus' ),
+			},
+			{
+				type: 'paragraph',
+				content: __(
+					"We built this because every alternative required trusting someone who had a financial incentive to read your files. We removed the incentive. What's left is a tool that does its job and minds its own business.",
+					'aldus'
+				),
+			},
+			{
+				type: 'list',
+				content:
+					"End-to-end encryption on every file, every time\nZero-knowledge architecture — we can't see your data\nOpen-source clients you can audit yourself\nWorks offline after the first sync",
+			},
+			{
+				type: 'cta',
+				content: __( 'Try it free — no credit card', 'aldus' ),
+				url: '#',
+			},
+		],
+	},
+	{
+		id: 'portfolio',
+		name: __( 'Portfolio', 'aldus' ),
+		description: __( 'Headline · Paragraph · Gallery · Button', 'aldus' ),
+		items: [
+			{
+				type: 'headline',
+				content: __( 'Selected Work, 2023–2025', 'aldus' ),
+			},
+			{
+				type: 'paragraph',
+				content: __(
+					'A collection of projects from the last two years — brand identities, editorial layouts, and the occasional thing that started as a napkin sketch and ended up on a billboard.',
+					'aldus'
+				),
+			},
+			{ type: 'gallery' },
+			{
+				type: 'cta',
+				content: __( 'Get in touch', 'aldus' ),
+				url: '#',
+			},
+		],
+	},
+	{
+		id: 'comparison',
+		name: __( 'Comparison', 'aldus' ),
+		description: __( 'Headline · Table · Paragraph · Button', 'aldus' ),
+		items: [
+			{
+				type: 'headline',
+				content: __( 'How We Stack Up', 'aldus' ),
+			},
+			{
+				type: 'table',
+				content:
+					'Feature, Us, Them\nPrice, $9/mo, $29/mo\nStorage, Unlimited, 10 GB\nSupport, Human, Chatbot',
+			},
+			{
+				type: 'paragraph',
+				content: __(
+					"We could have made this table longer. We didn't need to.",
+					'aldus'
+				),
+			},
+			{
+				type: 'cta',
+				content: __( 'Switch today', 'aldus' ),
+				url: '#',
+			},
+		],
 	},
 ];
 
@@ -2286,6 +2423,21 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		? themeColorPalette
 		: [];
 
+	// Detect custom block styles registered in the editor for key block types.
+	// These are passed to the PHP assembler so it can apply native theme styles
+	// (e.g. is-style-plain on pullquotes) instead of Aldus defaults.
+	const customBlockStyles = useSelect( ( select ) => {
+		const fn = select( 'core/blocks' ).getBlockStyles;
+		if ( ! fn ) {
+			return {};
+		}
+		return {
+			pullquote: ( fn( 'core/pullquote' ) ?? [] ).map( ( s ) => s.name ),
+			image: ( fn( 'core/image' ) ?? [] ).map( ( s ) => s.name ),
+			button: ( fn( 'core/button' ) ?? [] ).map( ( s ) => s.name ),
+		};
+	}, [] );
+
 	// Remember across page loads whether the model has ever been downloaded.
 	const hasDownloadedModel = useSelect(
 		( select ) =>
@@ -2294,24 +2446,17 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		[]
 	);
 
-	// First-run onboarding: show simplified entry when the user has never used Aldus.
-	const hasUsedAldus = useSelect(
-		( select ) =>
-			select( preferencesStore ).get( 'aldus', 'hasUsedAldus' ) ?? false,
-		[]
-	);
 	const { set: setPref } = useDispatch( preferencesStore );
 	const markAldusUsed = useCallback( () => {
 		setPref( 'aldus', 'hasUsedAldus', true );
 	}, [ setPref ] );
 
 	// Read post context for LLM prompt enrichment and personality auto-sort.
-	const { postTitle, postType, postExcerpt } = useSelect( ( select ) => {
+	const { postTitle, postType } = useSelect( ( select ) => {
 		const editor = select( 'core/editor' );
 		return {
 			postTitle: editor?.getEditedPostAttribute( 'title' ) ?? '',
 			postType: editor?.getCurrentPostType() ?? 'post',
-			postExcerpt: editor?.getEditedPostAttribute( 'excerpt' ) ?? '',
 		};
 	}, [] );
 
@@ -2550,10 +2695,10 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 	const loadPreset = useCallback( ( preset ) => {
 		setItems(
 			preset.items.map( ( i ) => ( {
-				...i,
 				id: uid(),
 				content: '',
 				url: '',
+				...i,
 			} ) )
 		);
 		setScreen( 'building' );
@@ -2673,6 +2818,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 									personality: personalities[ i ].name,
 									tokens,
 									use_bindings: useMeta,
+									custom_styles: customBlockStyles,
 								},
 							} );
 						} finally {
@@ -2829,6 +2975,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 										)
 									],
 									use_bindings: useMeta,
+									custom_styles: customBlockStyles,
 								},
 							} );
 						} finally {
@@ -2929,6 +3076,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							tokens: seqs[ seqIndex ],
 							reroll_count: rerollCount,
 							use_bindings: false,
+							custom_styles: customBlockStyles,
 						},
 					} );
 				} else {
@@ -2977,6 +3125,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							tokens,
 							reroll_count: rerollCount,
 							use_bindings: useMeta,
+							custom_styles: customBlockStyles,
 						},
 					} );
 				}
@@ -3019,9 +3168,16 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 
 	const generate = useCallback( () => {
 		setIsGenerating( true );
-		const context = postTitle
+		const siteName = window.__aldusSite?.name ?? '';
+		const siteDesc = window.__aldusSite?.description ?? '';
+		const siteStr = siteName
+			? `Site: ${ siteName }${ siteDesc ? ` — ${ siteDesc }` : '' }`
+			: '';
+		const postStr = postTitle
 			? `Post titled "${ postTitle }" (post type: ${ postType })`
-			: null;
+			: '';
+		const context =
+			[ siteStr, postStr ].filter( Boolean ).join( '. ' ) || null;
 		// If a personality was pinned via "Try with my content", sort it to the
 		// front so results lead with the user's chosen personality.
 		let orderedPersonalities = enabledPersonalities;
@@ -3468,16 +3624,13 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							onPreview={ runPreview }
 							styleNote={ styleNote }
 							onStyleNoteChange={ setStyleNote }
-							postTitle={ postTitle }
-							postExcerpt={ postExcerpt }
 							noWebGPU={ noWebGPU }
 							editorBlocks={ editorBlocks }
 							pinnedPersonality={ pinnedPersonality }
 							onClearPinnedPersonality={ () =>
 								setPinnedPersonality( null )
 							}
-							hasUsedAldus={ hasUsedAldus }
-							markAldusUsed={ markAldusUsed }
+							loadPreset={ loadPreset }
 						/>
 					</div>
 				) }
@@ -3703,14 +3856,11 @@ function BuildingScreen( {
 	onPreview,
 	styleNote,
 	onStyleNoteChange,
-	postTitle,
-	postExcerpt,
 	noWebGPU,
 	editorBlocks,
 	pinnedPersonality,
 	onClearPinnedPersonality,
-	hasUsedAldus,
-	markAldusUsed,
+	loadPreset,
 } ) {
 	const dragIdRef = useRef( null );
 	const removeTimerRef = useRef( null );
@@ -3746,37 +3896,6 @@ function BuildingScreen( {
 			}
 		};
 	}, [] );
-
-	// Check if the post title is already in the items list.
-	const titleAlreadyAdded =
-		postTitle.trim().length > 0 &&
-		items.some(
-			( i ) =>
-				i.type === 'headline' && i.content.trim() === postTitle.trim()
-		);
-
-	const importFromPost = useCallback( () => {
-		const newItems = [];
-		if ( postTitle.trim() ) {
-			newItems.push( { type: 'headline', content: postTitle.trim() } );
-		}
-		// Strip HTML tags, then decode HTML entities (e.g. &amp; &mdash; &nbsp;)
-		// so the excerpt is clean plain text before passing to the model.
-		const strippedExcerpt = postExcerpt.replace( /<[^>]*>/g, '' );
-		const entityDecoder = document.createElement( 'textarea' );
-		entityDecoder.innerHTML = strippedExcerpt;
-		const cleanExcerpt = entityDecoder.value.trim();
-		if ( cleanExcerpt ) {
-			newItems.push( { type: 'paragraph', content: cleanExcerpt } );
-		}
-		if ( newItems.length > 0 ) {
-			setItems( ( prev ) => [
-				...prev,
-				...newItems.map( ( i ) => ( { ...i, id: uid(), url: '' } ) ),
-			] );
-			markAldusUsed();
-		}
-	}, [ postTitle, postExcerpt, setItems, markAldusUsed ] );
 
 	const importFromEditor = useCallback( () => {
 		const newItems = [];
@@ -4017,7 +4136,7 @@ function BuildingScreen( {
 					{ noWebGPU && (
 						<Notice status="warning" isDismissible={ false }>
 							{ __(
-								'Your browser doesn\'t support WebGPU — you can still browse sample layouts in the "Try the personalities" tab.',
+								'Your browser doesn\'t support WebGPU — you can still browse sample layouts in the "Browse styles" tab.',
 								'aldus'
 							) }
 						</Notice>
@@ -4025,12 +4144,9 @@ function BuildingScreen( {
 					{ items.length === 0 && (
 						<EmptyState
 							onAdd={ addItem }
-							postTitle={ postTitle }
-							onImport={ importFromPost }
 							editorBlocks={ editorBlocks }
 							onImportFromEditor={ importFromEditor }
-							hasUsedAldus={ hasUsedAldus }
-							markAldusUsed={ markAldusUsed }
+							onLoadPreset={ loadPreset }
 						/>
 					) }
 
@@ -4103,30 +4219,6 @@ function BuildingScreen( {
 					) }
 
 					{ items.length > 0 && <ContentMinimap items={ items } /> }
-
-					{ items.length > 0 &&
-						postTitle.trim().length > 0 &&
-						! titleAlreadyAdded && (
-							<Button
-								variant="tertiary"
-								size="small"
-								className="aldus-import-post-btn"
-								onClick={ importFromPost }
-							>
-								{ __( '+ Add post title as content', 'aldus' ) }
-							</Button>
-						) }
-
-					{ editorBlocks?.length > 0 && (
-						<Button
-							variant="tertiary"
-							size="small"
-							className="aldus-import-post-btn"
-							onClick={ importFromEditor }
-						>
-							{ __( '+ Import content from this page', 'aldus' ) }
-						</Button>
-					) }
 
 					{ /* Item 3: Trailing + button replaces the dedicated Add content row */ }
 					{ items.length > 0 && (
@@ -4222,89 +4314,52 @@ function BuildingScreen( {
 
 function EmptyState( {
 	onAdd,
-	postTitle,
-	onImport,
 	editorBlocks,
 	onImportFromEditor,
-	hasUsedAldus,
-	markAldusUsed,
+	onLoadPreset,
 } ) {
-	const [ showTypes, setShowTypes ] = useState( false );
-	const [ showSecondary, setShowSecondary ] = useState( false );
+	// Summarise the editor's existing block tree into a human-readable hint
+	// shown beneath the import button, e.g. "4 headings · 6 paragraphs · 2 images".
+	const editorBlocksSummary = useMemo( () => {
+		if ( ! editorBlocks?.length ) {
+			return '';
+		}
+		const counts = {
+			heading: 0,
+			paragraph: 0,
+			image: 0,
+			quote: 0,
+			list: 0,
+		};
+		const walk = ( blocks ) => {
+			for ( const b of blocks ) {
+				if ( b.name === 'core/heading' ) {
+					counts.heading++;
+				} else if ( b.name === 'core/paragraph' ) {
+					counts.paragraph++;
+				} else if ( b.name === 'core/image' ) {
+					counts.image++;
+				} else if (
+					b.name === 'core/quote' ||
+					b.name === 'core/pullquote'
+				) {
+					counts.quote++;
+				} else if ( b.name === 'core/list' ) {
+					counts.list++;
+				}
+				if ( b.innerBlocks?.length ) {
+					walk( b.innerBlocks );
+				}
+			}
+		};
+		walk( editorBlocks );
+		return Object.entries( counts )
+			.filter( ( [ , n ] ) => n > 0 )
+			.map( ( [ type, n ] ) => `${ n } ${ type }${ n > 1 ? 's' : '' }` )
+			.join( ' · ' );
+	}, [ editorBlocks ] );
 
-	// First-time users see a simplified two-path screen.
-	// Once they've used Aldus (or click "Start fresh"), the full type grid appears.
-	const isFirstRun = ! hasUsedAldus && ! showTypes;
-
-	const handleImport = () => {
-		markAldusUsed?.();
-		onImport?.();
-	};
-
-	const handleStartFresh = () => {
-		markAldusUsed?.();
-		setShowTypes( true );
-	};
-
-	if ( isFirstRun ) {
-		return (
-			<div className="aldus-empty aldus-empty--onboarding">
-				<p className="aldus-empty-headline">
-					{ __( 'What do you want to say?', 'aldus' ) }
-				</p>
-				<p className="aldus-empty-sub">
-					{ __(
-						'Add a headline, some text, maybe an image — Aldus will show you sixteen ways to arrange it.',
-						'aldus'
-					) }
-				</p>
-				<div className="aldus-onboarding-paths">
-					{ postTitle?.trim().length > 0 && (
-						<button
-							className="aldus-onboarding-path aldus-onboarding-path--primary"
-							onClick={ handleImport }
-						>
-							<span className="aldus-onboarding-path-icon">
-								↑
-							</span>
-							<strong>
-								{ sprintf(
-									/* translators: %s is the post title */
-									__( 'Use "%s"', 'aldus' ),
-									postTitle.trim().length > 30
-										? postTitle.trim().slice( 0, 30 ) + '…'
-										: postTitle.trim()
-								) }
-							</strong>
-							<span className="aldus-onboarding-path-hint">
-								{ __(
-									'Auto-imports your post title and excerpt',
-									'aldus'
-								) }
-							</span>
-						</button>
-					) }
-					<button
-						className="aldus-onboarding-path"
-						onClick={ handleStartFresh }
-					>
-						<span className="aldus-onboarding-path-icon">+</span>
-						<strong>{ __( 'Start fresh', 'aldus' ) }</strong>
-						<span className="aldus-onboarding-path-hint">
-							{ __( 'Add your content piece by piece', 'aldus' ) }
-						</span>
-					</button>
-				</div>
-			</div>
-		);
-	}
-
-	const truncatedTitle =
-		postTitle?.trim().length > 40
-			? postTitle.trim().slice( 0, 40 ) + '…'
-			: postTitle?.trim();
-	const hasImportOptions =
-		postTitle?.trim().length > 0 || editorBlocks?.length > 0;
+	const hasEditorContent = editorBlocks?.length > 0;
 
 	return (
 		<div className="aldus-empty">
@@ -4313,82 +4368,58 @@ function EmptyState( {
 			</p>
 			<p className="aldus-empty-sub">
 				{ __(
-					'Add a headline, some text, maybe an image — Aldus will show you sixteen ways to arrange it.',
+					'Add your content, then Aldus shows you sixteen ways to arrange it.',
 					'aldus'
 				) }
 			</p>
-			{ /* Tiered inserter — primary types always visible, secondary behind disclosure */ }
-			<div className="aldus-empty-types">
-				{ PRIMARY_CONTENT_TYPES.map( ( t ) => (
+
+			{ hasEditorContent && (
+				<div className="aldus-empty-import-wrap">
 					<button
-						key={ t.type }
-						className="aldus-empty-type aldus-empty-type--primary"
-						onClick={ () => onAdd?.( t.type ) }
-						aria-label={ sprintf(
-							/* translators: %s is a content type, e.g. "Image". */
-							__( 'Add %s', 'aldus' ),
-							t.label
-						) }
+						className="aldus-empty-import-btn"
+						onClick={ onImportFromEditor }
 					>
-						<Icon icon={ t.icon } size={ 16 } />
-						<span>{ t.label }</span>
+						{ __( 'Import content from this page', 'aldus' ) }
+					</button>
+					{ editorBlocksSummary && (
+						<p className="aldus-empty-import-summary">
+							{ editorBlocksSummary }
+						</p>
+					) }
+				</div>
+			) }
+
+			<div className="aldus-empty-divider">
+				<span>
+					{ hasEditorContent
+						? __( 'or start with a template', 'aldus' )
+						: __( 'Start with a template', 'aldus' ) }
+				</span>
+			</div>
+
+			<div className="aldus-empty-preset-grid">
+				{ PRESETS.map( ( preset ) => (
+					<button
+						key={ preset.id }
+						className="aldus-empty-preset-card"
+						onClick={ () => onLoadPreset?.( preset ) }
+					>
+						<strong className="aldus-empty-preset-card-name">
+							{ preset.name }
+						</strong>
+						<span className="aldus-empty-preset-card-desc">
+							{ preset.description }
+						</span>
 					</button>
 				) ) }
 			</div>
-			{ ! showSecondary ? (
-				<button
-					className="aldus-more-types-trigger"
-					onClick={ () => setShowSecondary( true ) }
-				>
-					{ __( 'More types ▾', 'aldus' ) }
-				</button>
-			) : (
-				<div className="aldus-empty-types aldus-empty-types--secondary">
-					{ SECONDARY_CONTENT_TYPES.map( ( t ) => (
-						<button
-							key={ t.type }
-							className="aldus-empty-type"
-							onClick={ () => onAdd?.( t.type ) }
-							aria-label={ sprintf(
-								/* translators: %s is a content type, e.g. "Table". */
-								__( 'Add %s', 'aldus' ),
-								t.label
-							) }
-						>
-							<Icon icon={ t.icon } size={ 16 } />
-							<span>{ t.label }</span>
-						</button>
-					) ) }
-				</div>
-			) }
-			{ /* Import options as secondary path, below a divider */ }
-			{ hasImportOptions && (
-				<div className="aldus-empty-divider">
-					<span>{ __( 'or start from something', 'aldus' ) }</span>
-				</div>
-			) }
-			{ postTitle?.trim().length > 0 && (
-				<Button
-					variant="tertiary"
-					className="aldus-import-post-btn aldus-import-post-btn--empty"
-					onClick={ onImport }
-				>
-					{ sprintf(
-						/* translators: %s is the post title, e.g. "My Blog Post". */
-						__( 'Use "%s" as headline', 'aldus' ),
-						truncatedTitle
-					) }
-				</Button>
-			) }
-			{ editorBlocks?.length > 0 && (
-				<Button
-					variant="tertiary"
-					className="aldus-import-post-btn aldus-import-post-btn--empty"
-					onClick={ onImportFromEditor }
-				>
-					{ __( 'Import content from this page', 'aldus' ) }
-				</Button>
-			) }
+
+			<button
+				className="aldus-empty-manual-link"
+				onClick={ () => onAdd?.( 'headline' ) }
+			>
+				{ __( 'Add content manually', 'aldus' ) }
+			</button>
 		</div>
 	);
 }
@@ -4593,6 +4624,18 @@ function QuickPeek( { items } ) {
 	// are discarded when a newer request is in flight.
 	const peekRequestIdRef = useRef( 0 );
 
+	const customBlockStyles = useSelect( ( select ) => {
+		const fn = select( 'core/blocks' ).getBlockStyles;
+		if ( ! fn ) {
+			return {};
+		}
+		return {
+			pullquote: ( fn( 'core/pullquote' ) ?? [] ).map( ( s ) => s.name ),
+			image: ( fn( 'core/image' ) ?? [] ).map( ( s ) => s.name ),
+			button: ( fn( 'core/button' ) ?? [] ).map( ( s ) => s.name ),
+		};
+	}, [] );
+
 	// Pick 5 personalities to show in the compact strip.
 	// Stabilised per-mount so the user sees the same set during their session.
 	const compactPersonalities = useMemo( () => {
@@ -4634,6 +4677,7 @@ function QuickPeek( { items } ) {
 						items,
 						personality: personality.name,
 						tokens: seq,
+						custom_styles: customBlockStyles,
 					},
 				} );
 				// Discard stale responses if a newer request has since been issued.
@@ -4653,7 +4697,7 @@ function QuickPeek( { items } ) {
 				}
 			}
 		},
-		[ isPeeking, peekPersonality, peekBlocks, items ]
+		[ isPeeking, peekPersonality, peekBlocks, items, customBlockStyles ]
 	);
 
 	const parsedBlocks = useMemo( () => {
@@ -5454,6 +5498,24 @@ const ButtonInput = forwardRef( function ButtonInput(
 	{ item, onUpdate, labelText },
 	ref
 ) {
+	// Fetch nav menu items to suggest as link targets for the CTA URL field.
+	const navItems = useSelect( ( select ) => {
+		const menus = select( 'core' ).getEntityRecords( 'root', 'menu', {
+			per_page: -1,
+			context: 'view',
+		} );
+		if ( ! menus?.length ) {
+			return [];
+		}
+		return (
+			select( 'core' ).getEntityRecords( 'root', 'menu-item', {
+				menus: menus[ 0 ].id,
+				per_page: 12,
+				context: 'view',
+			} ) ?? []
+		);
+	}, [] );
+
 	return (
 		<div className="aldus-button-input" aria-label={ labelText }>
 			<TextControl
@@ -5476,12 +5538,26 @@ const ButtonInput = forwardRef( function ButtonInput(
 				__next40pxDefaultSize
 				__nextHasNoMarginBottom
 			/>
+			{ ! item.url && navItems?.length > 0 && (
+				<div className="aldus-nav-suggestions">
+					{ navItems.slice( 0, 6 ).map( ( m ) => (
+						<button
+							key={ m.id }
+							type="button"
+							className="aldus-nav-pill"
+							onClick={ () => onUpdate( { url: m.url } ) }
+						>
+							{ m.title?.rendered ?? m.url }
+						</button>
+					) ) }
+				</div>
+			) }
 		</div>
 	);
 } );
 
 // ---------------------------------------------------------------------------
-// Image input (unchanged)
+// Image input
 // ---------------------------------------------------------------------------
 
 const ImageInput = forwardRef( function ImageInput(
@@ -5489,6 +5565,20 @@ const ImageInput = forwardRef( function ImageInput(
 	ref
 ) {
 	const hasUrl = !! item.url;
+
+	// Fetch recent media library images to show as quick-select thumbnails
+	// when no image has been chosen yet.
+	const recentMedia = useSelect(
+		( select ) =>
+			select( 'core' ).getMediaItems( {
+				per_page: 8,
+				orderby: 'date',
+				order: 'desc',
+				media_type: 'image',
+			} ) ?? [],
+		[]
+	);
+
 	return (
 		<div className="aldus-image-input" aria-label={ labelText }>
 			{ hasUrl && (
@@ -5555,6 +5645,33 @@ const ImageInput = forwardRef( function ImageInput(
 					</FlexItem>
 				) }
 			</Flex>
+			{ ! hasUrl && recentMedia.length > 0 && (
+				<div className="aldus-recent-media">
+					{ recentMedia.map( ( m ) => (
+						<button
+							key={ m.id }
+							type="button"
+							className="aldus-media-thumb"
+							onClick={ () =>
+								onUpdate( {
+									url: m.source_url,
+									content:
+										m.alt_text || m.title?.rendered || '',
+									mediaId: m.id,
+								} )
+							}
+						>
+							<img
+								src={
+									m.media_details?.sizes?.thumbnail
+										?.source_url ?? m.source_url
+								}
+								alt=""
+							/>
+						</button>
+					) ) }
+				</div>
+			) }
 		</div>
 	);
 } );

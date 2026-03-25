@@ -54,7 +54,7 @@ Browse the sixteen layout cards. Each shows a wireframe so you can scan the rhyt
 - **Mix & Match** — combine the best sections from different personalities into a single custom layout
 - **Saved Sessions** — snapshot your content and results, come back to them later
 - **Quick Start presets** — jump in with a sensible content structure for a blog post, landing page, feature story, product pitch, visual portfolio, or product comparison — accessible right from the empty state
-- **Nine sample packs** — try all sixteen personalities instantly with themed content including Forge (industrial craft) and Slim (minimal — shows exactly what lean input looks like across all styles) — no model download needed
+- **Seven sample packs** — try all sixteen personalities instantly with themed content: Roast, Meridian, Hearth, Plume, Grove, Loot, and Signal — no model download needed
 - **Completeness hints** — colored prompts that tell you which content type would unlock more layout options
 
 ---
