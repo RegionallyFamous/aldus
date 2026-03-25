@@ -227,7 +227,7 @@ jobs:
         run: npm run build
 
       - name: WordPress Plugin Check
-        uses: wordpress/plugin-check-action@v1
+        uses: wordpress/plugin-check-action@v1.1.5
         with:
           build-dir: "./"
           # Exclude dev-only directories so the check only sees distributable files.
