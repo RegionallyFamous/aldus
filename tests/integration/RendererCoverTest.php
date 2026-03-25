@@ -6,6 +6,11 @@ declare(strict_types=1);
  *
  * Requires a real WordPress installation (WP_UnitTestCase).
  * Run with: vendor/bin/phpunit -c phpunit-integration.xml.dist
+ *
+ * Function signature:
+ *   aldus_block_cover( Aldus_Content_Distributor $dist, string $color_slug,
+ *                      int $dim_ratio, string $font_size, bool $is_light = false,
+ *                      string $name = '', int $variant = 0, int $post_id = 0 ): string
  */
 class RendererCoverTest extends WP_UnitTestCase {
 
@@ -37,7 +42,7 @@ class RendererCoverTest extends WP_UnitTestCase {
 
 	public function test_cover_dark_contains_cover_block_markup(): void {
 		$dist   = $this->make_dist( [ 'headline', 'paragraph', 'image' ] );
-		$result = aldus_block_cover( $dist, 'dark', 'primary', 'large', 'Cover Section', 0 );
+		$result = aldus_block_cover( $dist, 'dark', 60, 'large', false, 'Cover Section' );
 
 		$this->assertStringContainsString( 'wp-block-cover', $result );
 		$this->assertStringContainsString( 'alignfull', $result );
@@ -45,7 +50,7 @@ class RendererCoverTest extends WP_UnitTestCase {
 
 	public function test_cover_output_starts_with_block_comment(): void {
 		$dist   = $this->make_dist( [ 'headline', 'image' ] );
-		$result = aldus_block_cover( $dist, 'dark', 'contrast', 'large', 'Cover', 0 );
+		$result = aldus_block_cover( $dist, 'dark', 60, 'large', false, 'Cover' );
 
 		$this->assertStringStartsWith( '<!-- wp:cover', $result );
 	}
@@ -68,22 +73,22 @@ class RendererCoverTest extends WP_UnitTestCase {
 			],
 		] );
 
-		$result = aldus_block_cover( $dist, 'dark', 'primary', 'large', 'Cover', 0 );
+		$result = aldus_block_cover( $dist, 'dark', 60, 'large', false, 'Cover' );
 
 		$this->assertStringNotContainsString( '<script>', $result );
 		$this->assertStringContainsString( 'Clean Title', $result );
 	}
 
 	public function test_cover_returns_string_without_image(): void {
-		$dist = $this->make_dist( [ 'headline', 'paragraph' ] );
-		$result = aldus_block_cover( $dist, 'dark', 'primary', 'large', 'Cover', 0 );
+		$dist   = $this->make_dist( [ 'headline', 'paragraph' ] );
+		$result = aldus_block_cover( $dist, 'dark', 60, 'large', false, 'Cover' );
 
 		$this->assertIsString( $result );
 	}
 
 	public function test_cover_output_is_parseable_as_blocks(): void {
 		$dist   = $this->make_dist( [ 'headline', 'paragraph', 'image' ] );
-		$result = aldus_block_cover( $dist, 'dark', 'primary', 'large', 'Cover', 0 );
+		$result = aldus_block_cover( $dist, 'dark', 60, 'large', false, 'Cover' );
 
 		$parsed = parse_blocks( $result );
 		$real   = array_filter( $parsed, fn( $b ) => ! empty( $b['blockName'] ) );
@@ -96,8 +101,8 @@ class RendererCoverTest extends WP_UnitTestCase {
 		$dist_dark  = $this->make_dist( [ 'headline', 'image' ] );
 		$dist_light = $this->make_dist( [ 'headline', 'image' ] );
 
-		$dark_result  = aldus_block_cover( $dist_dark, 'dark', 'contrast', 'large', 'Cover', 0 );
-		$light_result = aldus_block_cover( $dist_light, 'light', 'base', 'large', 'Cover', 0 );
+		$dark_result  = aldus_block_cover( $dist_dark, 'dark', 60, 'large', false, 'Cover' );
+		$light_result = aldus_block_cover( $dist_light, 'light', 30, 'large', true, 'Cover' );
 
 		// The two variants differ in their overlay color classes.
 		$this->assertNotSame( $dark_result, $light_result );

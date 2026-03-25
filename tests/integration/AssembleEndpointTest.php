@@ -90,7 +90,9 @@ class AssembleEndpointTest extends WP_UnitTestCase {
 		] );
 
 		$response = rest_do_request( $request );
-		$this->assertSame( 403, $response->get_status() );
+		// WordPress returns 401 for unauthenticated REST requests and 403 for
+		// authenticated users who lack the required capability.
+		$this->assertContains( $response->get_status(), [ 401, 403 ] );
 	}
 
 	public function test_assemble_rejects_subscriber(): void {
@@ -112,7 +114,7 @@ class AssembleEndpointTest extends WP_UnitTestCase {
 	// Input validation
 	// -----------------------------------------------------------------------
 
-	public function test_invalid_tokens_are_stripped_not_rejected(): void {
+	public function test_invalid_tokens_are_rejected(): void {
 		wp_set_current_user( $this->editor_id );
 
 		$request = new WP_REST_Request( 'POST', '/aldus/v1/assemble' );
@@ -122,7 +124,25 @@ class AssembleEndpointTest extends WP_UnitTestCase {
 				[ 'type' => 'cta', 'content' => 'Go', 'url' => '/', 'id' => 'b' ],
 			],
 			'personality' => 'Dispatch',
-			'tokens'      => [ '<script>alert(1)</script>', 'cover:dark', 'buttons:cta' ],
+			'tokens'      => [ '<script>alert(1)</script>' ],
+		] );
+
+		$response = rest_do_request( $request );
+		// Unrecognised tokens are rejected with 400 by the validate_callback.
+		$this->assertSame( 400, $response->get_status() );
+	}
+
+	public function test_valid_tokens_are_accepted(): void {
+		wp_set_current_user( $this->editor_id );
+
+		$request = new WP_REST_Request( 'POST', '/aldus/v1/assemble' );
+		$request->set_body_params( [
+			'items'       => [
+				[ 'type' => 'paragraph', 'content' => 'test', 'url' => '', 'id' => 'a' ],
+				[ 'type' => 'cta', 'content' => 'Go', 'url' => '/', 'id' => 'b' ],
+			],
+			'personality' => 'Dispatch',
+			'tokens'      => [ 'cover:dark', 'buttons:cta' ],
 		] );
 
 		$response = rest_do_request( $request );
