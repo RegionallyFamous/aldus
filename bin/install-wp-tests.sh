@@ -202,7 +202,8 @@ install_test_suite() {
 
 		tar -zxmf "$TMPDIR/wordpress-develop.tar.gz" -C "$TMPDIR"
 		mv "$TMPDIR/wordpress-develop-${ref}/tests/phpunit/includes" "$WP_TESTS_DIR"/
-		mv "$TMPDIR/wordpress-develop-${ref}/tests/phpunit/data" "$WP_TESTS_DIR"/
+		[ -d "$TMPDIR/wordpress-develop-${ref}/tests/phpunit/data" ] \
+			&& mv "$TMPDIR/wordpress-develop-${ref}/tests/phpunit/data" "$WP_TESTS_DIR"/
 		rm -rf "$TMPDIR/wordpress-develop-${ref}"
 		rm "$TMPDIR/wordpress-develop.tar.gz"
 		echo -e "${GREEN}Test suite installed.${RESET}"

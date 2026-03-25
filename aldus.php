@@ -251,7 +251,9 @@ function aldus_register_block(): void {
 		// Surface the module URL to the editor script via an inline script.
 		wp_add_inline_script(
 			'aldus-aldus-layout-generator-editor-script',
-			'window.__aldusScriptModules = window.__aldusScriptModules || {}; window.__aldusScriptModules["@aldus/webllm-runtime"] = ' . wp_json_encode( ALDUS_URL . 'build/692.js' ) . ';',
+			'window.__aldusScriptModules = window.__aldusScriptModules || {};' .
+			' window.__aldusScriptModules["@aldus/webllm-runtime"] = ' .
+			wp_json_encode( ALDUS_URL . 'build/692.js' ) . ';',
 			'before'
 		);
 	}

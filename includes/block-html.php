@@ -212,13 +212,13 @@ function aldus_media_text_classes(
  * less vertical space to avoid the text floating in a void.
  *
  * @param string $headline_text The raw (un-escaped) headline string.
- * @param int    $default       Fallback value when $headline_text is empty.
+ * @param int    $fallback      Fallback value when $headline_text is empty.
  */
-function aldus_cover_min_height( string $headline_text, int $default = 420 ): int {
+function aldus_cover_min_height( string $headline_text, int $fallback = 420 ): int {
 	// mb_strlen for accurate character count with multi-byte (non-Latin) headlines.
 	$len = mb_strlen( $headline_text );
 	if ( $len === 0 ) {
-		return $default;
+		return $fallback;
 	}
 	if ( $len <= 40 ) {
 		return 480;
@@ -236,10 +236,10 @@ function aldus_cover_min_height( string $headline_text, int $default = 420 ): in
  * Returns the value formatted as a px string for use in block attrs.
  *
  * @param string $headline_text The raw (un-escaped) headline string.
- * @param int    $default       Fallback value when $headline_text is empty.
+ * @param int    $fallback      Fallback value when $headline_text is empty.
  */
-function aldus_cover_min_height_px( string $headline_text, int $default = 420 ): string {
-	return aldus_cover_min_height( $headline_text, $default ) . 'px';
+function aldus_cover_min_height_px( string $headline_text, int $fallback = 420 ): string {
+	return aldus_cover_min_height( $headline_text, $fallback ) . 'px';
 }
 
 /**
@@ -249,10 +249,10 @@ function aldus_cover_min_height_px( string $headline_text, int $default = 420 ):
  * Returns the value as a CSS style string for use in innerContent.
  *
  * @param string $headline_text The raw (un-escaped) headline string.
- * @param int    $default       Fallback value when $headline_text is empty.
+ * @param int    $fallback      Fallback value when $headline_text is empty.
  */
-function aldus_cover_min_height_style( string $headline_text, int $default = 420 ): string {
-	return 'min-height:' . aldus_cover_min_height( $headline_text, $default ) . 'px';
+function aldus_cover_min_height_style( string $headline_text, int $fallback = 420 ): string {
+	return 'min-height:' . aldus_cover_min_height( $headline_text, $fallback ) . 'px';
 }
 
 /**
