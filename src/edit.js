@@ -2517,7 +2517,7 @@ async function inferTokens(
 
 // JS build version — must match ALDUS_VERSION in aldus.php.
 // Set by the release script; used only for the mismatch warning below.
-const ALDUS_JS_VERSION = '1.10.2';
+const ALDUS_JS_VERSION = '1.11.0';
 
 export default function Edit( { clientId, attributes, setAttributes } ) {
 	const blockProps = useBlockProps( {

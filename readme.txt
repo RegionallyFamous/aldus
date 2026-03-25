@@ -3,7 +3,7 @@ Contributors: regionallyfamous
 Tags: blocks, gutenberg, layout, design, composer
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 1.10.2
+Stable tag: 1.11.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -126,6 +126,12 @@ Five themed content packs (Roast — specialty coffee; Meridian — B2B SaaS; He
 An optional free-text field on the building screen that steers the layout model — for example "lead with the image", "keep it minimal", or "bold CTA up top". It's passed directly into the model prompt.
 
 == Changelog ==
+
+= 1.11.0 =
+* Any future render error in the block now shows a contained error panel instead of blanking the entire editor — you can keep editing the rest of your post.
+* Build and CI now catch undefined icon imports and incomplete bundles before they can be released, preventing the class of bug fixed in 1.10.2.
+* API responses from the server are now validated before use, so a malformed response fails gracefully instead of crashing the block.
+* The block is better at extracting usable JSON from LLM output that includes extra preamble text, reducing generation failures.
 
 = 1.10.2 =
 * Fixed a crash that caused the block editor to go blank when the Aldus block was present on the page.
