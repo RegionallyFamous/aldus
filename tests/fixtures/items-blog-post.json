@@ -1,0 +1,45 @@
+[
+	{
+		"type": "headline",
+		"content": "The Future of Coffee Is Here — And It Tastes Like a Forest",
+		"url": "",
+		"id": "h1-a"
+	},
+	{
+		"type": "subheading",
+		"content": "Meet the farmers reinventing single-origin sourcing from the ground up",
+		"url": "",
+		"id": "sub-a"
+	},
+	{
+		"type": "paragraph",
+		"content": "For most of coffee history, origin stories were marketing. A farm name on a bag meant almost nothing about what was inside. That's changing fast.",
+		"url": "",
+		"id": "p-a"
+	},
+	{
+		"type": "paragraph",
+		"content": "The new generation of importers is using GPS-tagged micro-lots, blockchain provenance records, and blind cupping panels to bring traceability into every roast.",
+		"url": "",
+		"id": "p-b"
+	},
+	{
+		"type": "quote",
+		"content": "You can't hide behind vague country names anymore. The buyer knows which tree the cherry came from.",
+		"url": "",
+		"id": "q-a"
+	},
+	{
+		"type": "image",
+		"content": "A coffee farmer checks ripeness at the Finca El Sol estate in Colombia",
+		"url": "https://example.com/coffee-farm.jpg",
+		"id": "img-a",
+		"mediaId": 0
+	},
+	{
+		"type": "cta",
+		"content": "Read the full series",
+		"url": "/series/single-origin",
+		"id": "cta-a"
+	}
+]

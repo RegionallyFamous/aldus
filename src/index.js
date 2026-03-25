@@ -189,6 +189,69 @@ function extractItemFromBlock( block ) {
 			},
 		];
 	}
+	// core/details — extract the summary (first inner heading or paragraph) as a details item.
+	if ( block.name === 'core/details' ) {
+		const summaryBlock = ( block.innerBlocks ?? [] ).find(
+			( b ) => b.name === 'core/paragraph' || b.name === 'core/heading'
+		);
+		const content = summaryBlock?.attributes?.content ?? '';
+		if ( ! content ) {
+			return [];
+		}
+		return [
+			{
+				id: generateId(),
+				type: 'details',
+				content,
+				url: '',
+			},
+		];
+	}
+	// core/verse — map to quote (poetic emphasis, semantically similar to pullquote).
+	if ( block.name === 'core/verse' ) {
+		const content = block.attributes?.content ?? '';
+		if ( ! content ) {
+			return [];
+		}
+		return [
+			{
+				id: generateId(),
+				type: 'quote',
+				content,
+				url: '',
+			},
+		];
+	}
+	// core/code and core/preformatted — map to the code content type.
+	if ( block.name === 'core/code' || block.name === 'core/preformatted' ) {
+		const content = block.attributes?.content ?? '';
+		if ( ! content ) {
+			return [];
+		}
+		return [
+			{
+				id: generateId(),
+				type: 'code',
+				content,
+				url: '',
+			},
+		];
+	}
+	// core/separator — structural marker; drop gracefully without logging an error.
+	if ( block.name === 'core/separator' ) {
+		return [];
+	}
+	// core/columns — walk each column's innerBlocks recursively to extract items.
+	if ( block.name === 'core/columns' ) {
+		return ( block.innerBlocks ?? [] ).flatMap( ( column ) =>
+			( column.innerBlocks ?? [] ).flatMap( extractItemFromBlock )
+		);
+	}
+	// core/group — already handled by the transform itself, but when nested inside
+	// columns we may encounter groups; walk their innerBlocks too.
+	if ( block.name === 'core/group' ) {
+		return ( block.innerBlocks ?? [] ).flatMap( extractItemFromBlock );
+	}
 	return [];
 }
 
@@ -242,6 +305,10 @@ registerBlockType( metadata.name, {
 					'core/embed',
 					'core/table',
 					'core/gallery',
+					'core/code',
+					'core/preformatted',
+					'core/verse',
+					'core/details',
 				],
 				transform: ( blocksArray ) => {
 					const items = blocksArray

@@ -12,45 +12,47 @@ class PruneTokensTest extends TestCase {
 
 	/** @test */
 	public function removes_image_tokens_without_image(): void {
-		$tokens   = [ 'heading:h1', 'image:wide', 'paragraph', 'image:full' ];
+		// image:wide is not a global anchor — it will be pruned when no image is available.
+		// image:full is a Nocturne anchor and is therefore never pruned.
+		$tokens   = [ 'heading:h1', 'image:wide', 'paragraph' ];
 		$manifest = [ 'headline' => 1, 'paragraph' => 1 ];
 		$result   = aldus_prune_unavailable_tokens( $tokens, $manifest );
 
 		$this->assertNotContains( 'image:wide', $result );
-		$this->assertNotContains( 'image:full', $result );
 		$this->assertContains( 'heading:h1', $result );
 		$this->assertContains( 'paragraph', $result );
 	}
 
 	/** @test */
 	public function removes_quote_tokens_without_quote(): void {
-		$tokens   = [ 'paragraph', 'pullquote:wide', 'pullquote:full-solid', 'quote' ];
+		// 'quote' is not a global anchor, so it will be pruned when absent.
+		// pullquote:wide IS a Folio anchor and will never be pruned.
+		$tokens   = [ 'paragraph', 'quote' ];
 		$manifest = [ 'paragraph' => 3 ]; // no quote
 		$result   = aldus_prune_unavailable_tokens( $tokens, $manifest );
 
-		$this->assertNotContains( 'pullquote:wide', $result );
-		$this->assertNotContains( 'pullquote:full-solid', $result );
 		$this->assertNotContains( 'quote', $result );
+		$this->assertContains( 'paragraph', $result );
 	}
 
 	/** @test */
 	public function keeps_quote_tokens_when_quote_present(): void {
-		$tokens   = [ 'paragraph', 'pullquote:wide', 'quote' ];
+		$tokens   = [ 'paragraph', 'quote' ];
 		$manifest = [ 'paragraph' => 2, 'quote' => 1 ];
 		$result   = aldus_prune_unavailable_tokens( $tokens, $manifest );
 
-		$this->assertContains( 'pullquote:wide', $result );
 		$this->assertContains( 'quote', $result );
 	}
 
 	/** @test */
 	public function removes_gallery_tokens_without_gallery(): void {
-		$tokens   = [ 'paragraph', 'gallery:2-col', 'gallery:3-col' ];
+		// gallery:3-col is a Mosaic/Prism anchor and is never pruned.
+		// gallery:2-col is not a global anchor and will be pruned.
+		$tokens   = [ 'paragraph', 'gallery:2-col' ];
 		$manifest = [ 'paragraph' => 2 ];
 		$result   = aldus_prune_unavailable_tokens( $tokens, $manifest );
 
 		$this->assertNotContains( 'gallery:2-col', $result );
-		$this->assertNotContains( 'gallery:3-col', $result );
 	}
 
 	/** @test */

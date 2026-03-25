@@ -78,6 +78,7 @@ import {
 	video as videoIcon,
 	table as tableIcon,
 	gallery as galleryIcon,
+	code as codeIcon,
 	plus,
 	undo,
 	seen,
@@ -157,7 +158,7 @@ const PERSONALITIES = [
 		name: 'Folio',
 		description:
 			'Classic asymmetric editorial: every section is labeled left and body right, like a magazine feature spread.',
-		anchors: [ 'columns:28-72', 'pullquote:wide' ],
+		anchors: [ 'columns:28-72', 'pullquote:wide', 'paragraph:lead' ],
 		relevantTokens: [
 			'columns:28-72',
 			'pullquote:wide',
@@ -165,6 +166,7 @@ const PERSONALITIES = [
 			'heading:h2',
 			'paragraph',
 			'paragraph:dropcap',
+			'paragraph:lead',
 			'separator',
 			'quote',
 			'quote:attributed',
@@ -248,11 +250,17 @@ const PERSONALITIES = [
 		name: 'Broadside',
 		description:
 			'Cinematic alternating image-text panels with a punchy CTA cut-in, like a Stripe product page.',
-		anchors: [ 'media-text:left', 'media-text:right', 'group:accent-full' ],
+		anchors: [
+			'media-text:left',
+			'media-text:right',
+			'group:accent-full',
+			'row:stats',
+		],
 		relevantTokens: [
 			'media-text:left',
 			'media-text:right',
 			'group:accent-full',
+			'row:stats',
 			'heading:h1',
 			'heading:h2',
 			'paragraph',
@@ -290,7 +298,12 @@ const PERSONALITIES = [
 		name: 'Manifesto',
 		description:
 			'Starts silent with a raw H1 and separator, then erupts into a full-dark declaration, then triptych columns.',
-		anchors: [ 'heading:h1', 'group:dark-full', 'columns:3-equal' ],
+		anchors: [
+			'heading:h1',
+			'group:dark-full',
+			'columns:3-equal',
+			'paragraph:lead',
+		],
 		relevantTokens: [
 			'heading:h1',
 			'heading:h2',
@@ -300,6 +313,7 @@ const PERSONALITIES = [
 			'columns:3-equal',
 			'pullquote:wide',
 			'paragraph',
+			'paragraph:lead',
 			'paragraph:dropcap',
 			'buttons:cta',
 			'spacer:large',
@@ -383,10 +397,17 @@ const PERSONALITIES = [
 		name: 'Tribune',
 		description:
 			'Three-column opener like a newspaper front page, anchored by a solid pullquote that splits the page in two.',
-		anchors: [ 'columns:3-equal', 'pullquote:full-solid' ],
+		anchors: [
+			'columns:3-equal',
+			'pullquote:full-solid',
+			'group:grid',
+			'row:stats',
+		],
 		relevantTokens: [
 			'columns:3-equal',
 			'pullquote:full-solid',
+			'group:grid',
+			'row:stats',
 			'columns:28-72',
 			'heading:h1',
 			'heading:h2',
@@ -472,11 +493,21 @@ const PERSONALITIES = [
 		name: 'Codex',
 		description:
 			'Typographic restraint: display headlines, kicker labels, and editorial border-inset sections with generous white space.',
-		anchors: [ 'heading:display', 'heading:kicker', 'group:border-box' ],
+		anchors: [
+			'heading:display',
+			'heading:kicker',
+			'group:border-box',
+			'details:accordion',
+			'code:block',
+			'paragraph:lead',
+		],
 		relevantTokens: [
 			'heading:display',
 			'heading:kicker',
 			'group:border-box',
+			'details:accordion',
+			'code:block',
+			'paragraph:lead',
 			'heading:h1',
 			'heading:h2',
 			'separator',
@@ -562,10 +593,11 @@ const PERSONALITIES = [
 		name: 'Broadsheet',
 		description:
 			'Newspaper-grid density: four equal columns, a centered pullquote that cleaves the page, full story coverage.',
-		anchors: [ 'columns:4-equal', 'pullquote:centered' ],
+		anchors: [ 'columns:4-equal', 'pullquote:centered', 'group:grid' ],
 		relevantTokens: [
 			'columns:4-equal',
 			'pullquote:centered',
+			'group:grid',
 			'heading:h1',
 			'heading:h2',
 			'heading:h3',
@@ -696,11 +728,19 @@ const PERSONALITIES = [
 		name: 'Ledger',
 		description:
 			'Long-form essay or report structure: two-column flow, attributed quote, editorial border-inset for the key section.',
-		anchors: [ 'columns:2-equal', 'quote:attributed', 'group:border-box' ],
+		anchors: [
+			'columns:2-equal',
+			'quote:attributed',
+			'group:border-box',
+			'details:accordion',
+			'code:block',
+		],
 		relevantTokens: [
 			'columns:2-equal',
 			'quote:attributed',
 			'group:border-box',
+			'details:accordion',
+			'code:block',
 			'heading:h1',
 			'heading:h2',
 			'paragraph',
@@ -1160,6 +1200,22 @@ const CONTENT_TYPES = [
 		input: 'gallery',
 		description: __( 'A grid of images', 'aldus' ),
 	},
+	{
+		type: 'code',
+		label: __( 'Code', 'aldus' ),
+		icon: codeIcon,
+		placeholder: __( 'Paste your code snippet here', 'aldus' ),
+		input: 'textarea',
+		description: __( 'A code block', 'aldus' ),
+	},
+	{
+		type: 'details',
+		label: __( 'FAQ / Accordion', 'aldus' ),
+		icon: formatListBullets,
+		placeholder: __( 'Question or section heading', 'aldus' ),
+		input: 'text',
+		description: __( 'A collapsible FAQ section', 'aldus' ),
+	},
 ];
 
 const TYPE_META = Object.fromEntries(
@@ -1335,6 +1391,40 @@ const PRESETS = [
 		],
 	},
 	{
+		id: 'tutorial',
+		name: __( 'Tutorial', 'aldus' ),
+		description: __(
+			'Headline · Intro · Code · Explanation · Image',
+			'aldus'
+		),
+		items: [
+			{
+				type: 'headline',
+				content: __( 'How to Set Up Your First API Key', 'aldus' ),
+			},
+			{
+				type: 'paragraph',
+				content: __(
+					'Before you can make your first request, you need an API key. This takes about two minutes and only needs to happen once.',
+					'aldus'
+				),
+			},
+			{
+				type: 'code',
+				content:
+					'curl -X POST https://api.example.com/v1/auth \\\n  -H "Content-Type: application/json" \\\n  -d \'{"email": "you@example.com"}\'',
+			},
+			{
+				type: 'paragraph',
+				content: __(
+					"The response includes a token field. Copy it — you'll use it as the Authorization header in every subsequent request. Tokens expire after 24 hours.",
+					'aldus'
+				),
+			},
+			{ type: 'image' },
+		],
+	},
+	{
 		id: 'comparison',
 		name: __( 'Comparison', 'aldus' ),
 		description: __( 'Headline · Table · Paragraph · Button', 'aldus' ),
@@ -1416,6 +1506,11 @@ const WF = {
 	'video:hero': [ 60, 'full', '#111' ],
 	'video:section': [ 44, 'full', '#1a1a1a' ],
 	'table:data': [ 32, 'cols-4', '#efefef' ],
+	'group:grid': [ 52, 'grid-3', '#f0f0f0' ],
+	'row:stats': [ 30, 'cols-4', '#fafafa' ],
+	'details:accordion': [ 36, 'lines', '#e8e8e8' ],
+	'code:block': [ 28, 'lines', '#1e1e2e' ],
+	'paragraph:lead': [ 18, 'text', '#888' ],
 };
 
 const WF_DEFAULT = [ 14, 'text', '#ccc' ];
@@ -2451,12 +2546,13 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		setPref( 'aldus', 'hasUsedAldus', true );
 	}, [ setPref ] );
 
-	// Read post context for LLM prompt enrichment and personality auto-sort.
-	const { postTitle, postType } = useSelect( ( select ) => {
+	// Read post context for LLM prompt enrichment, personality auto-sort, and cover fallback.
+	const { postTitle, postType, postId } = useSelect( ( select ) => {
 		const editor = select( 'core/editor' );
 		return {
 			postTitle: editor?.getEditedPostAttribute( 'title' ) ?? '',
 			postType: editor?.getCurrentPostType() ?? 'post',
+			postId: editor?.getEditedPostAttribute( 'id' ) ?? null,
 		};
 	}, [] );
 
@@ -2819,6 +2915,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 									tokens,
 									use_bindings: useMeta,
 									custom_styles: customBlockStyles,
+									post_id: postId || 0,
 								},
 							} );
 						} finally {
@@ -3077,6 +3174,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							reroll_count: rerollCount,
 							use_bindings: false,
 							custom_styles: customBlockStyles,
+							post_id: postId || 0,
 						},
 					} );
 				} else {
@@ -3126,6 +3224,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							reroll_count: rerollCount,
 							use_bindings: useMeta,
 							custom_styles: customBlockStyles,
+							post_id: postId || 0,
 						},
 					} );
 				}
@@ -3163,7 +3262,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 				setRerollingLabel( null );
 			}
 		},
-		[ isPreview, items, styleNote, useMeta ] // eslint-disable-line react-hooks/exhaustive-deps
+		[ isPreview, items, styleNote, useMeta, postId ] // eslint-disable-line react-hooks/exhaustive-deps
 	);
 
 	const generate = useCallback( () => {

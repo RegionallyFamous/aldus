@@ -25,10 +25,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Aldus_Content_Distributor {
 
 	/** @var array<string, list<array{type:string,content:string,url:string}>> */
-	private array $pools = [];
+	private array $pools = array();
 
 	/** @var array<string, int> */
-	private array $cursors = [];
+	private array $cursors = array();
 
 	/**
 	 * @param list<array{type:string,content:string,url:string}> $items
@@ -143,11 +143,23 @@ class Aldus_Content_Distributor {
  */
 function aldus_spacer_height( string $size ): string {
 	$scale = aldus_theme_spacer_scale();
-	$map   = [
-		'generous' => [ 'small' => '16px', 'large' => '32px', 'xlarge' => '48px' ],
-		'normal'   => [ 'small' => '32px', 'large' => '64px', 'xlarge' => '96px' ],
-		'tight'    => [ 'small' => '48px', 'large' => '80px', 'xlarge' => '120px' ],
-	];
+	$map   = array(
+		'generous' => array(
+			'small'  => '16px',
+			'large'  => '32px',
+			'xlarge' => '48px',
+		),
+		'normal'   => array(
+			'small'  => '32px',
+			'large'  => '64px',
+			'xlarge' => '96px',
+		),
+		'tight'    => array(
+			'small'  => '48px',
+			'large'  => '80px',
+			'xlarge' => '120px',
+		),
+	);
 	return $map[ $scale ][ $size ] ?? '64px';
 }
 
@@ -199,23 +211,143 @@ function aldus_personality_style_rules(): array {
 	//   blockGap  — '1rem' | '1.5rem' | '2rem'  (derived from density)
 	//   edges     — 'soft' | 'sharp' | 'default' (border-radius treatment)
 	//   separator — 'default' | 'wide' | 'dots'  (separator style variant)
-	$rules = [
-		'Dispatch'   => [ 'align' => 'left',     'density' => 'balanced', 'contrast' => 'high',   'accent' => 'restrained', 'blockGap' => '1.5rem', 'edges' => 'sharp',   'separator' => 'wide'    ],
-		'Tribune'    => [ 'align' => 'centered',  'density' => 'dense',    'contrast' => 'medium', 'accent' => 'restrained', 'blockGap' => '1rem',   'edges' => 'sharp',   'separator' => 'wide'    ],
-		'Folio'      => [ 'align' => 'left',     'density' => 'airy',     'contrast' => 'medium', 'accent' => 'restrained', 'blockGap' => '2rem',   'edges' => 'default', 'separator' => 'default' ],
-		'Nocturne'   => [ 'align' => 'centered',  'density' => 'airy',     'contrast' => 'high',   'accent' => 'pronounced', 'blockGap' => '2rem',   'edges' => 'default', 'separator' => 'wide'    ],
-		'Broadsheet' => [ 'align' => 'left',     'density' => 'dense',    'contrast' => 'high',   'accent' => 'restrained', 'blockGap' => '1rem',   'edges' => 'sharp',   'separator' => 'wide'    ],
-		'Codex'      => [ 'align' => 'left',     'density' => 'balanced', 'contrast' => 'medium', 'accent' => 'restrained', 'blockGap' => '1.5rem', 'edges' => 'sharp',   'separator' => 'default' ],
-		'Dusk'       => [ 'align' => 'centered',  'density' => 'airy',     'contrast' => 'high',   'accent' => 'pronounced', 'blockGap' => '2rem',   'edges' => 'default', 'separator' => 'wide'    ],
-		'Solstice'   => [ 'align' => 'centered',  'density' => 'balanced', 'contrast' => 'high',   'accent' => 'pronounced', 'blockGap' => '1.5rem', 'edges' => 'soft',    'separator' => 'wide'    ],
-		'Mirage'     => [ 'align' => 'mixed',     'density' => 'airy',     'contrast' => 'high',   'accent' => 'pronounced', 'blockGap' => '2rem',   'edges' => 'soft',    'separator' => 'wide'    ],
-		'Ledger'     => [ 'align' => 'left',     'density' => 'dense',    'contrast' => 'medium', 'accent' => 'restrained', 'blockGap' => '1rem',   'edges' => 'default', 'separator' => 'dots'    ],
-		'Mosaic'     => [ 'align' => 'mixed',     'density' => 'balanced', 'contrast' => 'high',   'accent' => 'pronounced', 'blockGap' => '1.5rem', 'edges' => 'default', 'separator' => 'wide'    ],
-		'Prism'      => [ 'align' => 'mixed',     'density' => 'airy',     'contrast' => 'high',   'accent' => 'pronounced', 'blockGap' => '2rem',   'edges' => 'soft',    'separator' => 'wide'    ],
-		'Broadside'  => [ 'align' => 'left',      'density' => 'balanced', 'contrast' => 'high',   'accent' => 'pronounced', 'blockGap' => '1.5rem', 'edges' => 'default', 'separator' => 'wide'    ],
-		'Manifesto'  => [ 'align' => 'centered',  'density' => 'airy',     'contrast' => 'high',   'accent' => 'pronounced', 'blockGap' => '2rem',   'edges' => 'default', 'separator' => 'wide'    ],
-		'Overture'   => [ 'align' => 'centered',  'density' => 'airy',     'contrast' => 'medium', 'accent' => 'pronounced', 'blockGap' => '2rem',   'edges' => 'soft',    'separator' => 'wide'    ],
-	];
+	$rules = array(
+		'Dispatch'   => array(
+			'align'     => 'left',
+			'density'   => 'balanced',
+			'contrast'  => 'high',
+			'accent'    => 'restrained',
+			'blockGap'  => '1.5rem',
+			'edges'     => 'sharp',
+			'separator' => 'wide',
+		),
+		'Tribune'    => array(
+			'align'     => 'centered',
+			'density'   => 'dense',
+			'contrast'  => 'medium',
+			'accent'    => 'restrained',
+			'blockGap'  => '1rem',
+			'edges'     => 'sharp',
+			'separator' => 'wide',
+		),
+		'Folio'      => array(
+			'align'     => 'left',
+			'density'   => 'airy',
+			'contrast'  => 'medium',
+			'accent'    => 'restrained',
+			'blockGap'  => '2rem',
+			'edges'     => 'default',
+			'separator' => 'default',
+		),
+		'Nocturne'   => array(
+			'align'     => 'centered',
+			'density'   => 'airy',
+			'contrast'  => 'high',
+			'accent'    => 'pronounced',
+			'blockGap'  => '2rem',
+			'edges'     => 'default',
+			'separator' => 'wide',
+		),
+		'Broadsheet' => array(
+			'align'     => 'left',
+			'density'   => 'dense',
+			'contrast'  => 'high',
+			'accent'    => 'restrained',
+			'blockGap'  => '1rem',
+			'edges'     => 'sharp',
+			'separator' => 'wide',
+		),
+		'Codex'      => array(
+			'align'     => 'left',
+			'density'   => 'balanced',
+			'contrast'  => 'medium',
+			'accent'    => 'restrained',
+			'blockGap'  => '1.5rem',
+			'edges'     => 'sharp',
+			'separator' => 'default',
+		),
+		'Dusk'       => array(
+			'align'     => 'centered',
+			'density'   => 'airy',
+			'contrast'  => 'high',
+			'accent'    => 'pronounced',
+			'blockGap'  => '2rem',
+			'edges'     => 'default',
+			'separator' => 'wide',
+		),
+		'Solstice'   => array(
+			'align'     => 'centered',
+			'density'   => 'balanced',
+			'contrast'  => 'high',
+			'accent'    => 'pronounced',
+			'blockGap'  => '1.5rem',
+			'edges'     => 'soft',
+			'separator' => 'wide',
+		),
+		'Mirage'     => array(
+			'align'     => 'mixed',
+			'density'   => 'airy',
+			'contrast'  => 'high',
+			'accent'    => 'pronounced',
+			'blockGap'  => '2rem',
+			'edges'     => 'soft',
+			'separator' => 'wide',
+		),
+		'Ledger'     => array(
+			'align'     => 'left',
+			'density'   => 'dense',
+			'contrast'  => 'medium',
+			'accent'    => 'restrained',
+			'blockGap'  => '1rem',
+			'edges'     => 'default',
+			'separator' => 'dots',
+		),
+		'Mosaic'     => array(
+			'align'     => 'mixed',
+			'density'   => 'balanced',
+			'contrast'  => 'high',
+			'accent'    => 'pronounced',
+			'blockGap'  => '1.5rem',
+			'edges'     => 'default',
+			'separator' => 'wide',
+		),
+		'Prism'      => array(
+			'align'     => 'mixed',
+			'density'   => 'airy',
+			'contrast'  => 'high',
+			'accent'    => 'pronounced',
+			'blockGap'  => '2rem',
+			'edges'     => 'soft',
+			'separator' => 'wide',
+		),
+		'Broadside'  => array(
+			'align'     => 'left',
+			'density'   => 'balanced',
+			'contrast'  => 'high',
+			'accent'    => 'pronounced',
+			'blockGap'  => '1.5rem',
+			'edges'     => 'default',
+			'separator' => 'wide',
+		),
+		'Manifesto'  => array(
+			'align'     => 'centered',
+			'density'   => 'airy',
+			'contrast'  => 'high',
+			'accent'    => 'pronounced',
+			'blockGap'  => '2rem',
+			'edges'     => 'default',
+			'separator' => 'wide',
+		),
+		'Overture'   => array(
+			'align'     => 'centered',
+			'density'   => 'airy',
+			'contrast'  => 'medium',
+			'accent'    => 'pronounced',
+			'blockGap'  => '2rem',
+			'edges'     => 'soft',
+			'separator' => 'wide',
+		),
+	);
 	$rules = (array) apply_filters( 'aldus_personality_style_rules', $rules );
 	return $rules;
 }
@@ -233,7 +365,7 @@ function aldus_token_weights(): array {
 	if ( null !== $weights ) {
 		return $weights;
 	}
-	$weights = [
+	$weights = array(
 		'cover:dark'           => 'heavy',
 		'cover:light'          => 'heavy',
 		'cover:minimal'        => 'heavy',
@@ -280,7 +412,7 @@ function aldus_token_weights(): array {
 		'details:accordion'    => 'reading',
 		'code:block'           => 'reading',
 		'paragraph:lead'       => 'reading',
-	];
+	);
 	return $weights;
 }
 
@@ -312,28 +444,28 @@ function aldus_render_block_token(
 	array $font_sizes,
 	int $index = 0,
 	int $layout_seed = 0,
-	array $context = []
+	array $context = array()
 ): string {
 	// Unpack precomputed theme values; fall back to live computation for
 	// backward compatibility when called without a context.
-	$theme        = $context['theme']        ?? [];
-	$style        = $context['style']        ?? [];
-	$rhythm       = $context['rhythm']       ?? [];
-	$manifest     = $context['manifest']     ?? [];
+	$theme        = $context['theme'] ?? array();
+	$style        = $context['style'] ?? array();
+	$rhythm       = $context['rhythm'] ?? array();
+	$manifest     = $context['manifest'] ?? array();
 	$use_bindings = (bool) ( $context['use_bindings'] ?? false );
 
-	$dark     = $theme['dark']     ?? aldus_pick_dark( $palette );
-	$light    = $theme['light']    ?? aldus_pick_light( $palette );
-	$accent   = $theme['accent']   ?? aldus_pick_accent( $palette );
-	$large    = $theme['large']    ?? aldus_pick_large_font( $font_sizes );
+	$dark     = $theme['dark'] ?? aldus_pick_dark( $palette );
+	$light    = $theme['light'] ?? aldus_pick_light( $palette );
+	$accent   = $theme['accent'] ?? aldus_pick_accent( $palette );
+	$large    = $theme['large'] ?? aldus_pick_large_font( $font_sizes );
 	$gradient = $theme['gradient'] ?? aldus_pick_gradient( aldus_get_theme_gradients() );
 
-	$s_align     = $style['align']     ?? 'left';
-	$s_density   = $style['density']  ?? 'balanced';
+	$s_align     = $style['align'] ?? 'left';
+	$s_density   = $style['density'] ?? 'balanced';
 	$s_contrast  = $style['contrast'] ?? 'medium';
-	$s_accent    = $style['accent']   ?? 'restrained';
+	$s_accent    = $style['accent'] ?? 'restrained';
 	$s_block_gap = $style['blockGap'] ?? '1.5rem';
-	$s_edges     = $style['edges']    ?? 'default';
+	$s_edges     = $style['edges'] ?? 'default';
 	$s_separator = $style['separator'] ?? 'wide';
 
 	// Compute border-radius from edges setting.
@@ -348,16 +480,16 @@ function aldus_render_block_token(
 
 	$has_quote = ( $manifest['quote'] ?? 0 ) > 0;
 	$has_image = ( $manifest['image'] ?? 0 ) > 0;
-	$has_list  = ( $manifest['list']  ?? 0 ) > 0;
-	$has_cta   = ( $manifest['cta']   ?? 0 ) > 0;
+	$has_list  = ( $manifest['list'] ?? 0 ) > 0;
+	$has_cta   = ( $manifest['cta'] ?? 0 ) > 0;
 
 	// Mixes layout_seed + index + personality style traits + rhythm context
 	// so the same sequence looks visually different across personalities.
 	$v_base  = $layout_seed + $index;
-	$v_base += ( 'high'     === $s_contrast ) ? 2 : 0;
-	$v_base += ( 'centered' === $s_align )    ? 1 : 0;
-	$v_base += ( 'airy'     === $s_density )  ? 1 : 0;
-	$v_base += $prev_heavy                    ? 3 : 0;
+	$v_base += ( 'high' === $s_contrast ) ? 2 : 0;
+	$v_base += ( 'centered' === $s_align ) ? 1 : 0;
+	$v_base += ( 'airy' === $s_density ) ? 1 : 0;
+	$v_base += $prev_heavy ? 3 : 0;
 
 	$variant5 = aldus_variant_pick( $v_base, $token, 5 );
 	$variant4 = aldus_variant_pick( $v_base, $token, 4 );
@@ -370,12 +502,14 @@ function aldus_render_block_token(
 
 		case 'cover:dark':
 			// Content-aware: skip product-hero variant (3) if no CTA in manifest.
-			$cv = ( ! $has_cta && $variant5 === 3 ) ? 0 : $variant5;
-			return aldus_block_cover( $dist, $dark, 60, $large, false, 'Hero', $cv );
+			$cv      = ( ! $has_cta && $variant5 === 3 ) ? 0 : $variant5;
+			$post_id = (int) ( $context['post_id'] ?? 0 );
+			return aldus_block_cover( $dist, $dark, 60, $large, false, 'Hero', $cv, $post_id );
 
 		case 'cover:light':
-			$cv = ( ! $has_cta && $variant5 === 3 ) ? 1 : $variant5;
-			return aldus_block_cover( $dist, $light, 30, $large, true, 'Feature Cover', $cv );
+			$cv      = ( ! $has_cta && $variant5 === 3 ) ? 1 : $variant5;
+			$post_id = (int) ( $context['post_id'] ?? 0 );
+			return aldus_block_cover( $dist, $light, 30, $large, true, 'Feature Cover', $cv, $post_id );
 
 		case 'cover:minimal':
 			return aldus_block_cover_minimal( $dist, $dark, $large, 'Minimal Cover' );
@@ -462,7 +596,9 @@ function aldus_render_block_token(
 			return aldus_block_heading( $dist, 1, 'headline', $use_bindings );
 
 		case 'heading:h2':
-			return aldus_block_heading( $dist, 2, 'subheading', $use_bindings );
+			// High-contrast personalities get the theme's large font size on H2s for more drama.
+			$h2_size = ( 'high' === $s_contrast ) ? ( $theme['large'] ?? '' ) : '';
+			return aldus_block_heading( $dist, 2, 'subheading', $use_bindings, $h2_size );
 
 		case 'heading:h3':
 			return aldus_block_heading( $dist, 3, 'subheading', $use_bindings );
@@ -512,30 +648,36 @@ function aldus_render_block_token(
 
 		case 'spacer:small':
 			$h = aldus_spacer_height( 'small' );
-			return serialize_block( [
-				'blockName'    => 'core/spacer',
-				'attrs'        => [ 'height' => $h ],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div style=\"height:{$h}\" aria-hidden=\"true\" class=\"wp-block-spacer\"></div>" ],
-			] ) . "\n\n";
+			return serialize_block(
+				array(
+					'blockName'    => 'core/spacer',
+					'attrs'        => array( 'height' => $h ),
+					'innerBlocks'  => array(),
+					'innerContent' => array( "<div style=\"height:{$h}\" aria-hidden=\"true\" class=\"wp-block-spacer\"></div>" ),
+				)
+			) . "\n\n";
 
 		case 'spacer:large':
 			$h = aldus_spacer_height( 'large' );
-			return serialize_block( [
-				'blockName'    => 'core/spacer',
-				'attrs'        => [ 'height' => $h ],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div style=\"height:{$h}\" aria-hidden=\"true\" class=\"wp-block-spacer\"></div>" ],
-			] ) . "\n\n";
+			return serialize_block(
+				array(
+					'blockName'    => 'core/spacer',
+					'attrs'        => array( 'height' => $h ),
+					'innerBlocks'  => array(),
+					'innerContent' => array( "<div style=\"height:{$h}\" aria-hidden=\"true\" class=\"wp-block-spacer\"></div>" ),
+				)
+			) . "\n\n";
 
 		case 'spacer:xlarge':
 			$h = aldus_spacer_height( 'xlarge' );
-			return serialize_block( [
-				'blockName'    => 'core/spacer',
-				'attrs'        => [ 'height' => $h ],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div style=\"height:{$h}\" aria-hidden=\"true\" class=\"wp-block-spacer\"></div>" ],
-			] ) . "\n\n";
+			return serialize_block(
+				array(
+					'blockName'    => 'core/spacer',
+					'attrs'        => array( 'height' => $h ),
+					'innerBlocks'  => array(),
+					'innerContent' => array( "<div style=\"height:{$h}\" aria-hidden=\"true\" class=\"wp-block-spacer\"></div>" ),
+				)
+			) . "\n\n";
 
 		case 'buttons:cta':
 			return aldus_block_cta( $dist, $accent, $dark, $style, $use_bindings, false );
@@ -592,6 +734,7 @@ function aldus_render_block_token(
  * @param bool   $is_light    Use dark text for light covers.
  * @param string $name        Optional block name shown in the editor List View.
  * @param int    $variant     0 = heading only (default), 1 = heading + subheading, 2 = no inner content.
+ * @param int    $post_id     Optional post ID for useFeaturedImage fallback.
  */
 function aldus_block_cover(
 	Aldus_Content_Distributor $dist,
@@ -600,40 +743,43 @@ function aldus_block_cover(
 	string $font_size,
 	bool $is_light = false,
 	string $name = '',
-	int $variant = 0
+	int $variant = 0,
+	int $post_id = 0
 ): string {
 	// Variant 2: pure backdrop — no inner content. Still needs at least an image to be meaningful.
 	if ( $variant === 2 ) {
 		if ( ! $dist->has( 'image' ) ) {
 			return ''; // Nothing to show without image in backdrop mode.
 		}
-		$image     = $dist->consume( 'image' );
-		$image_url = esc_url( $image['url'] );
+		$image      = $dist->consume( 'image' );
+		$image_url  = esc_url( $image['url'] );
 		$color_safe = sanitize_html_class( $color_slug );
 		$dim_class  = "has-background-dim-{$dim_ratio}";
-		$attrs = [
-			'overlayColor' => $color_slug,
-			'dimRatio'     => $dim_ratio,
-			'align'        => 'full',
-			'minHeight'    => 480,
-			'minHeightUnit'=> 'px',
-			'url'          => esc_url_raw( $image['url'] ),
-			'hasParallax'  => false,
-		];
+		$attrs      = array(
+			'overlayColor'  => $color_slug,
+			'dimRatio'      => $dim_ratio,
+			'align'         => 'full',
+			'minHeight'     => 480,
+			'minHeightUnit' => 'px',
+			'url'           => esc_url_raw( $image['url'] ),
+			'hasParallax'   => false,
+		);
 		if ( $name ) {
-			$attrs['metadata'] = [ 'name' => $name . ' (Backdrop)' ];
+			$attrs['metadata'] = array( 'name' => $name . ' (Backdrop)' );
 		}
-		return serialize_block( [
-			'blockName'    => 'core/cover',
-			'attrs'        => $attrs,
-			'innerBlocks'  => [],
-			'innerContent' => [
-				"<div class=\"wp-block-cover alignfull\" style=\"min-height:480px\">\n"
-				. "<span aria-hidden=\"true\" class=\"wp-block-cover__background has-{$color_safe}-background-color {$dim_class} has-background-dim\"></span>\n"
-				. "<img class=\"wp-block-cover__image-background\" src=\"{$image_url}\" alt=\"\" data-object-fit=\"cover\"/>\n"
-				. "<div class=\"" . aldus_cover_inner_classes() . "\"></div>\n</div>",
-			],
-		] ) . "\n\n";
+		return serialize_block(
+			array(
+				'blockName'    => 'core/cover',
+				'attrs'        => $attrs,
+				'innerBlocks'  => array(),
+				'innerContent' => array(
+					"<div class=\"wp-block-cover alignfull\" style=\"min-height:480px\">\n"
+					. "<span aria-hidden=\"true\" class=\"wp-block-cover__background has-{$color_safe}-background-color {$dim_class} has-background-dim\"></span>\n"
+					. "<img class=\"wp-block-cover__image-background\" src=\"{$image_url}\" alt=\"\" data-object-fit=\"cover\"/>\n"
+					. '<div class="' . aldus_cover_inner_classes() . "\"></div>\n</div>",
+				),
+			)
+		) . "\n\n";
 	}
 
 	$headline = $dist->consume( 'headline' );
@@ -647,6 +793,12 @@ function aldus_block_cover(
 	$image     = $dist->consume( 'image' );
 	$text      = esc_html( $headline['content'] ?? '' );
 	$image_url = $image ? esc_url( $image['url'] ) : '';
+
+	// When no image was provided by the user, use the post's featured image as background.
+	$use_featured = false;
+	if ( ! $image_url && $post_id > 0 && has_post_thumbnail( $post_id ) ) {
+		$use_featured = true;
+	}
 
 	// Variant 1: heading + subheading inside cover.
 	$sub_text = '';
@@ -663,114 +815,153 @@ function aldus_block_cover(
 	$headline_raw     = $headline['content'] ?? '';
 	// Compute once; used for both attrs and innerContent style so strlen runs once.
 	$cover_min_height = aldus_cover_min_height( $headline_raw );
-	$attrs = [
+	$attrs            = array(
 		'overlayColor'    => $color_slug,
 		'dimRatio'        => $dim_ratio,
 		'align'           => 'full',
 		'contentPosition' => $content_position,
 		'minHeight'       => $cover_min_height,
 		'minHeightUnit'   => 'px',
-		'layout'          => [ 'type' => 'constrained' ],
-	];
+		'layout'          => array( 'type' => 'constrained' ),
+	);
 	if ( $name ) {
-		$attrs['metadata'] = [ 'name' => $name ];
+		$attrs['metadata'] = array( 'name' => $name );
 	}
 	if ( $image_url ) {
 		$attrs['url']         = esc_url_raw( $image['url'] );
 		$attrs['hasParallax'] = false;
+	} elseif ( $use_featured ) {
+		$attrs['useFeaturedImage'] = true;
 	}
 
 	// Variant 3: product-hero — heading + subheading + CTA button over cover.
 	if ( $variant === 3 ) {
 		$attrs['contentPosition'] = 'center center';
 		// Product-hero has more content — use a taller floor so the CTA has room.
-		$cover_min_height         = aldus_cover_min_height( $headline_raw, 520 );
-		$attrs['minHeight']       = $cover_min_height;
-		$dim_class  = "has-background-dim-{$dim_ratio}";
-		$image_html = $image_url
+		$cover_min_height   = aldus_cover_min_height( $headline_raw, 520 );
+		$attrs['minHeight'] = $cover_min_height;
+		$dim_class          = "has-background-dim-{$dim_ratio}";
+		$image_html         = $image_url
 			? "<img class=\"wp-block-cover__image-background\" src=\"{$image_url}\" alt=\"\" data-object-fit=\"cover\"/>\n"
 			: '';
-		$inner = '';
+		$inner              = '';
 		if ( $text ) {
-			$inner .= serialize_block( [
-				'blockName'    => 'core/heading',
-				'attrs'        => [ 'level' => 1, 'textColor' => $text_color, 'fontSize' => $font_size, 'textAlign' => 'center' ],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<h1 class=\"wp-block-heading has-text-align-center has-{$text_color_safe}-color has-text-color has-{$font_size}-font-size\">{$text}</h1>" ],
-			] ) . "\n";
+			$inner .= serialize_block(
+				array(
+					'blockName'    => 'core/heading',
+					'attrs'        => array(
+						'level'     => 1,
+						'textColor' => $text_color,
+						'fontSize'  => $font_size,
+						'textAlign' => 'center',
+					),
+					'innerBlocks'  => array(),
+					'innerContent' => array( "<h1 class=\"wp-block-heading has-text-align-center has-{$text_color_safe}-color has-text-color has-{$font_size}-font-size\">{$text}</h1>" ),
+				)
+			) . "\n";
 		}
 		if ( $sub_text ) {
-			$inner .= serialize_block( [
-				'blockName'    => 'core/heading',
-				'attrs'        => [ 'level' => 2, 'textColor' => $text_color, 'textAlign' => 'center' ],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<h2 class=\"wp-block-heading has-text-align-center has-{$text_color_safe}-color has-text-color\">{$sub_text}</h2>" ],
-			] ) . "\n";
+			$inner .= serialize_block(
+				array(
+					'blockName'    => 'core/heading',
+					'attrs'        => array(
+						'level'     => 2,
+						'textColor' => $text_color,
+						'textAlign' => 'center',
+					),
+					'innerBlocks'  => array(),
+					'innerContent' => array( "<h2 class=\"wp-block-heading has-text-align-center has-{$text_color_safe}-color has-text-color\">{$sub_text}</h2>" ),
+				)
+			) . "\n";
 		}
 		// Consume a CTA for the button inside the hero.
 		$cta_item = $dist->consume( 'cta' );
 		if ( $cta_item ) {
 			$cta_label = esc_html( $cta_item['content'] );
 			$cta_url   = ! empty( $cta_item['url'] ) ? esc_url( $cta_item['url'] ) : '#';
-			$btn       = serialize_block( [
-				'blockName'    => 'core/button',
-				'attrs'        => [ 'textColor' => $is_light ? '' : $color_slug, 'backgroundColor' => $is_light ? $color_slug : '', 'textAlign' => 'center' ],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"wp-block-button\"><a class=\"wp-block-button__link wp-element-button\" href=\"{$cta_url}\">{$cta_label}</a></div>" ],
-			] );
-			$inner .= serialize_block( [
-				'blockName'    => 'core/buttons',
-				'attrs'        => [ 'layout' => [ 'type' => 'flex', 'justifyContent' => 'center' ] ],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"" . aldus_buttons_classes() . "\">{$btn}</div>" ],
-			] ) . "\n";
+			$btn       = serialize_block(
+				array(
+					'blockName'    => 'core/button',
+					'attrs'        => array(
+						'textColor'       => $is_light ? '' : $color_slug,
+						'backgroundColor' => $is_light ? $color_slug : '',
+						'textAlign'       => 'center',
+					),
+					'innerBlocks'  => array(),
+					'innerContent' => array( "<div class=\"wp-block-button\"><a class=\"wp-block-button__link wp-element-button\" href=\"{$cta_url}\">{$cta_label}</a></div>" ),
+				)
+			);
+			$inner    .= serialize_block(
+				array(
+					'blockName'    => 'core/buttons',
+					'attrs'        => array(
+						'layout' => array(
+							'type'           => 'flex',
+							'justifyContent' => 'center',
+						),
+					),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<div class="' . aldus_buttons_classes() . "\">{$btn}</div>" ),
+				)
+			) . "\n";
 		}
 		if ( ! $inner ) {
 			return '';
 		}
-		return serialize_block( [
-			'blockName'    => 'core/cover',
-			'attrs'        => $attrs,
-			'innerBlocks'  => [],
-			'innerContent' => [
-				"<div class=\"wp-block-cover alignfull has-custom-content-position is-position-center-center\" style=\"min-height:{$cover_min_height}px\">\n"
-				. "<span aria-hidden=\"true\" class=\"wp-block-cover__background has-{$color_safe}-background-color {$dim_class} has-background-dim\"></span>\n"
-				. $image_html
-				. "<div class=\"" . aldus_cover_inner_classes() . "\">\n{$inner}</div>\n</div>",
-			],
-		] ) . "\n\n";
+		return serialize_block(
+			array(
+				'blockName'    => 'core/cover',
+				'attrs'        => $attrs,
+				'innerBlocks'  => array(),
+				'innerContent' => array(
+					"<div class=\"wp-block-cover alignfull has-custom-content-position is-position-center-center\" style=\"min-height:{$cover_min_height}px\">\n"
+					. "<span aria-hidden=\"true\" class=\"wp-block-cover__background has-{$color_safe}-background-color {$dim_class} has-background-dim\"></span>\n"
+					. $image_html
+					. '<div class="' . aldus_cover_inner_classes() . "\">\n{$inner}</div>\n</div>",
+				),
+			)
+		) . "\n\n";
 	}
 
 	// Variant 4: manifesto — full-width, centered, large heading only. No image required.
 	if ( $variant === 4 ) {
 		$attrs['contentPosition'] = 'center center';
 		// Manifesto: no image, so use tighter height when text is long.
-		$cover_min_height         = aldus_cover_min_height( $headline_raw, 360 );
-		$attrs['minHeight']       = $cover_min_height;
+		$cover_min_height   = aldus_cover_min_height( $headline_raw, 360 );
+		$attrs['minHeight'] = $cover_min_height;
 		unset( $attrs['url'], $attrs['hasParallax'] );
-		$dim_class = "has-background-dim-20";
-		$inner = '';
+		$dim_class = 'has-background-dim-20';
+		$inner     = '';
 		if ( $text ) {
-			$inner .= serialize_block( [
-				'blockName'    => 'core/heading',
-				'attrs'        => [ 'level' => 1, 'textColor' => $text_color, 'fontSize' => $font_size, 'textAlign' => 'center' ],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<h1 class=\"wp-block-heading has-text-align-center has-{$text_color_safe}-color has-text-color has-{$font_size}-font-size\">{$text}</h1>" ],
-			] ) . "\n";
+			$inner .= serialize_block(
+				array(
+					'blockName'    => 'core/heading',
+					'attrs'        => array(
+						'level'     => 1,
+						'textColor' => $text_color,
+						'fontSize'  => $font_size,
+						'textAlign' => 'center',
+					),
+					'innerBlocks'  => array(),
+					'innerContent' => array( "<h1 class=\"wp-block-heading has-text-align-center has-{$text_color_safe}-color has-text-color has-{$font_size}-font-size\">{$text}</h1>" ),
+				)
+			) . "\n";
 		}
 		if ( ! $inner ) {
 			return '';
 		}
-		return serialize_block( [
-			'blockName'    => 'core/cover',
-			'attrs'        => $attrs,
-			'innerBlocks'  => [],
-			'innerContent' => [
-				"<div class=\"wp-block-cover alignfull has-custom-content-position is-position-center-center\" style=\"min-height:{$cover_min_height}px\">\n"
-				. "<span aria-hidden=\"true\" class=\"wp-block-cover__background has-{$color_safe}-background-color {$dim_class} has-background-dim\"></span>\n"
-				. "<div class=\"" . aldus_cover_inner_classes() . "\">\n{$inner}</div>\n</div>",
-			],
-		] ) . "\n\n";
+		return serialize_block(
+			array(
+				'blockName'    => 'core/cover',
+				'attrs'        => $attrs,
+				'innerBlocks'  => array(),
+				'innerContent' => array(
+					"<div class=\"wp-block-cover alignfull has-custom-content-position is-position-center-center\" style=\"min-height:{$cover_min_height}px\">\n"
+					. "<span aria-hidden=\"true\" class=\"wp-block-cover__background has-{$color_safe}-background-color {$dim_class} has-background-dim\"></span>\n"
+					. '<div class="' . aldus_cover_inner_classes() . "\">\n{$inner}</div>\n</div>",
+				),
+			)
+		) . "\n\n";
 	}
 
 	$position_slug  = str_replace( ' ', '-', $content_position );
@@ -783,36 +974,49 @@ function aldus_block_cover(
 
 	$inner = '';
 	if ( $text ) {
-		$inner .= serialize_block( [
-			'blockName'    => 'core/heading',
-			'attrs'        => [ 'level' => 1, 'textColor' => $text_color, 'fontSize' => $font_size ],
-			'innerBlocks'  => [],
-			'innerContent' => [ "<h1 class=\"wp-block-heading has-{$text_color_safe}-color has-text-color has-{$font_size}-font-size\">{$text}</h1>" ],
-		] ) . "\n";
+		$inner .= serialize_block(
+			array(
+				'blockName'    => 'core/heading',
+				'attrs'        => array(
+					'level'     => 1,
+					'textColor' => $text_color,
+					'fontSize'  => $font_size,
+				),
+				'innerBlocks'  => array(),
+				'innerContent' => array( "<h1 class=\"wp-block-heading has-{$text_color_safe}-color has-text-color has-{$font_size}-font-size\">{$text}</h1>" ),
+			)
+		) . "\n";
 	}
 	if ( $sub_text ) {
-		$inner .= serialize_block( [
-			'blockName'    => 'core/heading',
-			'attrs'        => [ 'level' => 2, 'textColor' => $text_color ],
-			'innerBlocks'  => [],
-			'innerContent' => [ "<h2 class=\"wp-block-heading has-{$text_color_safe}-color has-text-color\">{$sub_text}</h2>" ],
-		] ) . "\n";
+		$inner .= serialize_block(
+			array(
+				'blockName'    => 'core/heading',
+				'attrs'        => array(
+					'level'     => 2,
+					'textColor' => $text_color,
+				),
+				'innerBlocks'  => array(),
+				'innerContent' => array( "<h2 class=\"wp-block-heading has-{$text_color_safe}-color has-text-color\">{$sub_text}</h2>" ),
+			)
+		) . "\n";
 	}
 
-	$inner_container = "<div class=\"" . aldus_cover_inner_classes() . "\">\n{$inner}</div>\n";
+	$inner_container = '<div class="' . aldus_cover_inner_classes() . "\">\n{$inner}</div>\n";
 
-	return serialize_block( [
-		'blockName'    => 'core/cover',
-		'attrs'        => $attrs,
-		'innerBlocks'  => [],
-		'innerContent' => [
-			"<div class=\"wp-block-cover alignfull {$position_class}\" style=\"min-height:{$cover_min_height}px\">\n"
-			. "<span aria-hidden=\"true\" class=\"wp-block-cover__background has-{$color_safe}-background-color {$dim_class} has-background-dim\"></span>\n"
-			. $image_html
-			. $inner_container
-			. "</div>",
-		],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/cover',
+			'attrs'        => $attrs,
+			'innerBlocks'  => array(),
+			'innerContent' => array(
+				"<div class=\"wp-block-cover alignfull {$position_class}\" style=\"min-height:{$cover_min_height}px\">\n"
+				. "<span aria-hidden=\"true\" class=\"wp-block-cover__background has-{$color_safe}-background-color {$dim_class} has-background-dim\"></span>\n"
+				. $image_html
+				. $inner_container
+				. '</div>',
+			),
+		)
+	) . "\n\n";
 }
 
 /**
@@ -824,13 +1028,13 @@ function aldus_block_cover(
  * @param int                       $variant  0 = heading/dropcap (default), 1 = list/paragraph, 2 = heading+paragraph/image.
  */
 function aldus_block_columns_asymmetric( Aldus_Content_Distributor $dist, bool $flip = false, string $name = '', int $variant = 0 ): string {
-	$narrow_width  = 28;
-	$wide_width    = 72;
-	$cols_attrs    = [ 'isStackedOnMobile' => true ];
-	$narrow_attrs  = [ 'width' => "{$narrow_width}%" ];
-	$wide_attrs    = [ 'width' => "{$wide_width}%" ];
+	$narrow_width = 28;
+	$wide_width   = 72;
+	$cols_attrs   = array( 'isStackedOnMobile' => true );
+	$narrow_attrs = array( 'width' => "{$narrow_width}%" );
+	$wide_attrs   = array( 'width' => "{$wide_width}%" );
 	if ( $name ) {
-		$cols_attrs['metadata'] = [ 'name' => $name ];
+		$cols_attrs['metadata'] = array( 'name' => $name );
 	}
 
 	if ( $variant === 1 ) {
@@ -846,12 +1050,14 @@ function aldus_block_columns_asymmetric( Aldus_Content_Distributor $dist, bool $
 			$list_markup  = aldus_serialize_list( $raw_items );
 			$left_content = $list_markup ? $list_markup . "\n" : '';
 		}
-		$right_content = $para ? serialize_block( [
-			'blockName'    => 'core/paragraph',
-			'attrs'        => [],
-			'innerBlocks'  => [],
-			'innerContent' => [ '<p>' . esc_html( $para['content'] ) . '</p>' ],
-		] ) . "\n" : '';
+		$right_content = $para ? serialize_block(
+			array(
+				'blockName'    => 'core/paragraph',
+				'attrs'        => array(),
+				'innerBlocks'  => array(),
+				'innerContent' => array( '<p>' . esc_html( $para['content'] ) . '</p>' ),
+			)
+		) . "\n" : '';
 
 	} elseif ( $variant === 2 && $dist->has( 'image' ) ) {
 		$heading = $dist->consume( 'subheading' ) ?? $dist->consume( 'headline' );
@@ -870,58 +1076,69 @@ function aldus_block_columns_asymmetric( Aldus_Content_Distributor $dist, bool $
 		$right_content = '';
 		if ( $image && ! empty( $image['url'] ) ) {
 			$url           = esc_url( $image['url'] );
-			$right_content = serialize_block( [
-				'blockName'    => 'core/image',
-				'attrs'        => [ 'sizeSlug' => 'large' ],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<figure class=\"wp-block-image size-large\"><img src=\"{$url}\" alt=\"\"/></figure>" ],
-			] ) . "\n";
+			$right_content = serialize_block(
+				array(
+					'blockName'    => 'core/image',
+					'attrs'        => array( 'sizeSlug' => 'large' ),
+					'innerBlocks'  => array(),
+					'innerContent' => array( "<figure class=\"wp-block-image size-large\"><img src=\"{$url}\" alt=\"\"/></figure>" ),
+				)
+			) . "\n";
 		}
-
 	} else {
 		$heading = $dist->consume( 'subheading' ) ?? $dist->consume( 'headline' );
 		$para    = $dist->consume( 'paragraph' );
 		if ( ! $heading && ! $para ) {
 			return '';
 		}
-		$left_content = $heading ? serialize_block( [
-			'blockName'    => 'core/heading',
-			'attrs'        => [ 'level' => 2 ],
-			'innerBlocks'  => [],
-			'innerContent' => [ '<h2 class="wp-block-heading">' . esc_html( $heading['content'] ) . '</h2>' ],
-		] ) . "\n" : '';
-		$right_content = $para ? serialize_block( [
-			'blockName'    => 'core/paragraph',
-			'attrs'        => [ 'dropCap' => true ],
-			'innerBlocks'  => [],
-			'innerContent' => [ '<p class="has-drop-cap">' . esc_html( $para['content'] ) . '</p>' ],
-		] ) . "\n" : '';
+		$left_content  = $heading ? serialize_block(
+			array(
+				'blockName'    => 'core/heading',
+				'attrs'        => array( 'level' => 2 ),
+				'innerBlocks'  => array(),
+				'innerContent' => array( '<h2 class="wp-block-heading">' . esc_html( $heading['content'] ) . '</h2>' ),
+			)
+		) . "\n" : '';
+		$right_content = $para ? serialize_block(
+			array(
+				'blockName'    => 'core/paragraph',
+				'attrs'        => array( 'dropCap' => true ),
+				'innerBlocks'  => array(),
+				'innerContent' => array( '<p class="has-drop-cap">' . esc_html( $para['content'] ) . '</p>' ),
+			)
+		) . "\n" : '';
 	}
 
 	// Swap columns if flipped.
 	if ( $flip ) {
-		[ $narrow_attrs, $wide_attrs, $left_content, $right_content ] = [ $wide_attrs, $narrow_attrs, $right_content, $left_content ];
+		[ $narrow_attrs, $wide_attrs, $left_content, $right_content ] = array( $wide_attrs, $narrow_attrs, $right_content, $left_content );
 	}
 
-	$narrow_col = serialize_block( [
-		'blockName'    => 'core/column',
-		'attrs'        => $narrow_attrs,
-		'innerBlocks'  => [],
-		'innerContent' => [ "<div class=\"" . aldus_column_classes() . "\" style=\"" . aldus_column_style( "{$narrow_width}%" ) . "\">\n{$left_content}</div>" ],
-	] );
-	$wide_col = serialize_block( [
-		'blockName'    => 'core/column',
-		'attrs'        => $wide_attrs,
-		'innerBlocks'  => [],
-		'innerContent' => [ "<div class=\"" . aldus_column_classes() . "\" style=\"" . aldus_column_style( "{$wide_width}%" ) . "\">\n{$right_content}</div>" ],
-	] );
+	$narrow_col = serialize_block(
+		array(
+			'blockName'    => 'core/column',
+			'attrs'        => $narrow_attrs,
+			'innerBlocks'  => array(),
+			'innerContent' => array( '<div class="' . aldus_column_classes() . '" style="' . aldus_column_style( "{$narrow_width}%" ) . "\">\n{$left_content}</div>" ),
+		)
+	);
+	$wide_col   = serialize_block(
+		array(
+			'blockName'    => 'core/column',
+			'attrs'        => $wide_attrs,
+			'innerBlocks'  => array(),
+			'innerContent' => array( '<div class="' . aldus_column_classes() . '" style="' . aldus_column_style( "{$wide_width}%" ) . "\">\n{$right_content}</div>" ),
+		)
+	);
 
-	return serialize_block( [
-		'blockName'    => 'core/columns',
-		'attrs'        => $cols_attrs,
-		'innerBlocks'  => [],
-		'innerContent' => [ "<div class=\"" . aldus_columns_classes( true ) . "\">\n{$narrow_col}\n{$wide_col}\n</div>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/columns',
+			'attrs'        => $cols_attrs,
+			'innerBlocks'  => array(),
+			'innerContent' => array( '<div class="' . aldus_columns_classes( true ) . "\">\n{$narrow_col}\n{$wide_col}\n</div>" ),
+		)
+	) . "\n\n";
 }
 
 /**
@@ -933,7 +1150,7 @@ function aldus_block_columns_asymmetric( Aldus_Content_Distributor $dist, bool $
  * @param string                    $name     Optional block name shown in the editor List View.
  */
 function aldus_block_columns_three( Aldus_Content_Distributor $dist, string $bg_slug, string $name = '', string $light_slug = '' ): string {
-	$col_items = [];
+	$col_items = array();
 	for ( $i = 0; $i < 3; $i++ ) {
 		$col_items[] = $dist->consume( 'paragraph' ) ?? $dist->consume( 'subheading' );
 	}
@@ -943,7 +1160,7 @@ function aldus_block_columns_three( Aldus_Content_Distributor $dist, string $bg_
 	}
 
 	// Grab subheading labels for visual hierarchy within each column.
-	$subheadings = [];
+	$subheadings = array();
 	for ( $i = 0; $i < 3; $i++ ) {
 		$subheadings[] = $dist->consume( 'subheading' );
 	}
@@ -952,11 +1169,11 @@ function aldus_block_columns_three( Aldus_Content_Distributor $dist, string $bg_
 	// distinct cards rather than a single solid block. Fall back to the accent slug
 	// for the middle column when no light palette entry is available.
 	$mid_slug = $light_slug ?: $bg_slug;
-	$bg_slugs = [ $bg_slug, $mid_slug, $bg_slug ];
+	$bg_slugs = array( $bg_slug, $mid_slug, $bg_slug );
 
-	$cols_attrs = [ 'isStackedOnMobile' => false ];
+	$cols_attrs = array( 'isStackedOnMobile' => false );
 	if ( $name ) {
-		$cols_attrs['metadata'] = [ 'name' => $name ];
+		$cols_attrs['metadata'] = array( 'name' => $name );
 	}
 
 	$cols_inner = '';
@@ -969,47 +1186,64 @@ function aldus_block_columns_three( Aldus_Content_Distributor $dist, string $bg_
 		$col_slug = $bg_slugs[ $i ];
 		$col_safe = sanitize_html_class( $col_slug );
 
-		$col_sm     = aldus_theme_spacing( 'sm' );
-		$col_attrs = [
+		$col_sm    = aldus_theme_spacing( 'sm' );
+		$col_attrs = array(
 			'backgroundColor' => $col_slug,
-			'style'           => [ 'spacing' => [ 'padding' => [ 'top' => $col_sm, 'right' => $col_sm, 'bottom' => $col_sm, 'left' => $col_sm ] ] ],
-		];
+			'style'           => array(
+				'spacing' => array(
+					'padding' => array(
+						'top'    => $col_sm,
+						'right'  => $col_sm,
+						'bottom' => $col_sm,
+						'left'   => $col_sm,
+					),
+				),
+			),
+		);
 
 		$col_inner = '';
 		if ( $heading ) {
 			$ht         = esc_html( $heading['content'] );
-			$col_inner .= serialize_block( [
-				'blockName'    => 'core/heading',
-				'attrs'        => [ 'level' => 3 ],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<h3 class=\"wp-block-heading\">{$ht}</h3>" ],
-			] ) . "\n";
+			$col_inner .= serialize_block(
+				array(
+					'blockName'    => 'core/heading',
+					'attrs'        => array( 'level' => 3 ),
+					'innerBlocks'  => array(),
+					'innerContent' => array( "<h3 class=\"wp-block-heading\">{$ht}</h3>" ),
+				)
+			) . "\n";
 		}
 		if ( $text ) {
-			$col_inner .= serialize_block( [
-				'blockName'    => 'core/paragraph',
-				'attrs'        => [],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<p>{$text}</p>" ],
-			] ) . "\n";
+			$col_inner .= serialize_block(
+				array(
+					'blockName'    => 'core/paragraph',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( "<p>{$text}</p>" ),
+				)
+			) . "\n";
 		}
 
-		$cols_inner .= serialize_block( [
-			'blockName'    => 'core/column',
-			'attrs'        => $col_attrs,
-			'innerBlocks'  => [],
-			'innerContent' => [
-				"<div class=\"" . aldus_column_classes( $col_slug ) . "\" style=\"padding-top:{$col_sm};padding-right:{$col_sm};padding-bottom:{$col_sm};padding-left:{$col_sm}\">\n{$col_inner}</div>",
-			],
-		] ) . "\n";
+		$cols_inner .= serialize_block(
+			array(
+				'blockName'    => 'core/column',
+				'attrs'        => $col_attrs,
+				'innerBlocks'  => array(),
+				'innerContent' => array(
+					'<div class="' . aldus_column_classes( $col_slug ) . "\" style=\"padding-top:{$col_sm};padding-right:{$col_sm};padding-bottom:{$col_sm};padding-left:{$col_sm}\">\n{$col_inner}</div>",
+				),
+			)
+		) . "\n";
 	}
 
-	return serialize_block( [
-		'blockName'    => 'core/columns',
-		'attrs'        => $cols_attrs,
-		'innerBlocks'  => [],
-		'innerContent' => [ "<div class=\"" . aldus_columns_classes( false ) . "\">\n{$cols_inner}</div>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/columns',
+			'attrs'        => $cols_attrs,
+			'innerBlocks'  => array(),
+			'innerContent' => array( '<div class="' . aldus_columns_classes( false ) . "\">\n{$cols_inner}</div>" ),
+		)
+	) . "\n\n";
 }
 
 /**
@@ -1032,18 +1266,20 @@ function aldus_block_media_text( Aldus_Content_Distributor $dist, string $image_
 			$markup .= aldus_serialize_heading( esc_html( $subheading['content'] ), 2 );
 		}
 		if ( $para ) {
-			$markup .= serialize_block( [
-				'blockName'    => 'core/paragraph',
-				'attrs'        => [],
-				'innerBlocks'  => [],
-				'innerContent' => [ '<p>' . esc_html( $para['content'] ) . '</p>' ],
-			] ) . "\n\n";
+			$markup .= serialize_block(
+				array(
+					'blockName'    => 'core/paragraph',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<p>' . esc_html( $para['content'] ) . '</p>' ),
+				)
+			) . "\n\n";
 		}
 		return $markup;
 	}
 
 	$image_url = esc_url( $image['url'] );
-	$attrs     = [
+	$attrs     = array(
 		'mediaPosition'     => $image_position,
 		'mediaWidth'        => 38,
 		'isStackedOnMobile' => true,
@@ -1051,10 +1287,13 @@ function aldus_block_media_text( Aldus_Content_Distributor $dist, string $image_
 		'mediaType'         => 'image',
 		'mediaSizeSlug'     => 'large',
 		'verticalAlignment' => 'center',
-		'focalPoint'        => [ 'x' => 0.5, 'y' => 0.5 ],
-	];
+		'focalPoint'        => array(
+			'x' => 0.5,
+			'y' => 0.5,
+		),
+	);
 	if ( $name ) {
-		$attrs['metadata'] = [ 'name' => $name ];
+		$attrs['metadata'] = array( 'name' => $name );
 	}
 
 	$flip_class = 'right' === $image_position ? ' has-media-on-the-right' : '';
@@ -1064,12 +1303,14 @@ function aldus_block_media_text( Aldus_Content_Distributor $dist, string $image_
 		// Variant 1: quote over image.
 		$quote_item = $dist->consume( 'quote' );
 		if ( $quote_item ) {
-			$content_inner .= serialize_block( [
-				'blockName'    => 'core/quote',
-				'attrs'        => [],
-				'innerBlocks'  => [],
-				'innerContent' => [ '<blockquote class="wp-block-quote"><p>' . esc_html( $quote_item['content'] ) . '</p></blockquote>' ],
-			] ) . "\n";
+			$content_inner .= serialize_block(
+				array(
+					'blockName'    => 'core/quote',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<blockquote class="wp-block-quote"><p>' . esc_html( $quote_item['content'] ) . '</p></blockquote>' ),
+				)
+			) . "\n";
 		} else {
 			if ( $subheading ) {
 				$content_inner .= aldus_serialize_heading( esc_html( $subheading['content'] ), 2 );
@@ -1085,20 +1326,24 @@ function aldus_block_media_text( Aldus_Content_Distributor $dist, string $image_
 		}
 		$cta_item = $dist->consume( 'cta' );
 		if ( $cta_item ) {
-			$cta_label = esc_html( $cta_item['content'] );
-			$cta_url   = ! empty( $cta_item['url'] ) ? esc_url( $cta_item['url'] ) : '#';
-			$btn       = serialize_block( [
-				'blockName'    => 'core/button',
-				'attrs'        => [],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"wp-block-button\"><a class=\"wp-block-button__link wp-element-button\" href=\"{$cta_url}\">{$cta_label}</a></div>" ],
-			] );
-			$content_inner .= serialize_block( [
-				'blockName'    => 'core/buttons',
-				'attrs'        => [],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"" . aldus_buttons_classes() . "\">{$btn}</div>" ],
-			] ) . "\n";
+			$cta_label      = esc_html( $cta_item['content'] );
+			$cta_url        = ! empty( $cta_item['url'] ) ? esc_url( $cta_item['url'] ) : '#';
+			$btn            = serialize_block(
+				array(
+					'blockName'    => 'core/button',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( "<div class=\"wp-block-button\"><a class=\"wp-block-button__link wp-element-button\" href=\"{$cta_url}\">{$cta_label}</a></div>" ),
+				)
+			);
+			$content_inner .= serialize_block(
+				array(
+					'blockName'    => 'core/buttons',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<div class="' . aldus_buttons_classes() . "\">{$btn}</div>" ),
+				)
+			) . "\n";
 		} elseif ( $para ) {
 			// Fall back to para if no CTA.
 			$content_inner .= aldus_serialize_paragraph( esc_html( $para['content'] ) );
@@ -1127,16 +1372,18 @@ function aldus_block_media_text( Aldus_Content_Distributor $dist, string $image_
 		}
 	}
 
-	return serialize_block( [
-		'blockName'    => 'core/media-text',
-		'attrs'        => $attrs,
-		'innerBlocks'  => [],
-		'innerContent' => [
-		"<div class=\"" . aldus_media_text_classes( $image_position, true ) . "\" style=\"" . aldus_media_text_style( 38, $image_position ) . "\">\n"
-		. "<figure class=\"wp-block-media-text__media\"><img src=\"{$image_url}\" alt=\"\" class=\"wp-image-0 size-full\"/></figure>\n"
-		. "<div class=\"wp-block-media-text__content\">\n{$content_inner}</div>\n</div>",
-		],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/media-text',
+			'attrs'        => $attrs,
+			'innerBlocks'  => array(),
+			'innerContent' => array(
+				'<div class="' . aldus_media_text_classes( $image_position, true ) . '" style="' . aldus_media_text_style( 38, $image_position ) . "\">\n"
+				. "<figure class=\"wp-block-media-text__media\"><img src=\"{$image_url}\" alt=\"\" class=\"wp-image-0 size-full\"/></figure>\n"
+				. "<div class=\"wp-block-media-text__content\">\n{$content_inner}</div>\n</div>",
+			),
+		)
+	) . "\n\n";
 }
 
 /**
@@ -1159,21 +1406,29 @@ function aldus_block_group(
 	int $variant = 0,
 	string $block_gap = ''
 ): string {
-	$bg_safe  = sanitize_html_class( $bg_slug );
-	$tc_safe  = $text_color_slug ? sanitize_html_class( $text_color_slug ) : '';
-	$align    = $full_width ? 'full' : '';
+	$bg_safe = sanitize_html_class( $bg_slug );
+	$tc_safe = $text_color_slug ? sanitize_html_class( $text_color_slug ) : '';
+	$align   = $full_width ? 'full' : '';
 
-	$spacing = [ 'padding' => [ 'top' => aldus_theme_spacing( 'lg' ), 'bottom' => aldus_theme_spacing( 'lg' ) ] ];
+	$spacing = array(
+		'padding' => array(
+			'top'    => aldus_theme_spacing( 'lg' ),
+			'bottom' => aldus_theme_spacing( 'lg' ),
+		),
+	);
 	if ( $block_gap ) {
 		$spacing['blockGap'] = $block_gap;
 	}
-	$attrs = [
+	$attrs = array(
 		'backgroundColor' => $bg_slug,
-		'layout'          => [ 'type' => 'constrained', 'contentSize' => aldus_theme_content_size() ],
-		'style'           => [ 'spacing' => $spacing ],
-	];
+		'layout'          => array(
+			'type'        => 'constrained',
+			'contentSize' => aldus_theme_content_size(),
+		),
+		'style'           => array( 'spacing' => $spacing ),
+	);
 	if ( $name ) {
-		$attrs['metadata'] = [ 'name' => $name ];
+		$attrs['metadata'] = array( 'name' => $name );
 	}
 	if ( $tc_safe ) {
 		$attrs['textColor'] = $text_color_slug;
@@ -1198,39 +1453,51 @@ function aldus_block_group(
 			return '';
 		}
 		if ( $para1 ) {
-			$inner .= serialize_block( [
-				'blockName'    => 'core/paragraph',
-				'attrs'        => [ 'dropCap' => true ],
-				'innerBlocks'  => [],
-				'innerContent' => [ '<p class="has-drop-cap">' . esc_html( $para1['content'] ) . '</p>' ],
-			] ) . "\n";
+			$inner .= serialize_block(
+				array(
+					'blockName'    => 'core/paragraph',
+					'attrs'        => array( 'dropCap' => true ),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<p class="has-drop-cap">' . esc_html( $para1['content'] ) . '</p>' ),
+				)
+			) . "\n";
 		}
 		if ( $para2 ) {
-			$inner .= serialize_block( [
-				'blockName'    => 'core/paragraph',
-				'attrs'        => [],
-				'innerBlocks'  => [],
-				'innerContent' => [ '<p>' . esc_html( $para2['content'] ) . '</p>' ],
-			] ) . "\n";
+			$inner .= serialize_block(
+				array(
+					'blockName'    => 'core/paragraph',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<p>' . esc_html( $para2['content'] ) . '</p>' ),
+				)
+			) . "\n";
 		}
 		if ( $cta ) {
 			$label     = esc_html( $cta['content'] );
 			$url       = ! empty( $cta['url'] ) ? esc_url( $cta['url'] ) : '#';
-			$btn_attrs = $btn_width > 0 ? [ 'width' => $btn_width ] : [];
-			$btn       = serialize_block( [
-				'blockName'    => 'core/button',
-				'attrs'        => $btn_attrs,
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"wp-block-button\"><a class=\"wp-block-button__link wp-element-button\" href=\"{$url}\">{$label}</a></div>" ],
-			] );
-			$inner .= serialize_block( [
-				'blockName'    => 'core/buttons',
-				'attrs'        => [ 'layout' => [ 'type' => 'flex', 'justifyContent' => 'center' ] ],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"" . aldus_buttons_classes() . "\">{$btn}</div>" ],
-			] ) . "\n";
+			$btn_attrs = $btn_width > 0 ? array( 'width' => $btn_width ) : array();
+			$btn       = serialize_block(
+				array(
+					'blockName'    => 'core/button',
+					'attrs'        => $btn_attrs,
+					'innerBlocks'  => array(),
+					'innerContent' => array( "<div class=\"wp-block-button\"><a class=\"wp-block-button__link wp-element-button\" href=\"{$url}\">{$label}</a></div>" ),
+				)
+			);
+			$inner    .= serialize_block(
+				array(
+					'blockName'    => 'core/buttons',
+					'attrs'        => array(
+						'layout' => array(
+							'type'           => 'flex',
+							'justifyContent' => 'center',
+						),
+					),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<div class="' . aldus_buttons_classes() . "\">{$btn}</div>" ),
+				)
+			) . "\n";
 		}
-
 	} elseif ( $variant === 2 && $dist->remaining( 'paragraph' ) >= 2 ) {
 		$subheading = $dist->consume( 'subheading' );
 		$para1      = $dist->consume( 'paragraph' );
@@ -1243,55 +1510,73 @@ function aldus_block_group(
 			$inner .= aldus_serialize_heading( esc_html( $subheading['content'] ), 2 );
 		}
 		if ( $para1 || $para2 ) {
-			$col_left_inner  = $para1 ? serialize_block( [
-				'blockName'    => 'core/paragraph',
-				'attrs'        => [],
-				'innerBlocks'  => [],
-				'innerContent' => [ '<p>' . esc_html( $para1['content'] ) . '</p>' ],
-			] ) : '';
-			$col_right_inner = $para2 ? serialize_block( [
-				'blockName'    => 'core/paragraph',
-				'attrs'        => [],
-				'innerBlocks'  => [],
-				'innerContent' => [ '<p>' . esc_html( $para2['content'] ) . '</p>' ],
-			] ) : '';
-			$col_l = serialize_block( [
-				'blockName'    => 'core/column',
-				'attrs'        => [],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"" . aldus_column_classes() . "\">\n{$col_left_inner}\n</div>" ],
-			] );
-			$col_r = serialize_block( [
-				'blockName'    => 'core/column',
-				'attrs'        => [],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"" . aldus_column_classes() . "\">\n{$col_right_inner}\n</div>" ],
-			] );
-			$inner .= serialize_block( [
-				'blockName'    => 'core/columns',
-				'attrs'        => [ 'isStackedOnMobile' => true ],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"" . aldus_columns_classes( true ) . "\">\n{$col_l}\n{$col_r}\n</div>" ],
-			] ) . "\n";
+			$col_left_inner  = $para1 ? serialize_block(
+				array(
+					'blockName'    => 'core/paragraph',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<p>' . esc_html( $para1['content'] ) . '</p>' ),
+				)
+			) : '';
+			$col_right_inner = $para2 ? serialize_block(
+				array(
+					'blockName'    => 'core/paragraph',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<p>' . esc_html( $para2['content'] ) . '</p>' ),
+				)
+			) : '';
+			$col_l           = serialize_block(
+				array(
+					'blockName'    => 'core/column',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<div class="' . aldus_column_classes() . "\">\n{$col_left_inner}\n</div>" ),
+				)
+			);
+			$col_r           = serialize_block(
+				array(
+					'blockName'    => 'core/column',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<div class="' . aldus_column_classes() . "\">\n{$col_right_inner}\n</div>" ),
+				)
+			);
+			$inner          .= serialize_block(
+				array(
+					'blockName'    => 'core/columns',
+					'attrs'        => array( 'isStackedOnMobile' => true ),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<div class="' . aldus_columns_classes( true ) . "\">\n{$col_l}\n{$col_r}\n</div>" ),
+				)
+			) . "\n";
 		}
 		if ( $cta ) {
 			$label     = esc_html( $cta['content'] );
 			$url       = ! empty( $cta['url'] ) ? esc_url( $cta['url'] ) : '#';
-			$btn_attrs = $btn_width > 0 ? [ 'width' => $btn_width ] : [];
-			$btn       = serialize_block( [
-				'blockName'    => 'core/button',
-				'attrs'        => $btn_attrs,
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"wp-block-button\"><a class=\"wp-block-button__link wp-element-button\" href=\"{$url}\">{$label}</a></div>" ],
-			] );
-			$inner .= serialize_block( [
-				'blockName'    => 'core/buttons',
-				'attrs'        => [ 'layout' => [ 'type' => 'flex', 'justifyContent' => 'center' ] ],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"" . aldus_buttons_classes() . "\">{$btn}</div>" ],
-			] ) . "\n";
+			$btn_attrs = $btn_width > 0 ? array( 'width' => $btn_width ) : array();
+			$btn       = serialize_block(
+				array(
+					'blockName'    => 'core/button',
+					'attrs'        => $btn_attrs,
+					'innerBlocks'  => array(),
+					'innerContent' => array( "<div class=\"wp-block-button\"><a class=\"wp-block-button__link wp-element-button\" href=\"{$url}\">{$label}</a></div>" ),
+				)
+			);
+			$inner    .= serialize_block(
+				array(
+					'blockName'    => 'core/buttons',
+					'attrs'        => array(
+						'layout' => array(
+							'type'           => 'flex',
+							'justifyContent' => 'center',
+						),
+					),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<div class="' . aldus_buttons_classes() . "\">{$btn}</div>" ),
+				)
+			) . "\n";
 		}
-
 	} else {
 		$subheading = $dist->consume( 'subheading' );
 		$para       = $dist->consume( 'paragraph' );
@@ -1317,19 +1602,28 @@ function aldus_block_group(
 		if ( $cta ) {
 			$label     = esc_html( $cta['content'] );
 			$url       = ! empty( $cta['url'] ) ? esc_url( $cta['url'] ) : '#';
-			$btn_attrs = $btn_width > 0 ? [ 'width' => $btn_width ] : [];
-			$btn       = serialize_block( [
-				'blockName'    => 'core/button',
-				'attrs'        => $btn_attrs,
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"wp-block-button\"><a class=\"wp-block-button__link wp-element-button\" href=\"{$url}\">{$label}</a></div>" ],
-			] );
-			$inner .= serialize_block( [
-				'blockName'    => 'core/buttons',
-				'attrs'        => [ 'layout' => [ 'type' => 'flex', 'justifyContent' => 'center' ] ],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"" . aldus_buttons_classes() . "\">{$btn}</div>" ],
-			] ) . "\n";
+			$btn_attrs = $btn_width > 0 ? array( 'width' => $btn_width ) : array();
+			$btn       = serialize_block(
+				array(
+					'blockName'    => 'core/button',
+					'attrs'        => $btn_attrs,
+					'innerBlocks'  => array(),
+					'innerContent' => array( "<div class=\"wp-block-button\"><a class=\"wp-block-button__link wp-element-button\" href=\"{$url}\">{$label}</a></div>" ),
+				)
+			);
+			$inner    .= serialize_block(
+				array(
+					'blockName'    => 'core/buttons',
+					'attrs'        => array(
+						'layout' => array(
+							'type'           => 'flex',
+							'justifyContent' => 'center',
+						),
+					),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<div class="' . aldus_buttons_classes() . "\">{$btn}</div>" ),
+				)
+			) . "\n";
 		}
 	}
 
@@ -1338,12 +1632,14 @@ function aldus_block_group(
 	}
 
 	$pad = aldus_theme_spacing( 'lg' );
-	return serialize_block( [
-		'blockName'    => 'core/group',
-		'attrs'        => $attrs,
-		'innerBlocks'  => [],
-		'innerContent' => [ "<div class=\"" . aldus_group_classes( 'constrained' ) . "{$align_class}{$bg_class}{$tc_class}\" style=\"padding-top:{$pad};padding-bottom:{$pad}\">\n{$inner}</div>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/group',
+			'attrs'        => $attrs,
+			'innerBlocks'  => array(),
+			'innerContent' => array( '<div class="' . aldus_group_classes( 'constrained' ) . "{$align_class}{$bg_class}{$tc_class}\" style=\"padding-top:{$pad};padding-bottom:{$pad}\">\n{$inner}</div>" ),
+		)
+	) . "\n\n";
 }
 
 /**
@@ -1359,7 +1655,7 @@ function aldus_block_pullquote(
 	string $color_slug,
 	string $style = '',
 	bool $full_width = false,
-	array $context = []
+	array $context = array()
 ): string {
 	$quote = $dist->consume( 'quote' );
 	if ( ! $quote ) {
@@ -1373,12 +1669,15 @@ function aldus_block_pullquote(
 	// Prefer a custom block style registered in the theme over the default
 	// 'solid-color' style. If the theme registers a 'plain' style for
 	// core/pullquote, use it so the output feels native to the active theme.
-	$custom_pq_styles = $context['custom_styles']['pullquote'] ?? [];
+	$custom_pq_styles = $context['custom_styles']['pullquote'] ?? array();
 	if ( ! empty( $custom_pq_styles ) && in_array( 'plain', $custom_pq_styles, true ) ) {
 		$style = 'plain';
 	}
 
-	$attrs = [ 'align' => $align, 'borderColor' => $color_slug ];
+	$attrs = array(
+		'align'       => $align,
+		'borderColor' => $color_slug,
+	);
 	if ( $style ) {
 		$attrs['className'] = "is-style-{$style}";
 	}
@@ -1386,14 +1685,16 @@ function aldus_block_pullquote(
 	$style_class  = $style ? " is-style-{$style}" : '';
 	$border_class = " has-{$color_safe}-border-color";
 
-	return serialize_block( [
-		'blockName'    => 'core/pullquote',
-		'attrs'        => $attrs,
-		'innerBlocks'  => [],
-		'innerContent' => [
-			"<figure class=\"wp-block-pullquote align{$align}{$style_class}{$border_class}\"><blockquote><p>{$text}</p></blockquote></figure>",
-		],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/pullquote',
+			'attrs'        => $attrs,
+			'innerBlocks'  => array(),
+			'innerContent' => array(
+				"<figure class=\"wp-block-pullquote align{$align}{$style_class}{$border_class}\"><blockquote><p>{$text}</p></blockquote></figure>",
+			),
+		)
+	) . "\n\n";
 }
 
 // ---------------------------------------------------------------------------
@@ -1412,19 +1713,31 @@ function aldus_block_pullquote(
  * @param string $item_id     When non-empty, adds a Block Bindings attr so the
  *                            heading content resolves from _aldus_items post meta.
  */
-function aldus_serialize_heading( string $text, int $level, array $extra_attrs = [], string $item_id = '' ): string {
+function aldus_serialize_heading( string $text, int $level, array $extra_attrs = array(), string $item_id = '' ): string {
 	// WordPress core only accepts heading levels 1–6; clamp to prevent invalid block output.
 	$level = max( 1, min( 6, $level ) );
-	$attrs = array_merge( [ 'level' => $level ], $extra_attrs );
+	$attrs = array_merge( array( 'level' => $level ), $extra_attrs );
 	if ( $item_id ) {
-		$attrs['metadata'] = [ 'bindings' => [ 'content' => [ 'source' => 'aldus/item', 'args' => [ 'id' => $item_id, 'field' => 'content' ] ] ] ];
+		$attrs['metadata'] = array(
+			'bindings' => array(
+				'content' => array(
+					'source' => 'aldus/item',
+					'args'   => array(
+						'id'    => $item_id,
+						'field' => 'content',
+					),
+				),
+			),
+		);
 	}
-	return serialize_block( [
-		'blockName'    => 'core/heading',
-		'attrs'        => $attrs,
-		'innerBlocks'  => [],
-		'innerContent' => [ "<h{$level} class=\"wp-block-heading\">{$text}</h{$level}>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/heading',
+			'attrs'        => $attrs,
+			'innerBlocks'  => array(),
+			'innerContent' => array( "<h{$level} class=\"wp-block-heading\">{$text}</h{$level}>" ),
+		)
+	) . "\n\n";
 }
 
 /**
@@ -1436,17 +1749,29 @@ function aldus_serialize_heading( string $text, int $level, array $extra_attrs =
  *                          paragraph content resolves from _aldus_items post meta.
  */
 function aldus_serialize_paragraph( string $text, bool $drop_cap = false, string $item_id = '' ): string {
-	$attrs = $drop_cap ? [ 'dropCap' => true ] : [];
+	$attrs = $drop_cap ? array( 'dropCap' => true ) : array();
 	if ( $item_id ) {
-		$attrs['metadata'] = [ 'bindings' => [ 'content' => [ 'source' => 'aldus/item', 'args' => [ 'id' => $item_id, 'field' => 'content' ] ] ] ];
+		$attrs['metadata'] = array(
+			'bindings' => array(
+				'content' => array(
+					'source' => 'aldus/item',
+					'args'   => array(
+						'id'    => $item_id,
+						'field' => 'content',
+					),
+				),
+			),
+		);
 	}
 	$class = $drop_cap ? ' class="has-drop-cap"' : '';
-	return serialize_block( [
-		'blockName'    => 'core/paragraph',
-		'attrs'        => $attrs,
-		'innerBlocks'  => [],
-		'innerContent' => [ "<p{$class}>{$text}</p>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/paragraph',
+			'attrs'        => $attrs,
+			'innerBlocks'  => array(),
+			'innerContent' => array( "<p{$class}>{$text}</p>" ),
+		)
+	) . "\n\n";
 }
 
 /**
@@ -1476,54 +1801,73 @@ function aldus_serialize_button( string $label, string $url, string $color_slug,
 	$color_safe = sanitize_html_class( $color_slug );
 
 	if ( 'outline' === $variant ) {
-		$btn_attrs   = [
+		$btn_attrs   = array(
 			'textColor' => $color_slug,
 			'className' => 'is-style-outline',
-			'style'     => [ 'typography' => [ 'fontWeight' => '600' ] ],
-		];
+			'style'     => array( 'typography' => array( 'fontWeight' => '600' ) ),
+		);
 		$btn_content = "<div class=\"wp-block-button is-style-outline\"><a class=\"wp-block-button__link has-{$color_safe}-color has-text-color wp-element-button\" href=\"{$url}\" style=\"font-weight:600\">{$label}</a></div>";
 	} elseif ( 'ghost' === $variant ) {
 		$dark_safe   = sanitize_html_class( $dark_slug );
-		$btn_attrs   = [
+		$btn_attrs   = array(
 			'backgroundColor' => 'white',
 			'textColor'       => $dark_slug,
-			'style'           => [ 'typography' => [ 'fontWeight' => '600' ] ],
-		];
+			'style'           => array( 'typography' => array( 'fontWeight' => '600' ) ),
+		);
 		$btn_content = "<div class=\"wp-block-button\"><a class=\"wp-block-button__link has-white-background-color has-{$dark_safe}-color has-text-color has-background wp-element-button\" href=\"{$url}\" style=\"font-weight:600\">{$label}</a></div>";
 	} elseif ( 'plain' === $variant ) {
 		// No explicit color attrs — let the theme's global button styles apply.
-		$btn_attrs   = [];
+		$btn_attrs   = array();
 		$btn_content = "<div class=\"wp-block-button\"><a class=\"wp-block-button__link wp-element-button\" href=\"{$url}\">{$label}</a></div>";
 	} else {
 		// 'filled' (legacy)
-		$btn_attrs   = [
+		$btn_attrs   = array(
 			'backgroundColor' => $color_slug,
 			'textColor'       => 'white',
-			'style'           => [ 'typography' => [ 'fontWeight' => '600' ] ],
-		];
+			'style'           => array( 'typography' => array( 'fontWeight' => '600' ) ),
+		);
 		$btn_content = "<div class=\"wp-block-button\"><a class=\"wp-block-button__link has-{$color_safe}-background-color has-white-color has-text-color has-background wp-element-button\" href=\"{$url}\" style=\"font-weight:600\">{$label}</a></div>";
 	}
 
 	if ( $item_id ) {
-		$btn_attrs['metadata'] = [ 'bindings' => [ 'text' => [ 'source' => 'aldus/item', 'args' => [ 'id' => $item_id, 'field' => 'content' ] ] ] ];
+		$btn_attrs['metadata'] = array(
+			'bindings' => array(
+				'text' => array(
+					'source' => 'aldus/item',
+					'args'   => array(
+						'id'    => $item_id,
+						'field' => 'content',
+					),
+				),
+			),
+		);
 	}
 	if ( $width > 0 ) {
 		$btn_attrs['width'] = $width;
 	}
 
-	$btn_markup = serialize_block( [
-		'blockName'    => 'core/button',
-		'attrs'        => $btn_attrs,
-		'innerBlocks'  => [],
-		'innerContent' => [ $btn_content ],
-	] );
+	$btn_markup = serialize_block(
+		array(
+			'blockName'    => 'core/button',
+			'attrs'        => $btn_attrs,
+			'innerBlocks'  => array(),
+			'innerContent' => array( $btn_content ),
+		)
+	);
 
-	return serialize_block( [
-		'blockName'    => 'core/buttons',
-		'attrs'        => [ 'layout' => [ 'type' => 'flex', 'justifyContent' => 'center' ] ],
-		'innerBlocks'  => [],
-		'innerContent' => [ "<div class=\"" . aldus_buttons_classes() . "\">\n{$btn_markup}\n</div>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/buttons',
+			'attrs'        => array(
+				'layout' => array(
+					'type'           => 'flex',
+					'justifyContent' => 'center',
+				),
+			),
+			'innerBlocks'  => array(),
+			'innerContent' => array( '<div class="' . aldus_buttons_classes() . "\">\n{$btn_markup}\n</div>" ),
+		)
+	) . "\n\n";
 }
 
 /**
@@ -1534,8 +1878,9 @@ function aldus_serialize_button( string $label, string $url, string $color_slug,
  * @param int    $level         Heading level 1–3.
  * @param string $type          Content type to consume ('headline' or 'subheading').
  * @param bool   $use_bindings  When true, embeds a Block Bindings attr on the block.
+ * @param string $font_size     Optional font size slug to apply.
  */
-function aldus_block_heading( Aldus_Content_Distributor $dist, int $level, string $type, bool $use_bindings = false ): string {
+function aldus_block_heading( Aldus_Content_Distributor $dist, int $level, string $type, bool $use_bindings = false, string $font_size = '' ): string {
 	$item = $dist->consume( $type );
 	if ( ! $item ) {
 		$fallback = 'headline' === $type ? 'subheading' : 'headline';
@@ -1544,7 +1889,8 @@ function aldus_block_heading( Aldus_Content_Distributor $dist, int $level, strin
 	if ( ! $item ) {
 		return '';
 	}
-	return aldus_serialize_heading( esc_html( $item['content'] ), $level, [], $use_bindings ? ( $item['id'] ?? '' ) : '' );
+	$extra_attrs = $font_size ? array( 'fontSize' => $font_size ) : array();
+	return aldus_serialize_heading( esc_html( $item['content'] ), $level, $extra_attrs, $use_bindings ? ( $item['id'] ?? '' ) : '' );
 }
 
 /**
@@ -1578,7 +1924,10 @@ function aldus_block_image( Aldus_Content_Distributor $dist, string $align, stri
 	$url      = esc_url( $item['url'] );
 	$media_id = ! empty( $item['mediaId'] ) ? (int) $item['mediaId'] : 0;
 
-	$attrs = [ 'align' => $align, 'sizeSlug' => 'large' ];
+	$attrs = array(
+		'align'    => $align,
+		'sizeSlug' => 'large',
+	);
 	if ( $media_id ) {
 		$attrs['id'] = $media_id;
 	}
@@ -1596,12 +1945,14 @@ function aldus_block_image( Aldus_Content_Distributor $dist, string $align, stri
 		$attrs['style']['border']['radius'] = $radius;
 	}
 
-	return serialize_block( [
-		'blockName'    => 'core/image',
-		'attrs'        => $attrs,
-		'innerBlocks'  => [],
-		'innerContent' => [ "<figure class=\"wp-block-image align{$align} size-large\"><img src=\"{$url}\" alt=\"\"/></figure>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/image',
+			'attrs'        => $attrs,
+			'innerBlocks'  => array(),
+			'innerContent' => array( "<figure class=\"wp-block-image align{$align} size-large\"><img src=\"{$url}\" alt=\"\"/></figure>" ),
+		)
+	) . "\n\n";
 }
 
 /**
@@ -1619,27 +1970,29 @@ function aldus_serialize_list( array $raw_items ): string {
 		return '';
 	}
 
-	$inner_blocks  = [];
-	$inner_content = [ '<ul class="wp-block-list">' ];
+	$inner_blocks  = array();
+	$inner_content = array( '<ul class="wp-block-list">' );
 
 	foreach ( $raw_items as $li ) {
-		$inner_blocks[] = [
+		$inner_blocks[]  = array(
 			'blockName'    => 'core/list-item',
-			'attrs'        => [],
-			'innerBlocks'  => [],
-			'innerContent' => [ '<li>' . esc_html( $li ) . '</li>' ],
-		];
+			'attrs'        => array(),
+			'innerBlocks'  => array(),
+			'innerContent' => array( '<li>' . esc_html( $li ) . '</li>' ),
+		);
 		$inner_content[] = null; // placeholder consumed by serialize_block()
 	}
 
 	$inner_content[] = '</ul>';
 
-	return serialize_block( [
-		'blockName'    => 'core/list',
-		'attrs'        => [],
-		'innerBlocks'  => $inner_blocks,
-		'innerContent' => $inner_content,
-	] );
+	return serialize_block(
+		array(
+			'blockName'    => 'core/list',
+			'attrs'        => array(),
+			'innerBlocks'  => $inner_blocks,
+			'innerContent' => $inner_content,
+		)
+	);
 }
 
 /**
@@ -1686,17 +2039,19 @@ function aldus_block_separator( string $color_slug, string $style = 'wide' ): st
 			$align_class = ' alignwide';
 	}
 
-	$attrs = [ 'className' => ltrim( $style_class ) ];
+	$attrs = array( 'className' => ltrim( $style_class ) );
 	if ( $align_attr ) {
 		$attrs['align'] = $align_attr;
 	}
 
-	return serialize_block( [
-		'blockName'    => 'core/separator',
-		'attrs'        => $attrs,
-		'innerBlocks'  => [],
-		'innerContent' => [ "<hr class=\"wp-block-separator{$align_class} has-{$color_safe}-color has-text-color{$style_class}\"/>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/separator',
+			'attrs'        => $attrs,
+			'innerBlocks'  => array(),
+			'innerContent' => array( "<hr class=\"wp-block-separator{$align_class} has-{$color_safe}-color has-text-color{$style_class}\"/>" ),
+		)
+	) . "\n\n";
 }
 
 /**
@@ -1709,7 +2064,7 @@ function aldus_block_separator( string $color_slug, string $style = 'wide' ): st
  * @param bool                      $use_bindings  When true, embeds a Block Bindings attr on the button.
  * @param bool                      $wide_button   When true, sets button width to 50% (for full-width sections).
  */
-function aldus_block_cta( Aldus_Content_Distributor $dist, string $color_slug, string $dark_slug = '', array $style_ctx = [], bool $use_bindings = false, bool $wide_button = false ): string {
+function aldus_block_cta( Aldus_Content_Distributor $dist, string $color_slug, string $dark_slug = '', array $style_ctx = array(), bool $use_bindings = false, bool $wide_button = false ): string {
 	$item = $dist->consume( 'cta' );
 	if ( ! $item ) {
 		return '';
@@ -1721,7 +2076,7 @@ function aldus_block_cta( Aldus_Content_Distributor $dist, string $color_slug, s
 
 	// Pick variant from personality style rules:
 	// restrained accent → outlined; pronounced + high contrast → ghost; default → filled.
-	$s_accent   = $style_ctx['accent']   ?? 'restrained';
+	$s_accent   = $style_ctx['accent'] ?? 'restrained';
 	$s_contrast = $style_ctx['contrast'] ?? 'medium';
 
 	if ( 'restrained' === $s_accent ) {
@@ -1751,12 +2106,14 @@ function aldus_block_quote( Aldus_Content_Distributor $dist ): string {
 
 	$text = esc_html( $item['content'] );
 
-	return serialize_block( [
-		'blockName'    => 'core/quote',
-		'attrs'        => [],
-		'innerBlocks'  => [],
-		'innerContent' => [ "<blockquote class=\"wp-block-quote\"><p>{$text}</p></blockquote>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/quote',
+			'attrs'        => array(),
+			'innerBlocks'  => array(),
+			'innerContent' => array( "<blockquote class=\"wp-block-quote\"><p>{$text}</p></blockquote>" ),
+		)
+	) . "\n\n";
 }
 
 // ---------------------------------------------------------------------------
@@ -1783,36 +2140,45 @@ function aldus_block_cover_minimal( Aldus_Content_Distributor $dist, string $col
 	$color_safe   = sanitize_html_class( $color_slug );
 
 	$cover_min_height = aldus_cover_min_height( $headline_raw, 380 );
-	$attrs = [
+	$attrs            = array(
 		'overlayColor'    => $color_slug,
 		'dimRatio'        => 100,
 		'align'           => 'full',
 		'contentPosition' => 'center center',
 		'minHeight'       => $cover_min_height,
 		'minHeightUnit'   => 'px',
-		'layout'          => [ 'type' => 'constrained' ],
-	];
+		'layout'          => array( 'type' => 'constrained' ),
+	);
 	if ( $name ) {
-		$attrs['metadata'] = [ 'name' => $name ];
+		$attrs['metadata'] = array( 'name' => $name );
 	}
 
-	$heading_html = serialize_block( [
-		'blockName'    => 'core/heading',
-		'attrs'        => [ 'level' => 1, 'textColor' => 'white', 'fontSize' => $font_size, 'textAlign' => 'center' ],
-		'innerBlocks'  => [],
-		'innerContent' => [ "<h1 class=\"wp-block-heading has-text-align-center has-white-color has-text-color has-{$font_size}-font-size\">{$text}</h1>" ],
-	] );
+	$heading_html = serialize_block(
+		array(
+			'blockName'    => 'core/heading',
+			'attrs'        => array(
+				'level'     => 1,
+				'textColor' => 'white',
+				'fontSize'  => $font_size,
+				'textAlign' => 'center',
+			),
+			'innerBlocks'  => array(),
+			'innerContent' => array( "<h1 class=\"wp-block-heading has-text-align-center has-white-color has-text-color has-{$font_size}-font-size\">{$text}</h1>" ),
+		)
+	);
 
-	return serialize_block( [
-		'blockName'    => 'core/cover',
-		'attrs'        => $attrs,
-		'innerBlocks'  => [],
-		'innerContent' => [
-			"<div class=\"wp-block-cover alignfull has-custom-content-position is-position-center-center\" style=\"min-height:{$cover_min_height}px\">\n"
-			. "<span aria-hidden=\"true\" class=\"wp-block-cover__background has-{$color_safe}-background-color has-background-dim-100 has-background-dim\"></span>\n"
-			. "<div class=\"" . aldus_cover_inner_classes() . "\">\n{$heading_html}\n</div>\n</div>",
-		],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/cover',
+			'attrs'        => $attrs,
+			'innerBlocks'  => array(),
+			'innerContent' => array(
+				"<div class=\"wp-block-cover alignfull has-custom-content-position is-position-center-center\" style=\"min-height:{$cover_min_height}px\">\n"
+				. "<span aria-hidden=\"true\" class=\"wp-block-cover__background has-{$color_safe}-background-color has-background-dim-100 has-background-dim\"></span>\n"
+				. '<div class="' . aldus_cover_inner_classes() . "\">\n{$heading_html}\n</div>\n</div>",
+			),
+		)
+	) . "\n\n";
 }
 
 /**
@@ -1834,20 +2200,20 @@ function aldus_block_cover_split( Aldus_Content_Distributor $dist, string $font_
 
 	$has_image_url = $image && ! empty( $image['url'] );
 
-	$attrs = [
+	$attrs = array(
 		'mediaPosition'     => 'left',
 		'mediaWidth'        => 50,
 		'isStackedOnMobile' => true,
 		'align'             => 'full',
 		'minHeight'         => 600,
 		'minHeightUnit'     => 'px',
-	];
+	);
 	if ( $has_image_url ) {
 		$attrs['mediaUrl']  = esc_url_raw( $image['url'] );
 		$attrs['mediaType'] = 'image';
 	}
 	if ( $name ) {
-		$attrs['metadata'] = [ 'name' => $name ];
+		$attrs['metadata'] = array( 'name' => $name );
 	}
 
 	// Always render a standard <img> to avoid imageFill serialisation drift.
@@ -1861,27 +2227,34 @@ function aldus_block_cover_split( Aldus_Content_Distributor $dist, string $font_
 	$content_inner = '';
 	if ( $headline ) {
 		$font_size_safe = sanitize_html_class( $font_size );
-		$content_inner .= serialize_block( [
-			'blockName'    => 'core/heading',
-			'attrs'        => [ 'level' => 1, 'fontSize' => $font_size ],
-			'innerBlocks'  => [],
-			'innerContent' => [ "<h1 class=\"wp-block-heading has-{$font_size_safe}-font-size\">" . esc_html( $headline['content'] ) . '</h1>' ],
-		] ) . "\n";
+		$content_inner .= serialize_block(
+			array(
+				'blockName'    => 'core/heading',
+				'attrs'        => array(
+					'level'    => 1,
+					'fontSize' => $font_size,
+				),
+				'innerBlocks'  => array(),
+				'innerContent' => array( "<h1 class=\"wp-block-heading has-{$font_size_safe}-font-size\">" . esc_html( $headline['content'] ) . '</h1>' ),
+			)
+		) . "\n";
 	}
 	if ( $para ) {
 		$content_inner .= aldus_serialize_paragraph( esc_html( $para['content'] ) );
 	}
 
-	return serialize_block( [
-		'blockName'    => 'core/media-text',
-		'attrs'        => $attrs,
-		'innerBlocks'  => [],
-		'innerContent' => [
-			"<div class=\"" . aldus_media_text_classes( 'left', true, 'full' ) . "\">\n"
-			. "{$image_html}\n"
-			. "<div class=\"wp-block-media-text__content\">\n{$content_inner}</div>\n</div>",
-		],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/media-text',
+			'attrs'        => $attrs,
+			'innerBlocks'  => array(),
+			'innerContent' => array(
+				'<div class="' . aldus_media_text_classes( 'left', true, 'full' ) . "\">\n"
+				. "{$image_html}\n"
+				. "<div class=\"wp-block-media-text__content\">\n{$content_inner}</div>\n</div>",
+			),
+		)
+	) . "\n\n";
 }
 
 /**
@@ -1898,20 +2271,23 @@ function aldus_block_cover_split( Aldus_Content_Distributor $dist, string $font_
  *                                            4 = image left + para right.
  */
 function aldus_block_columns_two_equal( Aldus_Content_Distributor $dist, string $name = '', int $variant = 0 ): string {
-	$cols_attrs = [ 'isStackedOnMobile' => true ];
-	$col_attrs  = [ 'width' => '50%' ];
+	$cols_attrs = array( 'isStackedOnMobile' => true );
+	$col_attrs  = array( 'width' => '50%' );
 	if ( $name ) {
-		$cols_attrs['metadata'] = [ 'name' => $name ];
+		$cols_attrs['metadata'] = array( 'name' => $name );
 	}
 
 	// ---- Variant 1: editorial — heading + paragraph in each column. ----
 	if ( $variant === 1 ) {
-		$pairs = [];
+		$pairs = array();
 		for ( $i = 0; $i < 2; $i++ ) {
 			$heading = $dist->consume( 'subheading' );
 			$para    = $dist->consume( 'paragraph' );
 			if ( $heading || $para ) {
-				$pairs[] = [ 'heading' => $heading, 'para' => $para ];
+				$pairs[] = array(
+					'heading' => $heading,
+					'para'    => $para,
+				);
 			}
 		}
 		if ( empty( $pairs ) ) {
@@ -1922,34 +2298,42 @@ function aldus_block_columns_two_equal( Aldus_Content_Distributor $dist, string 
 			foreach ( $pairs as $pair ) {
 				$col_inner = '';
 				if ( $pair['heading'] ) {
-					$col_inner .= serialize_block( [
-						'blockName'    => 'core/heading',
-						'attrs'        => [ 'level' => 3 ],
-						'innerBlocks'  => [],
-						'innerContent' => [ '<h3 class="wp-block-heading">' . esc_html( $pair['heading']['content'] ) . '</h3>' ],
-					] ) . "\n";
+					$col_inner .= serialize_block(
+						array(
+							'blockName'    => 'core/heading',
+							'attrs'        => array( 'level' => 3 ),
+							'innerBlocks'  => array(),
+							'innerContent' => array( '<h3 class="wp-block-heading">' . esc_html( $pair['heading']['content'] ) . '</h3>' ),
+						)
+					) . "\n";
 				}
 				if ( $pair['para'] ) {
-					$col_inner .= serialize_block( [
-						'blockName'    => 'core/paragraph',
-						'attrs'        => [],
-						'innerBlocks'  => [],
-						'innerContent' => [ '<p>' . esc_html( $pair['para']['content'] ) . '</p>' ],
-					] ) . "\n";
+					$col_inner .= serialize_block(
+						array(
+							'blockName'    => 'core/paragraph',
+							'attrs'        => array(),
+							'innerBlocks'  => array(),
+							'innerContent' => array( '<p>' . esc_html( $pair['para']['content'] ) . '</p>' ),
+						)
+					) . "\n";
 				}
-				$cols_inner .= serialize_block( [
-					'blockName'    => 'core/column',
-					'attrs'        => $col_attrs,
-					'innerBlocks'  => [],
-					'innerContent' => [ "<div class=\"" . aldus_column_classes() . "\" style=\"" . aldus_column_style( '50%' ) . "\">\n{$col_inner}</div>" ],
-				] ) . "\n";
+				$cols_inner .= serialize_block(
+					array(
+						'blockName'    => 'core/column',
+						'attrs'        => $col_attrs,
+						'innerBlocks'  => array(),
+						'innerContent' => array( '<div class="' . aldus_column_classes() . '" style="' . aldus_column_style( '50%' ) . "\">\n{$col_inner}</div>" ),
+					)
+				) . "\n";
 			}
-			return serialize_block( [
-				'blockName'    => 'core/columns',
-				'attrs'        => $cols_attrs,
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"" . aldus_columns_classes( true ) . "\">\n{$cols_inner}</div>" ],
-			] ) . "\n\n";
+			return serialize_block(
+				array(
+					'blockName'    => 'core/columns',
+					'attrs'        => $cols_attrs,
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<div class="' . aldus_columns_classes( true ) . "\">\n{$cols_inner}</div>" ),
+				)
+			) . "\n\n";
 		}
 	}
 
@@ -1960,12 +2344,14 @@ function aldus_block_columns_two_equal( Aldus_Content_Distributor $dist, string 
 		if ( ! $heading && ! $list ) {
 			$variant = 0;
 		} else {
-			$left_inner = $heading ? serialize_block( [
-				'blockName'    => 'core/heading',
-				'attrs'        => [ 'level' => 2 ],
-				'innerBlocks'  => [],
-				'innerContent' => [ '<h2 class="wp-block-heading">' . esc_html( $heading['content'] ) . '</h2>' ],
-			] ) . "\n" : '';
+			$left_inner = $heading ? serialize_block(
+				array(
+					'blockName'    => 'core/heading',
+					'attrs'        => array( 'level' => 2 ),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<h2 class="wp-block-heading">' . esc_html( $heading['content'] ) . '</h2>' ),
+				)
+			) . "\n" : '';
 
 			$right_inner = '';
 			if ( $list ) {
@@ -1975,24 +2361,30 @@ function aldus_block_columns_two_equal( Aldus_Content_Distributor $dist, string 
 				$right_inner = $list_markup ? $list_markup . "\n" : '';
 			}
 
-			$cols_inner  = serialize_block( [
-				'blockName'    => 'core/column',
-				'attrs'        => $col_attrs,
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"" . aldus_column_classes() . "\" style=\"" . aldus_column_style( '50%' ) . "\">\n{$left_inner}</div>" ],
-			] ) . "\n";
-			$cols_inner .= serialize_block( [
-				'blockName'    => 'core/column',
-				'attrs'        => $col_attrs,
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"" . aldus_column_classes() . "\" style=\"" . aldus_column_style( '50%' ) . "\">\n{$right_inner}</div>" ],
-			] ) . "\n";
-			return serialize_block( [
-				'blockName'    => 'core/columns',
-				'attrs'        => $cols_attrs,
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"" . aldus_columns_classes( true ) . "\">\n{$cols_inner}</div>" ],
-			] ) . "\n\n";
+			$cols_inner  = serialize_block(
+				array(
+					'blockName'    => 'core/column',
+					'attrs'        => $col_attrs,
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<div class="' . aldus_column_classes() . '" style="' . aldus_column_style( '50%' ) . "\">\n{$left_inner}</div>" ),
+				)
+			) . "\n";
+			$cols_inner .= serialize_block(
+				array(
+					'blockName'    => 'core/column',
+					'attrs'        => $col_attrs,
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<div class="' . aldus_column_classes() . '" style="' . aldus_column_style( '50%' ) . "\">\n{$right_inner}</div>" ),
+				)
+			) . "\n";
+			return serialize_block(
+				array(
+					'blockName'    => 'core/columns',
+					'attrs'        => $cols_attrs,
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<div class="' . aldus_columns_classes( true ) . "\">\n{$cols_inner}</div>" ),
+				)
+			) . "\n\n";
 		}
 	}
 
@@ -2003,37 +2395,47 @@ function aldus_block_columns_two_equal( Aldus_Content_Distributor $dist, string 
 		if ( ! $quote && ! $para ) {
 			$variant = 0;
 		} else {
-			$left_inner = $quote ? serialize_block( [
-				'blockName'    => 'core/quote',
-				'attrs'        => [],
-				'innerBlocks'  => [],
-				'innerContent' => [ '<blockquote class="wp-block-quote"><p>' . esc_html( $quote['content'] ) . '</p></blockquote>' ],
-			] ) . "\n" : '';
-			$right_inner = $para ? serialize_block( [
-				'blockName'    => 'core/paragraph',
-				'attrs'        => [],
-				'innerBlocks'  => [],
-				'innerContent' => [ '<p>' . esc_html( $para['content'] ) . '</p>' ],
-			] ) . "\n" : '';
+			$left_inner  = $quote ? serialize_block(
+				array(
+					'blockName'    => 'core/quote',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<blockquote class="wp-block-quote"><p>' . esc_html( $quote['content'] ) . '</p></blockquote>' ),
+				)
+			) . "\n" : '';
+			$right_inner = $para ? serialize_block(
+				array(
+					'blockName'    => 'core/paragraph',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<p>' . esc_html( $para['content'] ) . '</p>' ),
+				)
+			) . "\n" : '';
 
-			$cols_inner  = serialize_block( [
-				'blockName'    => 'core/column',
-				'attrs'        => $col_attrs,
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"" . aldus_column_classes() . "\" style=\"" . aldus_column_style( '50%' ) . "\">\n{$left_inner}</div>" ],
-			] ) . "\n";
-			$cols_inner .= serialize_block( [
-				'blockName'    => 'core/column',
-				'attrs'        => $col_attrs,
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"" . aldus_column_classes() . "\" style=\"" . aldus_column_style( '50%' ) . "\">\n{$right_inner}</div>" ],
-			] ) . "\n";
-			return serialize_block( [
-				'blockName'    => 'core/columns',
-				'attrs'        => $cols_attrs,
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"" . aldus_columns_classes( true ) . "\">\n{$cols_inner}</div>" ],
-			] ) . "\n\n";
+			$cols_inner  = serialize_block(
+				array(
+					'blockName'    => 'core/column',
+					'attrs'        => $col_attrs,
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<div class="' . aldus_column_classes() . '" style="' . aldus_column_style( '50%' ) . "\">\n{$left_inner}</div>" ),
+				)
+			) . "\n";
+			$cols_inner .= serialize_block(
+				array(
+					'blockName'    => 'core/column',
+					'attrs'        => $col_attrs,
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<div class="' . aldus_column_classes() . '" style="' . aldus_column_style( '50%' ) . "\">\n{$right_inner}</div>" ),
+				)
+			) . "\n";
+			return serialize_block(
+				array(
+					'blockName'    => 'core/columns',
+					'attrs'        => $cols_attrs,
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<div class="' . aldus_columns_classes( true ) . "\">\n{$cols_inner}</div>" ),
+				)
+			) . "\n\n";
 		}
 	}
 
@@ -2045,37 +2447,50 @@ function aldus_block_columns_two_equal( Aldus_Content_Distributor $dist, string 
 			$variant = 0; // Fall back if no image.
 		} else {
 			$image_url   = esc_url( $image['url'] );
-			$left_inner  = serialize_block( [
-				'blockName'    => 'core/image',
-				'attrs'        => [ 'sizeSlug' => 'large', 'linkDestination' => 'none' ],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<figure class=\"wp-block-image size-large\"><img src=\"{$image_url}\" alt=\"\" class=\"wp-image-0\"/></figure>" ],
-			] ) . "\n";
-			$right_inner = $para ? serialize_block( [
-				'blockName'    => 'core/paragraph',
-				'attrs'        => [],
-				'innerBlocks'  => [],
-				'innerContent' => [ '<p>' . esc_html( $para['content'] ) . '</p>' ],
-			] ) . "\n" : '';
+			$left_inner  = serialize_block(
+				array(
+					'blockName'    => 'core/image',
+					'attrs'        => array(
+						'sizeSlug'        => 'large',
+						'linkDestination' => 'none',
+					),
+					'innerBlocks'  => array(),
+					'innerContent' => array( "<figure class=\"wp-block-image size-large\"><img src=\"{$image_url}\" alt=\"\" class=\"wp-image-0\"/></figure>" ),
+				)
+			) . "\n";
+			$right_inner = $para ? serialize_block(
+				array(
+					'blockName'    => 'core/paragraph',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<p>' . esc_html( $para['content'] ) . '</p>' ),
+				)
+			) . "\n" : '';
 
-			$cols_inner  = serialize_block( [
-				'blockName'    => 'core/column',
-				'attrs'        => $col_attrs,
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"" . aldus_column_classes() . "\" style=\"" . aldus_column_style( '50%' ) . "\">\n{$left_inner}</div>" ],
-			] ) . "\n";
-			$cols_inner .= serialize_block( [
-				'blockName'    => 'core/column',
-				'attrs'        => $col_attrs,
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"" . aldus_column_classes() . "\" style=\"" . aldus_column_style( '50%' ) . "\">\n{$right_inner}</div>" ],
-			] ) . "\n";
-			return serialize_block( [
-				'blockName'    => 'core/columns',
-				'attrs'        => $cols_attrs,
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"" . aldus_columns_classes( true ) . "\">\n{$cols_inner}</div>" ],
-			] ) . "\n\n";
+			$cols_inner  = serialize_block(
+				array(
+					'blockName'    => 'core/column',
+					'attrs'        => $col_attrs,
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<div class="' . aldus_column_classes() . '" style="' . aldus_column_style( '50%' ) . "\">\n{$left_inner}</div>" ),
+				)
+			) . "\n";
+			$cols_inner .= serialize_block(
+				array(
+					'blockName'    => 'core/column',
+					'attrs'        => $col_attrs,
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<div class="' . aldus_column_classes() . '" style="' . aldus_column_style( '50%' ) . "\">\n{$right_inner}</div>" ),
+				)
+			) . "\n";
+			return serialize_block(
+				array(
+					'blockName'    => 'core/columns',
+					'attrs'        => $cols_attrs,
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<div class="' . aldus_columns_classes( true ) . "\">\n{$cols_inner}</div>" ),
+				)
+			) . "\n\n";
 		}
 	}
 
@@ -2088,27 +2503,33 @@ function aldus_block_columns_two_equal( Aldus_Content_Distributor $dist, string 
 	}
 
 	$cols_inner = '';
-	foreach ( [ $left, $right ] as $item ) {
-		$col_inner  = $item ? serialize_block( [
-			'blockName'    => 'core/paragraph',
-			'attrs'        => [],
-			'innerBlocks'  => [],
-			'innerContent' => [ '<p>' . esc_html( $item['content'] ) . '</p>' ],
-		] ) . "\n" : '';
-		$cols_inner .= serialize_block( [
-			'blockName'    => 'core/column',
-			'attrs'        => $col_attrs,
-			'innerBlocks'  => [],
-			'innerContent' => [ "<div class=\"" . aldus_column_classes() . "\" style=\"" . aldus_column_style( '50%' ) . "\">\n{$col_inner}</div>" ],
-		] ) . "\n";
+	foreach ( array( $left, $right ) as $item ) {
+		$col_inner   = $item ? serialize_block(
+			array(
+				'blockName'    => 'core/paragraph',
+				'attrs'        => array(),
+				'innerBlocks'  => array(),
+				'innerContent' => array( '<p>' . esc_html( $item['content'] ) . '</p>' ),
+			)
+		) . "\n" : '';
+		$cols_inner .= serialize_block(
+			array(
+				'blockName'    => 'core/column',
+				'attrs'        => $col_attrs,
+				'innerBlocks'  => array(),
+				'innerContent' => array( '<div class="' . aldus_column_classes() . '" style="' . aldus_column_style( '50%' ) . "\">\n{$col_inner}</div>" ),
+			)
+		) . "\n";
 	}
 
-	return serialize_block( [
-		'blockName'    => 'core/columns',
-		'attrs'        => $cols_attrs,
-		'innerBlocks'  => [],
-		'innerContent' => [ "<div class=\"" . aldus_columns_classes( true ) . "\">\n{$cols_inner}</div>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/columns',
+			'attrs'        => $cols_attrs,
+			'innerBlocks'  => array(),
+			'innerContent' => array( '<div class="' . aldus_columns_classes( true ) . "\">\n{$cols_inner}</div>" ),
+		)
+	) . "\n\n";
 }
 
 /**
@@ -2121,7 +2542,7 @@ function aldus_block_columns_two_equal( Aldus_Content_Distributor $dist, string 
  */
 function aldus_block_columns_four_equal( Aldus_Content_Distributor $dist, string $bg_slug, string $name = '' ): string {
 	// Collect up to 4 items — subheadings preferred (for feature/stat grids).
-	$col_items = [];
+	$col_items = array();
 	for ( $i = 0; $i < 4; $i++ ) {
 		$item = $dist->consume( 'subheading' ) ?? $dist->consume( 'paragraph' );
 		if ( $item ) {
@@ -2139,49 +2560,66 @@ function aldus_block_columns_four_equal( Aldus_Content_Distributor $dist, string
 	}
 
 	$col_sm     = aldus_theme_spacing( 'sm' );
-	$cols_attrs = [ 'isStackedOnMobile' => false ];
-	$col_attrs  = [
+	$cols_attrs = array( 'isStackedOnMobile' => false );
+	$col_attrs  = array(
 		'backgroundColor' => $bg_slug,
-		'style'           => [ 'spacing' => [ 'padding' => [ 'top' => $col_sm, 'right' => $col_sm, 'bottom' => $col_sm, 'left' => $col_sm ] ] ],
-	];
+		'style'           => array(
+			'spacing' => array(
+				'padding' => array(
+					'top'    => $col_sm,
+					'right'  => $col_sm,
+					'bottom' => $col_sm,
+					'left'   => $col_sm,
+				),
+			),
+		),
+	);
 	$bg_safe    = sanitize_html_class( $bg_slug );
 	if ( $name ) {
-		$cols_attrs['metadata'] = [ 'name' => $name ];
+		$cols_attrs['metadata'] = array( 'name' => $name );
 	}
 
 	$cols_inner = '';
 	foreach ( $col_items as $item ) {
 		$text       = esc_html( $item['content'] );
-		$is_heading = in_array( $item['type'] ?? '', [ 'subheading', 'headline' ], true );
+		$is_heading = in_array( $item['type'] ?? '', array( 'subheading', 'headline' ), true );
 
 		$col_inner = $is_heading
-			? serialize_block( [
-				'blockName'    => 'core/heading',
-				'attrs'        => [ 'level' => 3 ],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<h3 class=\"wp-block-heading\">{$text}</h3>" ],
-			] ) . "\n"
-			: serialize_block( [
-				'blockName'    => 'core/paragraph',
-				'attrs'        => [],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<p>{$text}</p>" ],
-			] ) . "\n";
+			? serialize_block(
+				array(
+					'blockName'    => 'core/heading',
+					'attrs'        => array( 'level' => 3 ),
+					'innerBlocks'  => array(),
+					'innerContent' => array( "<h3 class=\"wp-block-heading\">{$text}</h3>" ),
+				)
+			) . "\n"
+			: serialize_block(
+				array(
+					'blockName'    => 'core/paragraph',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( "<p>{$text}</p>" ),
+				)
+			) . "\n";
 
-		$cols_inner .= serialize_block( [
-			'blockName'    => 'core/column',
-			'attrs'        => $col_attrs,
-			'innerBlocks'  => [],
-			'innerContent' => [ "<div class=\"" . aldus_column_classes( $bg_slug ) . "\" style=\"padding-top:{$col_sm};padding-right:{$col_sm};padding-bottom:{$col_sm};padding-left:{$col_sm}\">\n{$col_inner}</div>" ],
-		] ) . "\n";
+		$cols_inner .= serialize_block(
+			array(
+				'blockName'    => 'core/column',
+				'attrs'        => $col_attrs,
+				'innerBlocks'  => array(),
+				'innerContent' => array( '<div class="' . aldus_column_classes( $bg_slug ) . "\" style=\"padding-top:{$col_sm};padding-right:{$col_sm};padding-bottom:{$col_sm};padding-left:{$col_sm}\">\n{$col_inner}</div>" ),
+			)
+		) . "\n";
 	}
 
-	return serialize_block( [
-		'blockName'    => 'core/columns',
-		'attrs'        => $cols_attrs,
-		'innerBlocks'  => [],
-		'innerContent' => [ "<div class=\"" . aldus_columns_classes( false ) . "\">\n{$cols_inner}</div>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/columns',
+			'attrs'        => $cols_attrs,
+			'innerBlocks'  => array(),
+			'innerContent' => array( '<div class="' . aldus_columns_classes( false ) . "\">\n{$cols_inner}</div>" ),
+		)
+	) . "\n\n";
 }
 
 /**
@@ -2198,49 +2636,66 @@ function aldus_block_columns_two_equal_from_items( array $items, string $bg_slug
 	}
 
 	$col_sm     = aldus_theme_spacing( 'sm' );
-	$cols_attrs = [ 'isStackedOnMobile' => false ];
-	$col_attrs  = [
+	$cols_attrs = array( 'isStackedOnMobile' => false );
+	$col_attrs  = array(
 		'backgroundColor' => $bg_slug,
-		'style'           => [ 'spacing' => [ 'padding' => [ 'top' => $col_sm, 'right' => $col_sm, 'bottom' => $col_sm, 'left' => $col_sm ] ] ],
-	];
-	$bg_safe = sanitize_html_class( $bg_slug );
+		'style'           => array(
+			'spacing' => array(
+				'padding' => array(
+					'top'    => $col_sm,
+					'right'  => $col_sm,
+					'bottom' => $col_sm,
+					'left'   => $col_sm,
+				),
+			),
+		),
+	);
+	$bg_safe    = sanitize_html_class( $bg_slug );
 	if ( $name ) {
-		$cols_attrs['metadata'] = [ 'name' => $name ];
+		$cols_attrs['metadata'] = array( 'name' => $name );
 	}
 
 	$cols_inner = '';
 	foreach ( $items as $item ) {
 		$text       = esc_html( $item['content'] );
-		$is_heading = in_array( $item['type'] ?? '', [ 'subheading', 'headline' ], true );
+		$is_heading = in_array( $item['type'] ?? '', array( 'subheading', 'headline' ), true );
 
 		$col_inner = $is_heading
-			? serialize_block( [
-				'blockName'    => 'core/heading',
-				'attrs'        => [ 'level' => 3 ],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<h3 class=\"wp-block-heading\">{$text}</h3>" ],
-			] ) . "\n"
-			: serialize_block( [
-				'blockName'    => 'core/paragraph',
-				'attrs'        => [],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<p>{$text}</p>" ],
-			] ) . "\n";
+			? serialize_block(
+				array(
+					'blockName'    => 'core/heading',
+					'attrs'        => array( 'level' => 3 ),
+					'innerBlocks'  => array(),
+					'innerContent' => array( "<h3 class=\"wp-block-heading\">{$text}</h3>" ),
+				)
+			) . "\n"
+			: serialize_block(
+				array(
+					'blockName'    => 'core/paragraph',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( "<p>{$text}</p>" ),
+				)
+			) . "\n";
 
-		$cols_inner .= serialize_block( [
-			'blockName'    => 'core/column',
-			'attrs'        => $col_attrs,
-			'innerBlocks'  => [],
-			'innerContent' => [ "<div class=\"" . aldus_column_classes( $bg_slug ) . "\" style=\"padding-top:{$col_sm};padding-right:{$col_sm};padding-bottom:{$col_sm};padding-left:{$col_sm}\">\n{$col_inner}</div>" ],
-		] ) . "\n";
+		$cols_inner .= serialize_block(
+			array(
+				'blockName'    => 'core/column',
+				'attrs'        => $col_attrs,
+				'innerBlocks'  => array(),
+				'innerContent' => array( '<div class="' . aldus_column_classes( $bg_slug ) . "\" style=\"padding-top:{$col_sm};padding-right:{$col_sm};padding-bottom:{$col_sm};padding-left:{$col_sm}\">\n{$col_inner}</div>" ),
+			)
+		) . "\n";
 	}
 
-	return serialize_block( [
-		'blockName'    => 'core/columns',
-		'attrs'        => $cols_attrs,
-		'innerBlocks'  => [],
-		'innerContent' => [ "<div class=\"" . aldus_columns_classes( false ) . "\">\n{$cols_inner}</div>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/columns',
+			'attrs'        => $cols_attrs,
+			'innerBlocks'  => array(),
+			'innerContent' => array( '<div class="' . aldus_columns_classes( false ) . "\">\n{$cols_inner}</div>" ),
+		)
+	) . "\n\n";
 }
 
 /**
@@ -2263,23 +2718,37 @@ function aldus_block_group_border( Aldus_Content_Distributor $dist, string $name
 	$para       = $dist->consume( 'paragraph' );
 
 	$border_pad = aldus_theme_spacing( 'md' );
-	$spacing = [ 'padding' => [ 'top' => $border_pad, 'right' => $border_pad, 'bottom' => $border_pad, 'left' => $border_pad ] ];
+	$spacing    = array(
+		'padding' => array(
+			'top'    => $border_pad,
+			'right'  => $border_pad,
+			'bottom' => $border_pad,
+			'left'   => $border_pad,
+		),
+	);
 	if ( $block_gap ) {
 		$spacing['blockGap'] = $block_gap;
 	}
-	$style_attrs = [
-		'border'  => [ 'width' => '2px', 'style' => 'solid', 'color' => 'currentColor' ],
+	$style_attrs = array(
+		'border'  => array(
+			'width' => '2px',
+			'style' => 'solid',
+			'color' => 'currentColor',
+		),
 		'spacing' => $spacing,
-	];
+	);
 	if ( $shadow ) {
 		$style_attrs['shadow'] = $shadow;
 	}
-	$attrs = [
+	$attrs = array(
 		'style'  => $style_attrs,
-		'layout' => [ 'type' => 'constrained', 'contentSize' => aldus_theme_content_size() ],
-	];
+		'layout' => array(
+			'type'        => 'constrained',
+			'contentSize' => aldus_theme_content_size(),
+		),
+	);
 	if ( $name ) {
-		$attrs['metadata'] = [ 'name' => $name ];
+		$attrs['metadata'] = array( 'name' => $name );
 	}
 
 	$inner = '';
@@ -2305,29 +2774,35 @@ function aldus_block_group_border( Aldus_Content_Distributor $dist, string $name
 		if ( $cta_item ) {
 			$cta_label = esc_html( $cta_item['content'] );
 			$cta_url   = ! empty( $cta_item['url'] ) ? esc_url( $cta_item['url'] ) : '#';
-			$btn       = serialize_block( [
-				'blockName'    => 'core/button',
-				'attrs'        => [],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"wp-block-button\"><a class=\"wp-block-button__link wp-element-button\" href=\"{$cta_url}\">{$cta_label}</a></div>" ],
-			] );
-			$inner .= serialize_block( [
-				'blockName'    => 'core/buttons',
-				'attrs'        => [],
-				'innerBlocks'  => [],
-				'innerContent' => [ "<div class=\"" . aldus_buttons_classes() . "\">{$btn}</div>" ],
-			] ) . "\n";
+			$btn       = serialize_block(
+				array(
+					'blockName'    => 'core/button',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( "<div class=\"wp-block-button\"><a class=\"wp-block-button__link wp-element-button\" href=\"{$cta_url}\">{$cta_label}</a></div>" ),
+				)
+			);
+			$inner    .= serialize_block(
+				array(
+					'blockName'    => 'core/buttons',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<div class="' . aldus_buttons_classes() . "\">{$btn}</div>" ),
+				)
+			) . "\n";
 		}
 	} else {
 		// Variant 0 (default): optional quote.
 		$quote = $dist->has( 'quote' ) ? $dist->consume( 'quote' ) : null;
 		if ( $quote ) {
-			$inner .= serialize_block( [
-				'blockName'    => 'core/quote',
-				'attrs'        => [],
-				'innerBlocks'  => [],
-				'innerContent' => [ '<blockquote class="wp-block-quote"><p>' . esc_html( $quote['content'] ) . '</p></blockquote>' ],
-			] ) . "\n";
+			$inner .= serialize_block(
+				array(
+					'blockName'    => 'core/quote',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<blockquote class="wp-block-quote"><p>' . esc_html( $quote['content'] ) . '</p></blockquote>' ),
+				)
+			) . "\n";
 		}
 	}
 
@@ -2335,12 +2810,16 @@ function aldus_block_group_border( Aldus_Content_Distributor $dist, string $name
 		return '';
 	}
 
-	return serialize_block( [
-		'blockName'    => 'core/group',
-		'attrs'        => $attrs,
-		'innerBlocks'  => [],
-		'innerContent' => [ "<div class=\"" . aldus_group_classes() . " has-border-color\" style=\"border-color:currentColor;border-style:solid;border-width:2px;padding-top:{$border_pad};padding-right:{$border_pad};padding-bottom:{$border_pad};padding-left:{$border_pad}\">\n{$inner}</div>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/group',
+			'attrs'        => $attrs,
+			'innerBlocks'  => array(),
+			// phpcs:disable Generic.Files.LineLength.MaxExceeded -- serialize_block innerContent must be a single unbroken string.
+			'innerContent' => array( '<div class="' . aldus_group_classes() . " has-border-color\" style=\"border-color:currentColor;border-style:solid;border-width:2px;padding-top:{$border_pad};padding-right:{$border_pad};padding-bottom:{$border_pad};padding-left:{$border_pad}\">\n{$inner}</div>" ),
+			// phpcs:enable Generic.Files.LineLength.MaxExceeded
+		)
+	) . "\n\n";
 }
 
 /**
@@ -2357,22 +2836,30 @@ function aldus_block_group_gradient( Aldus_Content_Distributor $dist, string $gr
 	$gradient_safe = sanitize_html_class( $gradient_slug );
 
 	$gradient_pad = aldus_theme_spacing( 'lg' );
-	$spacing = [ 'padding' => [ 'top' => $gradient_pad, 'bottom' => $gradient_pad ] ];
+	$spacing      = array(
+		'padding' => array(
+			'top'    => $gradient_pad,
+			'bottom' => $gradient_pad,
+		),
+	);
 	if ( $block_gap ) {
 		$spacing['blockGap'] = $block_gap;
 	}
-	$style_attrs = [ 'spacing' => $spacing ];
+	$style_attrs = array( 'spacing' => $spacing );
 	if ( $shadow ) {
 		$style_attrs['shadow'] = $shadow;
 	}
-	$attrs = [
+	$attrs = array(
 		'gradient' => $gradient_slug,
 		'align'    => 'full',
-		'layout'   => [ 'type' => 'constrained', 'contentSize' => aldus_theme_content_size() ],
+		'layout'   => array(
+			'type'        => 'constrained',
+			'contentSize' => aldus_theme_content_size(),
+		),
 		'style'    => $style_attrs,
-	];
+	);
 	if ( $name ) {
-		$attrs['metadata'] = [ 'name' => $name ];
+		$attrs['metadata'] = array( 'name' => $name );
 	}
 
 	$inner = '';
@@ -2381,22 +2868,29 @@ function aldus_block_group_gradient( Aldus_Content_Distributor $dist, string $gr
 		// Variant 1: testimonial — large quote + optional attribution + CTA.
 		$quote = $dist->has( 'quote' ) ? $dist->consume( 'quote' ) : null;
 		if ( $quote ) {
-			$inner .= serialize_block( [
-				'blockName'    => 'core/quote',
-				'attrs'        => [ 'textAlign' => 'center' ],
-				'innerBlocks'  => [],
-				'innerContent' => [ '<blockquote class="wp-block-quote has-text-align-center"><p>' . esc_html( $quote['content'] ) . '</p></blockquote>' ],
-			] ) . "\n";
+			$inner .= serialize_block(
+				array(
+					'blockName'    => 'core/quote',
+					'attrs'        => array( 'textAlign' => 'center' ),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<blockquote class="wp-block-quote has-text-align-center"><p>' . esc_html( $quote['content'] ) . '</p></blockquote>' ),
+				)
+			) . "\n";
 		}
 		// Attribution from a subheading (person's name / title).
 		$attribution = $dist->has( 'subheading' ) ? $dist->consume( 'subheading' ) : null;
 		if ( $attribution ) {
-			$inner .= serialize_block( [
-				'blockName'    => 'core/paragraph',
-				'attrs'        => [ 'textAlign' => 'center', 'style' => [ 'typography' => [ 'fontStyle' => 'italic' ] ] ],
-				'innerBlocks'  => [],
-				'innerContent' => [ '<p class="has-text-align-center"><em>' . esc_html( $attribution['content'] ) . '</em></p>' ],
-			] ) . "\n";
+			$inner .= serialize_block(
+				array(
+					'blockName'    => 'core/paragraph',
+					'attrs'        => array(
+						'textAlign' => 'center',
+						'style'     => array( 'typography' => array( 'fontStyle' => 'italic' ) ),
+					),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<p class="has-text-align-center"><em>' . esc_html( $attribution['content'] ) . '</em></p>' ),
+				)
+			) . "\n";
 		}
 	} else {
 		// Variant 0 (default): heading + paragraph + CTA.
@@ -2413,32 +2907,43 @@ function aldus_block_group_gradient( Aldus_Content_Distributor $dist, string $gr
 	// Both variants: append a CTA button if available.
 	$cta = $dist->has( 'cta' ) ? $dist->consume( 'cta' ) : null;
 	if ( $cta ) {
-		$label = esc_html( $cta['content'] );
-		$url   = ! empty( $cta['url'] ) ? esc_url( $cta['url'] ) : '#';
-		$btn   = serialize_block( [
-			'blockName'    => 'core/button',
-			'attrs'        => [],
-			'innerBlocks'  => [],
-			'innerContent' => [ "<div class=\"wp-block-button\"><a class=\"wp-block-button__link wp-element-button\" href=\"{$url}\">{$label}</a></div>" ],
-		] );
-		$inner .= serialize_block( [
-			'blockName'    => 'core/buttons',
-			'attrs'        => ( $variant === 1 ) ? [ 'layout' => [ 'type' => 'flex', 'justifyContent' => 'center' ] ] : [],
-			'innerBlocks'  => [],
-			'innerContent' => [ "<div class=\"" . aldus_buttons_classes() . "\">{$btn}</div>" ],
-		] ) . "\n";
+		$label  = esc_html( $cta['content'] );
+		$url    = ! empty( $cta['url'] ) ? esc_url( $cta['url'] ) : '#';
+		$btn    = serialize_block(
+			array(
+				'blockName'    => 'core/button',
+				'attrs'        => array(),
+				'innerBlocks'  => array(),
+				'innerContent' => array( "<div class=\"wp-block-button\"><a class=\"wp-block-button__link wp-element-button\" href=\"{$url}\">{$label}</a></div>" ),
+			)
+		);
+		$inner .= serialize_block(
+			array(
+				'blockName'    => 'core/buttons',
+				'attrs'        => ( $variant === 1 ) ? array(
+					'layout' => array(
+						'type'           => 'flex',
+						'justifyContent' => 'center',
+					),
+				) : array(),
+				'innerBlocks'  => array(),
+				'innerContent' => array( '<div class="' . aldus_buttons_classes() . "\">{$btn}</div>" ),
+			)
+		) . "\n";
 	}
 
 	if ( ! $inner ) {
 		return '';
 	}
 
-	return serialize_block( [
-		'blockName'    => 'core/group',
-		'attrs'        => $attrs,
-		'innerBlocks'  => [],
-		'innerContent' => [ "<div class=\"" . aldus_group_classes( 'constrained', 'full', '', '', $gradient_slug ) . "\" style=\"padding-top:{$gradient_pad};padding-bottom:{$gradient_pad}\">\n{$inner}</div>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/group',
+			'attrs'        => $attrs,
+			'innerBlocks'  => array(),
+			'innerContent' => array( '<div class="' . aldus_group_classes( 'constrained', 'full', '', '', $gradient_slug ) . "\" style=\"padding-top:{$gradient_pad};padding-bottom:{$gradient_pad}\">\n{$inner}</div>" ),
+		)
+	) . "\n\n";
 }
 
 /**
@@ -2455,17 +2960,19 @@ function aldus_block_pullquote_centered( Aldus_Content_Distributor $dist, string
 
 	$text = esc_html( $quote['content'] );
 
-	return serialize_block( [
-		'blockName'    => 'core/pullquote',
-		'attrs'        => [
-			'align' => 'wide',
-			'style' => [ 'typography' => [ 'textAlign' => 'center' ] ],
-		],
-		'innerBlocks'  => [],
-		'innerContent' => [
-			"<figure class=\"wp-block-pullquote alignwide has-text-align-center\"><blockquote><p>{$text}</p></blockquote></figure>",
-		],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/pullquote',
+			'attrs'        => array(
+				'align' => 'wide',
+				'style' => array( 'typography' => array( 'textAlign' => 'center' ) ),
+			),
+			'innerBlocks'  => array(),
+			'innerContent' => array(
+				"<figure class=\"wp-block-pullquote alignwide has-text-align-center\"><blockquote><p>{$text}</p></blockquote></figure>",
+			),
+		)
+	) . "\n\n";
 }
 
 /**
@@ -2484,12 +2991,18 @@ function aldus_block_heading_display( Aldus_Content_Distributor $dist, string $f
 
 	$text = esc_html( $item['content'] );
 
-	return serialize_block( [
-		'blockName'    => 'core/heading',
-		'attrs'        => [ 'level' => 1, 'fontSize' => $font_size, 'textAlign' => 'center' ],
-		'innerBlocks'  => [],
-		'innerContent' => [ "<h1 class=\"wp-block-heading has-text-align-center has-{$font_size}-font-size\">{$text}</h1>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/heading',
+			'attrs'        => array(
+				'level'     => 1,
+				'fontSize'  => $font_size,
+				'textAlign' => 'center',
+			),
+			'innerBlocks'  => array(),
+			'innerContent' => array( "<h1 class=\"wp-block-heading has-text-align-center has-{$font_size}-font-size\">{$text}</h1>" ),
+		)
+	) . "\n\n";
 }
 
 /**
@@ -2510,24 +3023,36 @@ function aldus_block_heading_kicker( Aldus_Content_Distributor $dist, string $fo
 
 	$markup = '';
 	if ( $kicker ) {
-		$markup .= serialize_block( [
-			'blockName'    => 'core/heading',
-			'attrs'        => [
-				'level' => 6,
-				'style' => [ 'typography' => [ 'textTransform' => 'uppercase', 'letterSpacing' => '0.12em' ] ],
-			],
-			'innerBlocks'  => [],
-			'innerContent' => [ '<h6 class="wp-block-heading">' . esc_html( $kicker['content'] ) . '</h6>' ],
-		] ) . "\n";
+		$markup .= serialize_block(
+			array(
+				'blockName'    => 'core/heading',
+				'attrs'        => array(
+					'level' => 6,
+					'style' => array(
+						'typography' => array(
+							'textTransform' => 'uppercase',
+							'letterSpacing' => '0.12em',
+						),
+					),
+				),
+				'innerBlocks'  => array(),
+				'innerContent' => array( '<h6 class="wp-block-heading">' . esc_html( $kicker['content'] ) . '</h6>' ),
+			)
+		) . "\n";
 	}
 	if ( $main ) {
 		$font_size_safe = sanitize_html_class( $font_size );
-		$markup .= serialize_block( [
-			'blockName'    => 'core/heading',
-			'attrs'        => [ 'level' => 1, 'fontSize' => $font_size ],
-			'innerBlocks'  => [],
-			'innerContent' => [ "<h1 class=\"wp-block-heading has-{$font_size_safe}-font-size\">" . esc_html( $main['content'] ) . '</h1>' ],
-		] ) . "\n";
+		$markup        .= serialize_block(
+			array(
+				'blockName'    => 'core/heading',
+				'attrs'        => array(
+					'level'    => 1,
+					'fontSize' => $font_size,
+				),
+				'innerBlocks'  => array(),
+				'innerContent' => array( "<h1 class=\"wp-block-heading has-{$font_size_safe}-font-size\">" . esc_html( $main['content'] ) . '</h1>' ),
+			)
+		) . "\n";
 	}
 
 	return $markup . "\n";
@@ -2549,12 +3074,14 @@ function aldus_block_quote_attributed( Aldus_Content_Distributor $dist ): string
 	$attribution = $dist->has( 'subheading' ) ? $dist->consume( 'subheading' ) : null;
 	$cite_html   = $attribution ? '<cite>' . esc_html( $attribution['content'] ) . '</cite>' : '';
 
-	return serialize_block( [
-		'blockName'    => 'core/quote',
-		'attrs'        => [],
-		'innerBlocks'  => [],
-		'innerContent' => [ "<blockquote class=\"wp-block-quote\"><p>{$text}</p>{$cite_html}</blockquote>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/quote',
+			'attrs'        => array(),
+			'innerBlocks'  => array(),
+			'innerContent' => array( "<blockquote class=\"wp-block-quote\"><p>{$text}</p>{$cite_html}</blockquote>" ),
+		)
+	) . "\n\n";
 }
 
 // ---------------------------------------------------------------------------
@@ -2573,17 +3100,23 @@ function aldus_get_theme_gradients(): array {
 		return (array) $cached;
 	}
 
-	$settings = wp_get_global_settings( [ 'color', 'gradients' ] );
+	$settings = wp_get_global_settings( array( 'color', 'gradients' ) );
 	if ( is_wp_error( $settings ) || ! is_array( $settings ) ) {
-		$settings = [];
+		$settings = array();
 	}
-	$gradients = $settings['theme'] ?? $settings['default'] ?? [];
+	$gradients = $settings['theme'] ?? $settings['default'] ?? array();
 
 	if ( empty( $gradients ) ) {
-		$gradients = [
-			[ 'slug' => 'vivid-cyan-blue-to-vivid-purple', 'gradient' => 'linear-gradient(135deg,rgba(6,147,227,1) 0%,rgb(155,81,224) 100%)' ],
-			[ 'slug' => 'light-green-cyan-to-vivid-green-cyan', 'gradient' => 'linear-gradient(135deg,rgb(122,220,180) 0%,rgb(0,208,130) 100%)' ],
-		];
+		$gradients = array(
+			array(
+				'slug'     => 'vivid-cyan-blue-to-vivid-purple',
+				'gradient' => 'linear-gradient(135deg,rgba(6,147,227,1) 0%,rgb(155,81,224) 100%)',
+			),
+			array(
+				'slug'     => 'light-green-cyan-to-vivid-green-cyan',
+				'gradient' => 'linear-gradient(135deg,rgb(122,220,180) 0%,rgb(0,208,130) 100%)',
+			),
+		);
 	}
 
 	wp_cache_set( $cache_key, $gradients, 'aldus', HOUR_IN_SECONDS );
@@ -2621,16 +3154,18 @@ function aldus_block_video_hero( Aldus_Content_Distributor $dist ): string {
 	}
 	$url = esc_url( $item['url'] );
 
-	return serialize_block( [
-		'blockName'    => 'core/embed',
-		'attrs'        => [
-			'url'        => esc_url_raw( $item['url'] ),
-			'responsive' => true,
-			'metadata'   => [ 'name' => 'Video Hero' ],
-		],
-		'innerBlocks'  => [],
-		'innerContent' => [ "<figure class=\"wp-block-embed\"><div class=\"wp-block-embed__wrapper\">\n{$url}\n</div></figure>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/embed',
+			'attrs'        => array(
+				'url'        => esc_url_raw( $item['url'] ),
+				'responsive' => true,
+				'metadata'   => array( 'name' => 'Video Hero' ),
+			),
+			'innerBlocks'  => array(),
+			'innerContent' => array( "<figure class=\"wp-block-embed\"><div class=\"wp-block-embed__wrapper\">\n{$url}\n</div></figure>" ),
+		)
+	) . "\n\n";
 }
 
 /**
@@ -2649,27 +3184,36 @@ function aldus_block_video_section( Aldus_Content_Distributor $dist ): string {
 
 	$inner = '';
 	if ( $heading && ! empty( $heading['content'] ) ) {
-		$inner .= serialize_block( [
-			'blockName'    => 'core/heading',
-			'attrs'        => [ 'level' => 2 ],
-			'innerBlocks'  => [],
-			'innerContent' => [ '<h2 class="wp-block-heading">' . esc_html( $heading['content'] ) . '</h2>' ],
-		] ) . "\n\n";
+		$inner .= serialize_block(
+			array(
+				'blockName'    => 'core/heading',
+				'attrs'        => array( 'level' => 2 ),
+				'innerBlocks'  => array(),
+				'innerContent' => array( '<h2 class="wp-block-heading">' . esc_html( $heading['content'] ) . '</h2>' ),
+			)
+		) . "\n\n";
 	}
 
-	$inner .= serialize_block( [
-		'blockName'    => 'core/embed',
-		'attrs'        => [ 'url' => esc_url_raw( $item['url'] ), 'responsive' => true ],
-		'innerBlocks'  => [],
-		'innerContent' => [ "<figure class=\"wp-block-embed\"><div class=\"wp-block-embed__wrapper\">\n{$url}\n</div></figure>" ],
-	] ) . "\n\n";
+	$inner .= serialize_block(
+		array(
+			'blockName'    => 'core/embed',
+			'attrs'        => array(
+				'url'        => esc_url_raw( $item['url'] ),
+				'responsive' => true,
+			),
+			'innerBlocks'  => array(),
+			'innerContent' => array( "<figure class=\"wp-block-embed\"><div class=\"wp-block-embed__wrapper\">\n{$url}\n</div></figure>" ),
+		)
+	) . "\n\n";
 
-	return serialize_block( [
-		'blockName'    => 'core/group',
-		'attrs'        => [ 'metadata' => [ 'name' => 'Video Section' ] ],
-		'innerBlocks'  => [],
-		'innerContent' => [ "<div class=\"" . aldus_group_classes( 'flow' ) . "\">\n{$inner}</div>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/group',
+			'attrs'        => array( 'metadata' => array( 'name' => 'Video Section' ) ),
+			'innerBlocks'  => array(),
+			'innerContent' => array( '<div class="' . aldus_group_classes( 'flow' ) . "\">\n{$inner}</div>" ),
+		)
+	) . "\n\n";
 }
 
 // ---------------------------------------------------------------------------
@@ -2707,27 +3251,32 @@ function aldus_block_table( Aldus_Content_Distributor $dist ): string {
 
 	$body_rows = array_map(
 		fn( string $row ): string =>
-			'<tr>' . implode( '', array_map(
-				fn( string $cell ): string =>
-					'<td class="has-text-align-left" data-align="left">' . esc_html( $cell ) . '</td>',
-				$split_row( $row )
-			) ) . '</tr>',
+			'<tr>' . implode(
+				'',
+				array_map(
+					fn( string $cell ): string =>
+						'<td class="has-text-align-left" data-align="left">' . esc_html( $cell ) . '</td>',
+					$split_row( $row )
+				)
+			) . '</tr>',
 		$rows
 	);
 
 	$thead = '<thead><tr>' . implode( '', $header_cells ) . '</tr></thead>';
 	$tbody = '<tbody>' . implode( '', $body_rows ) . '</tbody>';
 
-	return serialize_block( [
-		'blockName'    => 'core/table',
-		'attrs'        => [
-			'hasFixedLayout' => true,
-			'className'      => 'is-style-stripes',
-			'metadata'       => [ 'name' => 'Data Table' ],
-		],
-		'innerBlocks'  => [],
-		'innerContent' => [ "<figure class=\"wp-block-table\"><table class=\"has-fixed-layout is-style-stripes\">{$thead}{$tbody}</table></figure>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/table',
+			'attrs'        => array(
+				'hasFixedLayout' => true,
+				'className'      => 'is-style-stripes',
+				'metadata'       => array( 'name' => 'Data Table' ),
+			),
+			'innerBlocks'  => array(),
+			'innerContent' => array( "<figure class=\"wp-block-table\"><table class=\"has-fixed-layout is-style-stripes\">{$thead}{$tbody}</table></figure>" ),
+		)
+	) . "\n\n";
 }
 
 // ---------------------------------------------------------------------------
@@ -2748,11 +3297,11 @@ function aldus_block_gallery( Aldus_Content_Distributor $dist, int $columns = 2,
 		return '';
 	}
 
-	$urls      = is_array( $item['urls'] ?? null ) ? $item['urls'] : [];
-	$media_ids = is_array( $item['mediaIds'] ?? null ) ? $item['mediaIds'] : [];
+	$urls      = is_array( $item['urls'] ?? null ) ? $item['urls'] : array();
+	$media_ids = is_array( $item['mediaIds'] ?? null ) ? $item['mediaIds'] : array();
 	// Fall back to the scalar url field so a gallery item with a single URL still renders.
 	if ( empty( $urls ) && ! empty( $item['url'] ) ) {
-		$urls = [ (string) $item['url'] ];
+		$urls = array( (string) $item['url'] );
 	}
 	if ( empty( $urls ) ) {
 		return '';
@@ -2764,33 +3313,40 @@ function aldus_block_gallery( Aldus_Content_Distributor $dist, int $columns = 2,
 		if ( ! $url ) {
 			continue;
 		}
-		$img_attrs = [ 'url' => esc_url_raw( $raw_url ), 'sizeSlug' => 'large' ];
+		$img_attrs = array(
+			'url'      => esc_url_raw( $raw_url ),
+			'sizeSlug' => 'large',
+		);
 		$media_id  = (int) ( $media_ids[ $i ] ?? 0 );
 		if ( $media_id > 0 ) {
 			$img_attrs['id'] = $media_id;
 		}
-		$inner .= serialize_block( [
-			'blockName'    => 'core/image',
-			'attrs'        => $img_attrs,
-			'innerBlocks'  => [],
-			'innerContent' => [ "<figure class=\"wp-block-image size-large\"><img src=\"{$url}\"/></figure>" ],
-		] ) . "\n";
+		$inner .= serialize_block(
+			array(
+				'blockName'    => 'core/image',
+				'attrs'        => $img_attrs,
+				'innerBlocks'  => array(),
+				'innerContent' => array( "<figure class=\"wp-block-image size-large\"><img src=\"{$url}\"/></figure>" ),
+			)
+		) . "\n";
 	}
 
 	if ( ! $inner ) {
 		return '';
 	}
 
-	return serialize_block( [
-		'blockName'    => 'core/gallery',
-		'attrs'        => [
-			'columns'  => $columns,
-			'linkTo'   => 'none',
-			'metadata' => [ 'name' => $name ],
-		],
-		'innerBlocks'  => [],
-		'innerContent' => [ "<figure class=\"wp-block-gallery has-nested-images columns-{$columns} is-cropped\">{$inner}</figure>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/gallery',
+			'attrs'        => array(
+				'columns'  => $columns,
+				'linkTo'   => 'none',
+				'metadata' => array( 'name' => $name ),
+			),
+			'innerBlocks'  => array(),
+			'innerContent' => array( "<figure class=\"wp-block-gallery has-nested-images columns-{$columns} is-cropped\">{$inner}</figure>" ),
+		)
+	) . "\n\n";
 }
 
 // ---------------------------------------------------------------------------
@@ -2805,14 +3361,17 @@ function aldus_block_gallery( Aldus_Content_Distributor $dist, int $columns = 2,
  * @return string
  */
 function aldus_block_group_grid( Aldus_Content_Distributor $dist ): string {
-	$cells = [];
+	$cells = array();
 	for ( $i = 0; $i < 6; $i++ ) {
 		$heading = $dist->has( 'subheading' ) ? $dist->consume( 'subheading' ) : null;
 		$para    = $dist->has( 'paragraph' ) ? $dist->consume( 'paragraph' ) : null;
 		if ( ! $heading && ! $para ) {
 			break;
 		}
-		$cells[] = [ 'heading' => $heading, 'para' => $para ];
+		$cells[] = array(
+			'heading' => $heading,
+			'para'    => $para,
+		);
 	}
 
 	if ( empty( $cells ) ) {
@@ -2828,25 +3387,40 @@ function aldus_block_group_grid( Aldus_Content_Distributor $dist ): string {
 		if ( $cell['para'] ) {
 			$cell_inner .= aldus_serialize_paragraph( esc_html( $cell['para']['content'] ) );
 		}
-		$inner .= serialize_block( [
-			'blockName'    => 'core/group',
-			'attrs'        => [ 'layout' => [ 'type' => 'constrained' ] ],
-			'innerBlocks'  => [],
-			'innerContent' => [ "<div class=\"" . aldus_group_classes( 'constrained' ) . "\">\n{$cell_inner}</div>" ],
-		] ) . "\n";
+		$inner .= serialize_block(
+			array(
+				'blockName'    => 'core/group',
+				'attrs'        => array( 'layout' => array( 'type' => 'constrained' ) ),
+				'innerBlocks'  => array(),
+				'innerContent' => array( '<div class="' . aldus_group_classes( 'constrained' ) . "\">\n{$cell_inner}</div>" ),
+			)
+		) . "\n";
 	}
 
-	return serialize_block( [
-		'blockName'    => 'core/group',
-		'attrs'        => [
-			'align'  => 'full',
-			'layout' => [ 'type' => 'grid', 'columnCount' => 3 ],
-			'style'  => [ 'spacing' => [ 'blockGap' => '1rem', 'padding' => [ 'top' => aldus_theme_spacing( 'lg' ), 'bottom' => aldus_theme_spacing( 'lg' ) ] ] ],
-			'metadata' => [ 'name' => 'Card Grid' ],
-		],
-		'innerBlocks'  => [],
-		'innerContent' => [ "<div class=\"" . aldus_group_classes( 'grid' ) . " alignfull\">\n{$inner}</div>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/group',
+			'attrs'        => array(
+				'align'    => 'full',
+				'layout'   => array(
+					'type'        => 'grid',
+					'columnCount' => 3,
+				),
+				'style'    => array(
+					'spacing' => array(
+						'blockGap' => '1rem',
+						'padding'  => array(
+							'top'    => aldus_theme_spacing( 'lg' ),
+							'bottom' => aldus_theme_spacing( 'lg' ),
+						),
+					),
+				),
+				'metadata' => array( 'name' => 'Card Grid' ),
+			),
+			'innerBlocks'  => array(),
+			'innerContent' => array( '<div class="' . aldus_group_classes( 'grid' ) . " alignfull\">\n{$inner}</div>" ),
+		)
+	) . "\n\n";
 }
 
 /**
@@ -2857,14 +3431,17 @@ function aldus_block_group_grid( Aldus_Content_Distributor $dist ): string {
  * @return string
  */
 function aldus_block_row_stats( Aldus_Content_Distributor $dist ): string {
-	$pairs = [];
+	$pairs = array();
 	for ( $i = 0; $i < 4; $i++ ) {
 		$heading = $dist->has( 'subheading' ) ? $dist->consume( 'subheading' ) : null;
 		$para    = $dist->has( 'paragraph' ) ? $dist->consume( 'paragraph' ) : null;
 		if ( ! $heading && ! $para ) {
 			break;
 		}
-		$pairs[] = [ 'heading' => $heading, 'para' => $para ];
+		$pairs[] = array(
+			'heading' => $heading,
+			'para'    => $para,
+		);
 	}
 
 	if ( count( $pairs ) < 2 ) {
@@ -2880,24 +3457,40 @@ function aldus_block_row_stats( Aldus_Content_Distributor $dist ): string {
 		if ( $pair['para'] ) {
 			$stat_inner .= aldus_serialize_paragraph( esc_html( $pair['para']['content'] ) );
 		}
-		$inner .= serialize_block( [
-			'blockName'    => 'core/group',
-			'attrs'        => [ 'layout' => [ 'type' => 'constrained' ] ],
-			'innerBlocks'  => [],
-			'innerContent' => [ "<div class=\"" . aldus_group_classes( 'constrained' ) . "\">\n{$stat_inner}</div>" ],
-		] ) . "\n";
+		$inner .= serialize_block(
+			array(
+				'blockName'    => 'core/group',
+				'attrs'        => array( 'layout' => array( 'type' => 'constrained' ) ),
+				'innerBlocks'  => array(),
+				'innerContent' => array( '<div class="' . aldus_group_classes( 'constrained' ) . "\">\n{$stat_inner}</div>" ),
+			)
+		) . "\n";
 	}
 
-	return serialize_block( [
-		'blockName'    => 'core/group',
-		'attrs'        => [
-			'layout'   => [ 'type' => 'flex', 'flexWrap' => 'nowrap', 'justifyContent' => 'space-between' ],
-			'style'    => [ 'spacing' => [ 'blockGap' => '1.5rem', 'padding' => [ 'top' => '2rem', 'bottom' => '2rem' ] ] ],
-			'metadata' => [ 'name' => 'Stats Row' ],
-		],
-		'innerBlocks'  => [],
-		'innerContent' => [ "<div class=\"" . aldus_group_classes( 'flex' ) . "\">\n{$inner}</div>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/group',
+			'attrs'        => array(
+				'layout'   => array(
+					'type'           => 'flex',
+					'flexWrap'       => 'nowrap',
+					'justifyContent' => 'space-between',
+				),
+				'style'    => array(
+					'spacing' => array(
+						'blockGap' => '1.5rem',
+						'padding'  => array(
+							'top'    => '2rem',
+							'bottom' => '2rem',
+						),
+					),
+				),
+				'metadata' => array( 'name' => 'Stats Row' ),
+			),
+			'innerBlocks'  => array(),
+			'innerContent' => array( '<div class="' . aldus_group_classes( 'flex' ) . "\">\n{$inner}</div>" ),
+		)
+	) . "\n\n";
 }
 
 /**
@@ -2922,15 +3515,17 @@ function aldus_block_details_accordion( Aldus_Content_Distributor $dist ): strin
 		$body_text    = $body ? esc_html( $body['content'] ) : '';
 		$inner_html   = "<details class=\"wp-block-details\"><summary>{$summary_text}</summary>\n"
 			. ( $body_text ? "<p>{$body_text}</p>\n" : '' )
-			. "</details>";
+			. '</details>';
 
-		$output .= serialize_block( [
-			'blockName'    => 'core/details',
-			'attrs'        => [ 'showContent' => false ],
-			'innerBlocks'  => [],
-			'innerContent' => [ $inner_html ],
-		] ) . "\n";
-		$count++;
+		$output .= serialize_block(
+			array(
+				'blockName'    => 'core/details',
+				'attrs'        => array( 'showContent' => false ),
+				'innerBlocks'  => array(),
+				'innerContent' => array( $inner_html ),
+			)
+		) . "\n";
+		++$count;
 	}
 
 	return $output ? $output . "\n" : '';
@@ -2950,12 +3545,14 @@ function aldus_block_code( Aldus_Content_Distributor $dist ): string {
 
 	$code = esc_html( $item['content'] );
 
-	return serialize_block( [
-		'blockName'    => 'core/code',
-		'attrs'        => [],
-		'innerBlocks'  => [],
-		'innerContent' => [ "<pre class=\"wp-block-code\"><code>{$code}</code></pre>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/code',
+			'attrs'        => array(),
+			'innerBlocks'  => array(),
+			'innerContent' => array( "<pre class=\"wp-block-code\"><code>{$code}</code></pre>" ),
+		)
+	) . "\n\n";
 }
 
 /**
@@ -2975,10 +3572,12 @@ function aldus_block_paragraph_lead( Aldus_Content_Distributor $dist, array $the
 	$fs_safe   = sanitize_html_class( $font_size );
 	$text      = esc_html( $item['content'] );
 
-	return serialize_block( [
-		'blockName'    => 'core/paragraph',
-		'attrs'        => [ 'fontSize' => $font_size ],
-		'innerBlocks'  => [],
-		'innerContent' => [ "<p class=\"has-{$fs_safe}-font-size\">{$text}</p>" ],
-	] ) . "\n\n";
+	return serialize_block(
+		array(
+			'blockName'    => 'core/paragraph',
+			'attrs'        => array( 'fontSize' => $font_size ),
+			'innerBlocks'  => array(),
+			'innerContent' => array( "<p class=\"has-{$fs_safe}-font-size\">{$text}</p>" ),
+		)
+	) . "\n\n";
 }

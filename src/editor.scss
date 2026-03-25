@@ -1438,18 +1438,17 @@
 	cursor: pointer;
 	transition: border-color 0.1s ease, box-shadow 0.1s ease;
 
-	&:hover:not(.is-active) {
-		border-color: var(--wp-admin-theme-color, #007cba);
-	}
-
 	&:focus-visible {
 		outline: 2px solid var(--wp-admin-theme-color, #007cba);
 		outline-offset: 2px;
 	}
 
-	// Active background and text color are applied via inline style (dynamic accent
-	// color from pack data). This class only clears the border so the filled
-	// background shows without a visible outline.
+	&:hover:not(.is-active) {
+		border-color: var(--wp-admin-theme-color, #007cba);
+	}
+
+	// Active background/color set via inline style (dynamic accent).
+	// This class only clears the border so the fill shows cleanly.
 	&.is-active {
 		border-color: transparent;
 		color: #fff;

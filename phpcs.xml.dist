@@ -1,0 +1,129 @@
+<?xml version="1.0"?>
+<ruleset name="Aldus">
+    <description>Coding standards for the Aldus plugin.</description>
+
+    <!-- What to scan -->
+    <file>./aldus.php</file>
+    <file>./includes/</file>
+    <file>./uninstall.php</file>
+
+    <!-- Exclude build artifacts and third-party code -->
+    <exclude-pattern>./build/</exclude-pattern>
+    <exclude-pattern>./node_modules/</exclude-pattern>
+    <exclude-pattern>./vendor/</exclude-pattern>
+    <exclude-pattern>./tests/</exclude-pattern>
+    <exclude-pattern>./src/</exclude-pattern>
+
+    <!-- PHP compatibility — match the plugin requirement -->
+    <config name="testVersion" value="8.0-"/>
+    <rule ref="PHPCompatibilityWP"/>
+
+    <!-- WordPress coding standards -->
+    <rule ref="WordPress-Extra">
+        <!-- Allow short array syntax — idiomatic in PHP 8+ -->
+        <exclude name="Generic.Arrays.DisallowShortArraySyntax"/>
+        <!-- Yoda conditions are not enforced — the codebase uses standard comparisons -->
+        <exclude name="WordPress.PHP.YodaConditions"/>
+    </rule>
+
+    <!-- WordPress security rules -->
+    <rule ref="WordPress.Security"/>
+
+    <!-- Text domain must be 'aldus' -->
+    <config name="text_domain" value="aldus"/>
+
+    <!-- Minimum supported WordPress version -->
+    <config name="minimum_wp_version" value="6.4"/>
+
+    <!-- Allowed prefixes for function/class/constant names -->
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+        <properties>
+            <property name="prefixes" type="array">
+                <element value="aldus"/>
+                <element value="Aldus"/>
+                <element value="ALDUS"/>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Camelcase properties used in block JSON serialization -->
+    <rule ref="WordPress.NamingConventions.ValidVariableName">
+        <properties>
+            <property name="allowed_custom_properties" type="array">
+                <element value="blockName"/>
+                <element value="innerBlocks"/>
+                <element value="innerContent"/>
+                <element value="mediaUrl"/>
+                <element value="mediaType"/>
+                <element value="mediaWidth"/>
+                <element value="mediaPosition"/>
+                <element value="imageFill"/>
+                <element value="isStackedOnMobile"/>
+                <element value="textAlign"/>
+                <element value="textColor"/>
+                <element value="backgroundColor"/>
+                <element value="overlayColor"/>
+                <element value="dimRatio"/>
+                <element value="contentPosition"/>
+                <element value="minHeight"/>
+                <element value="minHeightUnit"/>
+                <element value="hasParallax"/>
+                <element value="hasFixedLayout"/>
+                <element value="dropCap"/>
+                <element value="sizeSlug"/>
+                <element value="contentSize"/>
+                <element value="wideSize"/>
+                <element value="blockGap"/>
+                <element value="focalPoint"/>
+                <element value="justifyContent"/>
+                <element value="lockName"/>
+                <element value="templateLock"/>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- serialize_block() and innerContent strings produce very long lines -->
+    <rule ref="Generic.Files.LineLength">
+        <properties>
+            <property name="lineLimit" value="160"/>
+            <property name="absoluteLineLimit" value="260"/>
+        </properties>
+    </rule>
+
+    <!-- WordPress plugins routinely mix classes and helper functions in one file -->
+    <rule ref="Universal.Files.SeparateFunctionsFromOO">
+        <exclude name="Universal.Files.SeparateFunctionsFromOO.Mixed"/>
+    </rule>
+
+    <!-- WordPress plugins use descriptive file names, not PSR-4 class-based names -->
+    <rule ref="WordPress.Files.FileName">
+        <exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
+    </rule>
+
+    <!-- Null-coalescing / Elvis ?: operator is idiomatic in PHP 8+ -->
+    <rule ref="Universal.Operators.DisallowShortTernary">
+        <exclude name="Universal.Operators.DisallowShortTernary.Found"/>
+    </rule>
+
+    <!-- Reserved keyword parameters ($default, $list) are acceptable -->
+    <rule ref="Universal.NamingConventions.NoReservedKeywordParameterNames">
+        <exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames.default"/>
+        <exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames.list"/>
+        <exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames.match"/>
+    </rule>
+
+    <!-- PSR-12 file header ordering does not apply to WordPress plugin files -->
+    <rule ref="PSR12.Files.FileHeader">
+        <exclude name="PSR12.Files.FileHeader.IncorrectOrder"/>
+    </rule>
+
+    <!-- block-as-string templates trigger false positives for commented-out code -->
+    <rule ref="Squiz.PHP.CommentedOutCode">
+        <exclude name="Squiz.PHP.CommentedOutCode.Found"/>
+    </rule>
+
+    <!-- Unused trailing parameters are common in WordPress action/filter callbacks -->
+    <rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
+        <exclude name="Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed"/>
+    </rule>
+</ruleset>

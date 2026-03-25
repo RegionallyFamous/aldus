@@ -70,21 +70,23 @@ class EnforceAnchorsTest extends TestCase {
 	// -----------------------------------------------------------------------
 
 	/** @test */
-	public function prunes_image_tokens_when_no_image_in_manifest(): void {
-		$tokens   = [ 'heading:h1', 'media-text:left', 'paragraph' ];
+	public function prunes_non_anchor_image_tokens_when_no_image_in_manifest(): void {
+		// image:wide is NOT a global anchor — enforce_anchors calls prune internally.
+		// We use Dispatch (no image anchors) so the anchor-insertion step is irrelevant.
+		$tokens   = [ 'heading:h1', 'image:wide', 'paragraph' ];
 		$manifest = [ 'headline' => 1, 'paragraph' => 2 ]; // no image
-		$result   = aldus_enforce_anchors( 'Broadside', $tokens, $manifest );
+		$result   = aldus_enforce_anchors( 'Dispatch', $tokens, $manifest );
 
-		$this->assertNotContains( 'media-text:left', $result );
+		$this->assertNotContains( 'image:wide', $result );
 	}
 
 	/** @test */
 	public function keeps_image_tokens_when_image_present(): void {
-		$tokens   = [ 'heading:h1', 'media-text:left', 'paragraph' ];
+		$tokens   = [ 'heading:h1', 'image:wide', 'paragraph' ];
 		$manifest = [ 'headline' => 1, 'paragraph' => 2, 'image' => 1 ];
-		$result   = aldus_enforce_anchors( 'Broadside', $tokens, $manifest );
+		$result   = aldus_enforce_anchors( 'Dispatch', $tokens, $manifest );
 
-		$this->assertContains( 'media-text:left', $result );
+		$this->assertContains( 'image:wide', $result );
 	}
 
 	// -----------------------------------------------------------------------

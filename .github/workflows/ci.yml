@@ -15,7 +15,7 @@ env:
 
 jobs:
   # ─────────────────────────────────────────────────────────────────────────────
-  # Lint — JS, CSS, PHP (run in parallel with test)
+  # Lint — JS, CSS, PHP syntax, PHPCS, PHPStan
   # ─────────────────────────────────────────────────────────────────────────────
   lint:
     name: Lint
@@ -23,10 +23,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: "lts/*"
           cache: "npm"
@@ -34,12 +34,15 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.1"
-          tools: none
+          php-version: "8.2"
+          tools: cs2pr
           coverage: none
 
-      - name: Install dependencies
+      - name: Install JS dependencies
         run: npm ci --legacy-peer-deps
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist
 
       - name: Lint — JavaScript
         run: npm run lint:js
@@ -48,24 +51,30 @@ jobs:
         run: npm run lint:css
 
       - name: Lint — PHP syntax
-        run: npm run lint:php
+        run: npm run lint:php:syntax
+
+      - name: Lint — PHP CodeSniffer
+        run: composer run phpcs -- -q --runtime-set ignore_warnings_on_exit true --report=checkstyle | cs2pr
+
+      - name: Analyze — PHPStan
+        run: composer run phpstan -- --memory-limit=1G --error-format=github
 
       - name: Validate block HTML
-        run: npm run test:php
+        run: npm run test:php:validate
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # Test — JS unit tests (run in parallel with lint)
+  # Test — JS unit tests
   # ─────────────────────────────────────────────────────────────────────────────
-  test:
-    name: Test
+  test-js:
+    name: JS Tests
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: "lts/*"
           cache: "npm"
@@ -73,23 +82,104 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Unit tests
-        run: npm test
+      - name: Run Jest
+        run: npm run test:js -- --coverage
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # Build — only runs when lint + test both pass
+  # Test — PHP unit tests (no WP install required, uses stubs bootstrap)
+  # ─────────────────────────────────────────────────────────────────────────────
+  test-php-unit:
+    name: PHP Unit (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["8.0", "8.2", "8.3"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run PHPUnit (unit suite)
+        run: vendor/bin/phpunit --testsuite unit
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Test — PHP integration tests (requires WordPress test suite)
+  # Matrix: PHP 8.0 / WP 6.4 and PHP 8.3 / WP latest
+  # ─────────────────────────────────────────────────────────────────────────────
+  test-php-integration:
+    name: PHP Integration (PHP ${{ matrix.php }} / WP ${{ matrix.wp }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: "8.0"
+            wp: "6.4"
+          - php: "8.2"
+            wp: "6.7"
+          - php: "8.3"
+            wp: "latest"
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wp_tests
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mysqli
+          coverage: none
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Install WordPress test suite
+        run: bash bin/install-wp-tests.sh wp_tests root root 127.0.0.1 ${{ matrix.wp }}
+
+      - name: Run PHPUnit (integration suite)
+        run: vendor/bin/phpunit -c phpunit-integration.xml.dist
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Build — only runs when lint + unit tests all pass
   # ─────────────────────────────────────────────────────────────────────────────
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lint, test]
+    needs: [lint, test-js, test-php-unit]
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: "lts/*"
           cache: "npm"
@@ -99,6 +189,12 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Verify build output
+        run: |
+          test -f build/index.js
+          test -f build/index.css
+          test -f build/block.json
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4

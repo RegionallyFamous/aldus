@@ -1,16 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Integration test configuration.
+
+  Requires WordPress test suite. Install it first:
+    bash bin/install-wp-tests.sh wp_tests root '' 127.0.0.1 latest
+
+  Run with:
+    vendor/bin/phpunit -c phpunit-integration.xml.dist
+  Or via npm:
+    npm run test:php:integration
+-->
 <phpunit
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.0/phpunit.xsd"
-    bootstrap="tests/phpunit/bootstrap.php"
+    bootstrap="tests/integration/bootstrap.php"
     cacheDirectory=".phpunit.cache"
     colors="true"
     displayDetailsOnTestsThatTriggerWarnings="true"
     displayDetailsOnTestsThatTriggerDeprecations="true"
 >
     <testsuites>
-        <testsuite name="unit">
-            <directory suffix="Test.php">tests/phpunit</directory>
+        <testsuite name="integration">
+            <directory suffix="Test.php">tests/integration</directory>
         </testsuite>
     </testsuites>
 

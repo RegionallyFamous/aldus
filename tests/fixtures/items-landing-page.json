@@ -1,0 +1,39 @@
+[
+	{
+		"type": "headline",
+		"content": "Build Faster. Ship Smarter. Own Your Stack.",
+		"url": "",
+		"id": "h1-a"
+	},
+	{
+		"type": "subheading",
+		"content": "The only platform built for teams who move fast without breaking things",
+		"url": "",
+		"id": "sub-a"
+	},
+	{
+		"type": "paragraph",
+		"content": "Velocity ships your code from git push to production in under 90 seconds. Zero config, zero drift, zero guessing.",
+		"url": "",
+		"id": "p-a"
+	},
+	{
+		"type": "image",
+		"content": "Screenshot of the Velocity dashboard showing live deployment progress",
+		"url": "https://example.com/velocity-dashboard.png",
+		"id": "img-a",
+		"mediaId": 0
+	},
+	{
+		"type": "list",
+		"content": "Instant rollbacks|Automatic scaling|Environment isolation|Real-time logs",
+		"url": "",
+		"id": "list-a"
+	},
+	{
+		"type": "cta",
+		"content": "Start your free trial",
+		"url": "/signup",
+		"id": "cta-a"
+	}
+]

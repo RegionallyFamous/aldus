@@ -33,19 +33,19 @@ function aldus_register_meta_and_bindings(): void {
 	// Registering per type (rather than with '' which targets every CPT) prevents
 	// accidental exposure on third-party post types that may have their own REST
 	// security rules. The auth_callback provides an additional capability gate.
-	$post_types = (array) apply_filters( 'aldus_meta_post_types', [ 'post', 'page' ] );
+	$post_types = (array) apply_filters( 'aldus_meta_post_types', array( 'post', 'page' ) );
 	foreach ( $post_types as $post_type ) {
 		register_post_meta(
 			$post_type,
 			'_aldus_items',
-			[
+			array(
 				'type'              => 'string',
 				'description'       => 'JSON-encoded array of Aldus content items bound to this post\'s layout.',
 				'single'            => true,
 				'show_in_rest'      => true,
 				'auth_callback'     => fn() => current_user_can( 'edit_posts' ),
 				'sanitize_callback' => 'aldus_sanitize_items_meta',
-			]
+			)
 		);
 	}
 
@@ -56,11 +56,11 @@ function aldus_register_meta_and_bindings(): void {
 
 	register_block_bindings_source(
 		'aldus/item',
-		[
+		array(
 			'label'              => __( 'Aldus content item', 'aldus' ),
 			'get_value_callback' => 'aldus_bindings_get_value',
-			'uses_context'       => [ 'postId', 'postType' ],
-		]
+			'uses_context'       => array( 'postId', 'postType' ),
+		)
 	);
 }
 
@@ -121,11 +121,11 @@ function aldus_bindings_get_value( array $source_args, WP_Block $block_instance 
 	// Only expose fields that Aldus explicitly writes to bound blocks.
 	// Allowlisting prevents accidental exposure of future item keys.
 	$field = sanitize_key( $source_args['field'] ?? 'content' );
-	if ( ! in_array( $field, [ 'content', 'url' ], true ) ) {
+	if ( ! in_array( $field, array( 'content', 'url' ), true ) ) {
 		return null;
 	}
 
-	static $cache = [];
+	static $cache = array();
 	if ( ! isset( $cache[ $post_id ] ) ) {
 		// Evict the oldest entry once the per-request cache exceeds 50 posts to
 		// prevent unbounded memory growth on admin pages that render many posts.
@@ -135,12 +135,12 @@ function aldus_bindings_get_value( array $source_args, WP_Block $block_instance 
 		}
 		$raw = get_post_meta( $post_id, '_aldus_items', true );
 		try {
-			$list = $raw ? json_decode( $raw, true, 8, JSON_THROW_ON_ERROR ) : [];
+			$list = $raw ? json_decode( $raw, true, 8, JSON_THROW_ON_ERROR ) : array();
 		} catch ( \JsonException $e ) {
-			$list = [];
+			$list = array();
 		}
 		// Index by item ID so each subsequent lookup is O(1) instead of O(n).
-		$map = [];
+		$map = array();
 		foreach ( (array) $list as $entry ) {
 			if ( is_array( $entry ) && isset( $entry['id'] ) ) {
 				// Key through sanitize_key so lookups from get_value_callback (which

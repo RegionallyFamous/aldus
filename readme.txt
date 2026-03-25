@@ -3,7 +3,7 @@ Contributors: regionallyfamous
 Tags: blocks, gutenberg, layout, design, composer
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 1.2.0
+Stable tag: 1.3.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -127,6 +127,17 @@ An optional free-text field on the building screen that steers the layout model 
 
 == Changelog ==
 
+= 1.3.0 =
+* Testing & linting infrastructure: added PHPCS with WordPress Coding Standards, PHPStan static analysis at level 6, and stricter ESLint config — 0 errors across all PHP source files.
+* Auto-fixed 1,430 PHPCS style violations (indentation, array syntax, spacing) via phpcbf.
+* Expanded PHP unit test suite: new ContentDistributorTest (17 tests), SanitizeTokenTest (11 tests), SanitizeItemTest (15 tests), and ThemeHelpersTest (18 tests) — 93 unit tests total.
+* Corrected existing BlockHtmlTest, EnforceAnchorsTest, and PruneTokensTest to use accurate function names and non-anchor token fixtures.
+* Added Jest configuration (jest.config.js) and tokenLabels.test.js — 57 JS unit tests total.
+* Added PHP integration test suite (tests/integration/) with AssembleEndpointTest and RendererCoverTest; requires WordPress test library via bin/install-wp-tests.sh.
+* Added test fixtures (tests/fixtures/) for blog post and landing page content scenarios.
+* Updated CI pipeline: PHPCS and PHPStan added to lint job; PHP unit tests now run against PHP 8.0, 8.2, and 8.3 in a matrix; integration tests run against WP 6.4/6.7/latest with MySQL service.
+* New npm scripts: lint:php, analyze:php, fix:php, test:js, test:php:unit, test:php:integration, coverage:php, coverage:js, ci.
+
 = 1.2.0 =
 * Theme awareness: Aldus now reads theme.json layout settings and uses the active theme's contentSize for constrained group blocks instead of a hardcoded 48rem.
 * Theme spacing: padding values in generated blocks now map to the theme's spacing preset scale (via CSS custom properties) when declared; hardcoded rem values are used as fallback.
@@ -164,6 +175,9 @@ An optional free-text field on the building screen that steers the layout model 
 * Full CI via GitHub Actions; Dependabot for npm and Actions updates.
 
 == Upgrade Notice ==
+
+= 1.3.0 =
+Maintenance release: adds comprehensive testing and linting infrastructure with no functional changes to layouts or the editor UI.
 
 = 1.2.0 =
 Generated layouts now adapt to your theme's spacing scale, content width, and button styles — output feels native to any block theme out of the box.

@@ -20,7 +20,7 @@ const FIXTURE_PACK = {
 		'pullquote:wide': [ 'A wide pullquote.' ],
 		'image:wide': [ { alt: 'Wide image', colorIndex: 0 } ],
 		'image:full': [ { alt: 'Full image', colorIndex: 1 } ],
-		'buttons:cta': [ { label: 'Buy now', url: '#' } ],
+		'buttons:cta': [ 'Buy now' ],
 		list: [ { items: [ 'Item A', 'Item B' ], style: 'unordered' } ],
 		'media-text:left': [
 			{ heading: 'Feature', body: 'Details.', alt: 'Alt', colorIndex: 2 },

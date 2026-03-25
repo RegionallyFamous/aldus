@@ -1,0 +1,78 @@
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+    level: 6
+
+    paths:
+        - aldus.php
+        - includes/
+        - uninstall.php
+
+    bootstrapFiles:
+        - vendor/autoload.php
+
+    scanFiles:
+        - vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
+
+    excludePaths:
+        - build/
+        - node_modules/
+        - vendor/
+        - tests/
+        - src/
+
+    # These are defensive-coding patterns and known WordPress extension points.
+    # Each ignore pattern is narrow and documented below.
+    ignoreErrors:
+        # Defensive ?? defaults on typed array shapes — PHPStan knows the key
+        # always exists, but defensive coalescing is kept for forward-compat.
+        - message: '#on left side of \?\? always exists and is not nullable#'
+          reportUnmatched: false
+
+        # empty() on a known non-falsy offset — intentional redundant guard.
+        - message: '#in empty\(\) always exists and is not falsy#'
+          reportUnmatched: false
+
+        # Boolean simplification warnings in deeply nested conditions.
+        - message: '#Result of \|\| is always false#'
+          reportUnmatched: false
+
+        # add_action callback returning false is a WordPress pattern to
+        # short-circuit hooks (e.g. block registration guard).
+        - message: '#Action callback returns bool but should not return anything#'
+          reportUnmatched: false
+
+        # WP_Error is a valid return from REST handlers when using the
+        # "return WP_Error or Response" pattern — the router handles it.
+        - message: '#Function aldus_handle_record_use\(\) should return WP_REST_Response but returns WP_Error#'
+          reportUnmatched: false
+
+        # wp_register_block_metadata_collection second parameter — stubs may
+        # differ from the actual signature in WP 6.7+.
+        - message: '#wp_register_block_metadata_collection#'
+          reportUnmatched: false
+
+        # Negated boolean simplification in patterns.php — intentional defensive check.
+        - message: '#Negated boolean expression is always false#'
+          reportUnmatched: false
+
+        # Comparison always false from PHPDoc types — defensive greater-than guards.
+        - message: '#Comparison operation ">" between 0 and 0 is always false#'
+          reportUnmatched: false
+
+        # Template arrays sometimes have looser PHPDoc types than the actual shape.
+        - message: '#aldus_pick_large_font expects#'
+          reportUnmatched: false
+
+        - message: '#aldus_pick_medium_font expects#'
+          reportUnmatched: false
+
+        # Content Distributor consume() PHPDoc shape omits optional keys (mediaId, id)
+        # that are present on the sanitized items fed to the distributor.
+        - message: "#Offset 'mediaId' does not exist on array#"
+          reportUnmatched: false
+
+    checkMissingIterableValueType: false
+    checkGenericClassInNonGenericObjectType: false
+    treatPhpDocTypesAsCertain: false

@@ -21,9 +21,8 @@ if ( ! defined( 'ALDUS_PATH' ) ) {
 if ( ! defined( 'ALDUS_URL' ) ) {
 	define( 'ALDUS_URL', 'http://localhost/' );
 }
-if ( ! defined( 'ALDUS_MAX_CONTENT_LENGTH' ) ) {
-	define( 'ALDUS_MAX_CONTENT_LENGTH', 5000 );
-}
+// ALDUS_MAX_CONTENT_LENGTH is defined as a constant in includes/api.php.
+// Do not redefine it here to avoid the "Constant already defined" warning.
 
 // ---------------------------------------------------------------------------
 // Minimal WordPress function stubs for unit tests.
@@ -50,7 +49,7 @@ if ( ! function_exists( 'sanitize_text_field' ) ) {
 
 if ( ! function_exists( 'sanitize_textarea_field' ) ) {
 	function sanitize_textarea_field( string $str ): string {
-		return trim( $str );
+		return trim( strip_tags( $str ) );
 	}
 }
 
@@ -62,7 +61,15 @@ if ( ! function_exists( 'sanitize_html_class' ) ) {
 
 if ( ! function_exists( 'esc_url_raw' ) ) {
 	function esc_url_raw( string $url ): string {
-		return filter_var( $url, FILTER_SANITIZE_URL ) ?: '';
+		// Reject dangerous protocols — mirrors WordPress core behaviour.
+		$trimmed  = trim( $url );
+		$protocol = strtolower( (string) parse_url( $trimmed, PHP_URL_SCHEME ) );
+		$allowed  = [ 'http', 'https', 'ftp', 'ftps', 'mailto', '' ];
+		if ( $protocol !== '' && ! in_array( $protocol, $allowed, true ) ) {
+			return '';
+		}
+		$sanitized = filter_var( $trimmed, FILTER_SANITIZE_URL );
+		return $sanitized !== false ? $sanitized : '';
 	}
 }
 
@@ -84,6 +91,51 @@ if ( ! function_exists( 'wp_cache_set' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_get_global_settings' ) ) {
+	function wp_get_global_settings( array $path = [] ): array {
+		return [];
+	}
+}
+
+if ( ! function_exists( 'esc_html' ) ) {
+	function esc_html( string $text ): string {
+		return htmlspecialchars( $text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8' );
+	}
+}
+
+if ( ! function_exists( 'esc_attr' ) ) {
+	function esc_attr( string $text ): string {
+		return htmlspecialchars( $text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8' );
+	}
+}
+
+if ( ! function_exists( 'esc_url' ) ) {
+	function esc_url( string $url ): string {
+		return filter_var( $url, FILTER_SANITIZE_URL ) ?: '';
+	}
+}
+
+if ( ! function_exists( 'wp_json_encode' ) ) {
+	function wp_json_encode( mixed $data, int $options = 0, int $depth = 512 ): string|false {
+		return json_encode( $data, $options, $depth );
+	}
+}
+
+if ( ! function_exists( 'trailingslashit' ) ) {
+	function trailingslashit( string $string ): string {
+		return rtrim( $string, '/\\' ) . '/';
+	}
+}
+
+if ( ! function_exists( 'wp_parse_args' ) ) {
+	function wp_parse_args( mixed $args, array $defaults = [] ): array {
+		if ( is_array( $args ) ) {
+			return array_merge( $defaults, $args );
+		}
+		return $defaults;
+	}
+}
+
 if ( ! function_exists( '__' ) ) {
 	function __( string $text, string $domain = 'default' ): string {
 		return $text;
@@ -102,6 +154,46 @@ if ( ! class_exists( 'WP_Error' ) ) {
 	}
 }
 
+if ( ! class_exists( 'WP_REST_Controller' ) ) {
+	class WP_REST_Controller {
+		protected string $namespace = '';
+		protected string $rest_base = '';
+		public function register_routes(): void {}
+	}
+}
+
+if ( ! class_exists( 'WP_REST_Request' ) ) {
+	class WP_REST_Request {
+		private array $params = [];
+		public function get_param( string $key ): mixed { return $this->params[ $key ] ?? null; }
+		public function set_body_params( array $params ): void { $this->params = $params; }
+	}
+}
+
+if ( ! class_exists( 'WP_REST_Response' ) ) {
+	class WP_REST_Response {
+		private mixed $data;
+		private int $status;
+		public function __construct( mixed $data = null, int $status = 200 ) {
+			$this->data   = $data;
+			$this->status = $status;
+		}
+		public function get_data(): mixed { return $this->data; }
+		public function get_status(): int { return $this->status; }
+	}
+}
+
+if ( ! class_exists( 'WP_REST_Server' ) ) {
+	class WP_REST_Server {
+		const CREATABLE  = 'POST';
+		const READABLE   = 'GET';
+		const EDITABLE   = 'POST, PUT, PATCH';
+		const DELETABLE  = 'DELETE';
+		const ALLMETHODS = 'GET, POST, PUT, PATCH, DELETE';
+	}
+}
+
 // Load the files under test.
 require_once ALDUS_PATH . 'includes/block-html.php';
 require_once ALDUS_PATH . 'includes/api.php';
+require_once ALDUS_PATH . 'includes/templates.php';

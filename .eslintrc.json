@@ -1,0 +1,16 @@
+{
+	"extends": [ "plugin:@wordpress/eslint-plugin/recommended" ],
+	"rules": {
+		"no-console": "warn",
+		"no-unused-vars": [ "error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" } ],
+		"prefer-const": "error",
+		"no-var": "error",
+		"eqeqeq": [ "error", "always" ],
+		"curly": [ "error", "all" ]
+	},
+	"globals": {
+		"crypto": "readonly",
+		"navigator": "readonly",
+		"window": "readonly"
+	}
+}
