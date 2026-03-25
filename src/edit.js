@@ -3827,6 +3827,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 					</p>
 					{ PRESETS.map( ( preset ) => (
 						<Button
+							__next40pxDefaultSize
 							key={ preset.id }
 							variant="secondary"
 							className="aldus-preset-btn"
@@ -4771,6 +4772,7 @@ function BuildingScreen( {
 						>
 							<div className="aldus-generate-row">
 								<Button
+									__next40pxDefaultSize
 									variant="primary"
 									onClick={ handleGenerate }
 									disabled={
@@ -5031,6 +5033,7 @@ function AddContentPopover( { onAdd, isInline = false } ) {
 			ref={ wrapRef }
 		>
 			<Button
+				__next40pxDefaultSize
 				icon={ plus }
 				variant={ isInline ? 'tertiary' : 'secondary' }
 				className={ `aldus-add-trigger${
@@ -5691,6 +5694,7 @@ function SavedSessions( { items, styleNote, onLoad } ) {
 						{ items.length > 0 && (
 							<div className="aldus-sessions-name-row">
 								<TextControl
+									__next40pxDefaultSize
 									value={ saveName }
 									placeholder={ autoName }
 									onChange={ setSaveName }
@@ -6487,6 +6491,7 @@ function DownloadingScreen( { progress, onAbort } ) {
 			) }
 			{ onAbort && (
 				<Button
+					__next40pxDefaultSize
 					variant="tertiary"
 					className="aldus-abort-btn"
 					onClick={ onAbort }
@@ -6549,6 +6554,7 @@ function LoadingScreen( { message, msgVisible, onAbort, genProgress } ) {
 			) }
 			{ onAbort && (
 				<Button
+					__next40pxDefaultSize
 					variant="tertiary"
 					className="aldus-abort-btn"
 					onClick={ onAbort }
@@ -6997,6 +7003,7 @@ function LayoutCard( {
 					/>
 					<div className="aldus-card-overlay">
 						<Button
+							__next40pxDefaultSize
 							className="aldus-card-use-btn"
 							onClick={ onChoose }
 							aria-label={ sprintf(
@@ -7177,6 +7184,7 @@ function LayoutCard( {
 					</div>
 					<div className="aldus-preview-modal-footer">
 						<Button
+							__next40pxDefaultSize
 							variant="primary"
 							onClick={ () => {
 								onChoose();
@@ -7186,6 +7194,7 @@ function LayoutCard( {
 							{ __( 'Use this layout', 'aldus' ) }
 						</Button>
 						<Button
+							__next40pxDefaultSize
 							variant="secondary"
 							onClick={ async () => {
 								try {
@@ -7520,11 +7529,19 @@ function ErrorScreen( {
 			</div>
 			<Flex gap={ 2 } className="aldus-error-actions">
 				{ canRegenerate && (
-					<Button variant="primary" onClick={ onRegenerate }>
+					<Button
+						__next40pxDefaultSize
+						variant="primary"
+						onClick={ onRegenerate }
+					>
 						{ __( 'Go for it again', 'aldus' ) }
 					</Button>
 				) }
-				<Button variant="secondary" onClick={ onRetry }>
+				<Button
+					__next40pxDefaultSize
+					variant="secondary"
+					onClick={ onRetry }
+				>
 					{ __( 'Edit my content', 'aldus' ) }
 				</Button>
 			</Flex>

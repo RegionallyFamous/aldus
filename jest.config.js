@@ -13,5 +13,10 @@ module.exports = {
 		'<rootDir>/src/__tests__/**/*.test.ts',
 	],
 	testPathIgnorePatterns: [ '/node_modules/', '/build/', '/tests/e2e/' ],
+	// Intercept WordPress deprecation console.error calls and turn them into
+	// test failures so deprecated API usage is caught in CI automatically.
+	setupFilesAfterEnv: [
+		'<rootDir>/src/__tests__/setup/no-wp-deprecations.js',
+	],
 	// Transforms are inherited from @wordpress/scripts — no overrides needed.
 };
