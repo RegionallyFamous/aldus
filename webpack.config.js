@@ -10,6 +10,31 @@
 
 const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 
+/**
+ * Promotes "export not found" webpack warnings to hard errors so that
+ * `npm run build` fails immediately when a named import doesn't exist in its
+ * source module (e.g. importing a non-existent icon from @wordpress/icons).
+ * Without this, webpack only emits a warning and the import silently becomes
+ * undefined at runtime, which can crash React components.
+ */
+class PromoteMissingExportsPlugin {
+	apply( compiler ) {
+		compiler.hooks.afterCompile.tap(
+			'PromoteMissingExportsPlugin',
+			( compilation ) => {
+				const missing = compilation.warnings.filter(
+					( w ) => w.message && w.message.includes( 'was not found in' )
+				);
+				missing.forEach( ( w ) => {
+					compilation.errors.push( w );
+					const i = compilation.warnings.indexOf( w );
+					if ( i !== -1 ) compilation.warnings.splice( i, 1 );
+				} );
+			}
+		);
+	}
+}
+
 module.exports = {
 	...defaultConfig,
 	entry: async () => {
@@ -34,4 +59,8 @@ module.exports = {
 		...( defaultConfig.experiments ?? {} ),
 		asyncWebAssembly: true,
 	},
+	plugins: [
+		...( defaultConfig.plugins ?? [] ),
+		new PromoteMissingExportsPlugin(),
+	],
 };
