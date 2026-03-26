@@ -12,6 +12,7 @@ import Edit from './edit';
 import save from './save';
 import { AldusErrorBoundary } from './components/AldusErrorBoundary';
 import { uid as generateId } from './lib/uid.js';
+import './components/PluginRegistration';
 
 // ---------------------------------------------------------------------------
 // Block extraction helper — converts a single block into zero or more Aldus

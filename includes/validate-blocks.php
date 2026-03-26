@@ -113,10 +113,31 @@ function aldus_validate_block_markup( string $markup ): array {
  * Parses the markup into blocks, validates each one, and prefixes every error
  * message with the block name so the caller can identify the source.
  *
+ * On WP 6.9+ uses the WP_Block_Processor streaming API for lower memory overhead.
+ * Falls back to the parse_blocks() path on WP ≤ 6.8.
+ *
  * @param string $markup Full serialized markup from aldus_handle_assemble().
  * @return list<string> All validation errors across all blocks.
  */
 function aldus_validate_assembled_markup( string $markup ): array {
+	// WP 6.9+: streaming block processor — avoids building a full nested array.
+	if ( class_exists( 'WP_Block_Processor' ) ) {
+		$processor = new WP_Block_Processor( $markup );
+		$errors    = array();
+		while ( $processor->next_block() ) {
+			$block_name = $processor->get_tag();
+			if ( ! $block_name ) {
+				continue;
+			}
+			$span = $processor->extract_full_block_and_advance();
+			foreach ( aldus_validate_block_markup( $span ) as $error ) {
+				$errors[] = "[{$block_name}] {$error}";
+			}
+		}
+		return $errors;
+	}
+
+	// WP ≤ 6.8 fallback: parse_blocks() path.
 	if ( ! function_exists( 'parse_blocks' ) || ! function_exists( 'serialize_block' ) ) {
 		return array(); // WordPress not available — skip silently.
 	}

@@ -346,26 +346,37 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 	// Feature 4: Layout history stored in post meta (_aldus_layout_history).
 	const [ layoutHistory, setLayoutHistory ] = useState( [] );
 
+	// Preferences dispatch — declared early so it can be referenced by
+	// advanceOnboarding and markAldusUsed below without entering the TDZ.
+	const { set: setPref } = useDispatch( preferencesStore );
+
 	// Onboarding: show three sequential tooltips for first-time users.
 	// null = already onboarded; 0/1/2 = active step index.
-	const [ onboardingStep, setOnboardingStep ] = useState( () =>
-		typeof window !== 'undefined' &&
-		window.localStorage.getItem( 'aldus_onboarded' )
-			? null
-			: 0
+	// Uses core/preferences so the flag persists via the WP data layer rather
+	// than raw localStorage (which breaks in incognito and bypasses WP entirely).
+	const hasOnboarded = useSelect(
+		( select ) =>
+			select( preferencesStore ).get( 'aldus', 'hasOnboarded' ) ?? false,
+		[]
 	);
+	const [ onboardingStep, setOnboardingStep ] = useState( null );
+	useEffect( () => {
+		if ( ! hasOnboarded ) {
+			setOnboardingStep( 0 );
+		}
+	}, [] ); // eslint-disable-line react-hooks/exhaustive-deps -- intentionally runs once on mount
 	const advanceOnboarding = useCallback( () => {
 		setOnboardingStep( ( step ) => {
 			if ( step === null ) {
 				return null;
 			}
 			if ( step >= 2 ) {
-				window.localStorage.setItem( 'aldus_onboarded', '1' );
+				setPref( 'aldus', 'hasOnboarded', true );
 				return null;
 			}
 			return step + 1;
 		} );
-	}, [] );
+	}, [ setPref ] );
 
 	const lastFocusRef = useRef( null );
 	const lastPackRef = useRef( null ); // stores last pack used for preview re-roll
@@ -409,7 +420,6 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		[]
 	);
 
-	const { set: setPref } = useDispatch( preferencesStore );
 	const markAldusUsed = useCallback( () => {
 		setPref( 'aldus', 'hasUsedAldus', true );
 	}, [ setPref ] );

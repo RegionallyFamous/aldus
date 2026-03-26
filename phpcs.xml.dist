@@ -35,6 +35,15 @@
     <!-- Minimum supported WordPress version -->
     <config name="minimum_wp_version" value="6.4"/>
 
+    <!-- prompt_ai is a WP 7.0 capability introduced with the AI Client API -->
+    <rule ref="WordPress.WP.Capabilities">
+        <properties>
+            <property name="custom_capabilities" type="array">
+                <element value="prompt_ai"/>
+            </property>
+        </properties>
+    </rule>
+
     <!-- Allowed prefixes for function/class/constant names -->
     <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
         <properties>

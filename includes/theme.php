@@ -495,6 +495,17 @@ function aldus_inline_site_data(): void {
 		'window.__aldusPhpVersion = ' . wp_json_encode( ALDUS_VERSION ) . ';',
 		'before'
 	);
+
+	// Signal to the JS bundle whether a server-side AI fallback is available.
+	// Requires WP 7.0+ wp_ai_client_prompt() AND the editor to have prompt_ai capability.
+	// The JS generation hook reads this flag before deciding which engine to use.
+	$server_ai_available = function_exists( 'wp_ai_client_prompt' ) && current_user_can( 'prompt_ai' );
+	wp_add_inline_script(
+		'aldus-aldus-layout-generator-editor-script',
+		'window.__aldusCapabilities = window.__aldusCapabilities || {};' .
+		' window.__aldusCapabilities.serverAI = ' . ( $server_ai_available ? 'true' : 'false' ) . ';',
+		'before'
+	);
 }
 add_action( 'enqueue_block_editor_assets', 'aldus_inline_site_data' );
 
@@ -503,7 +514,11 @@ add_action( 'enqueue_block_editor_assets', 'aldus_inline_site_data' );
  *
  * Injects custom spacing presets and CSS custom properties that generated
  * layouts depend on so they render consistently regardless of the active theme.
- * Uses the wp_theme_json_data_theme filter (WP 6.6+).
+ *
+ * spacingSizes are injected by directly modifying the raw data array rather
+ * than via update_with(). WP_Theme_JSON::merge() processes presets with
+ * origin-tracking that silently discards injected entries in some WP versions
+ * (observed on WP 6.4 and 6.7). Direct manipulation is reliable from WP 6.4+.
  *
  * @param mixed $theme_json Mutable theme.json data object (WP_Theme_JSON_Data expected).
  * @return mixed
@@ -512,103 +527,153 @@ function aldus_inject_theme_json( mixed $theme_json ): mixed {
 	if ( ! $theme_json instanceof WP_Theme_JSON_Data ) {
 		return $theme_json;
 	}
-	$additions = array(
-		'version'  => 3,
-		'settings' => array(
-			'spacing' => array(
-				'spacingSizes' => array(
-					array(
-						'slug' => 'aldus-section',
-						'size' => '80px',
-						'name' => 'Aldus Section',
-					),
-					array(
-						'slug' => 'aldus-gap',
-						'size' => '40px',
-						'name' => 'Aldus Gap',
-					),
-					array(
-						'slug' => 'aldus-tight',
-						'size' => '20px',
-						'name' => 'Aldus Tight',
-					),
-				),
-			),
+
+	// -------------------------------------------------------------------------
+	// Step 1: Inject spacing presets directly into the raw data array.
+	// -------------------------------------------------------------------------
+	$data = $theme_json->get_data();
+
+	$aldus_sizes = array(
+		array(
+			'slug' => 'aldus-section',
+			'size' => '80px',
+			'name' => 'Aldus Section',
 		),
-		'styles'   => array(
-			'css' => '
-				:root {
-					--aldus-section-spacing: 80px;
-					--aldus-gap: 40px;
-					--aldus-tight: 20px;
-					--aldus-overlay-dark: rgba(0,0,0,0.55);
-					--aldus-overlay-accent: rgba(0,0,0,0.35);
-				}
-
-				/* --- Aldus Personality Block Style Variations --- */
-
-				/* Dispatch: high-contrast, urgent, dark */
-				.is-style-aldus-dispatch {
-					background-color: #111 !important;
-					color: #fff !important;
-					padding: var(--aldus-section-spacing) var(--aldus-gap);
-				}
-				.is-style-aldus-dispatch .wp-block-heading {
-					font-weight: 800;
-					letter-spacing: -0.02em;
-				}
-
-				/* Nocturne: cinematic, atmospheric dark */
-				.is-style-aldus-nocturne {
-					background-color: #0a0a14 !important;
-					color: #e8e8e8 !important;
-					padding: var(--aldus-section-spacing) var(--aldus-gap);
-				}
-				.is-style-aldus-nocturne .wp-block-cover__background {
-					opacity: 0.7;
-				}
-
-				/* Codex: restrained, typographic, generous whitespace */
-				.is-style-aldus-codex {
-					padding: calc(var(--aldus-section-spacing) * 1.5) var(--aldus-gap);
-					max-width: 42rem;
-					margin-left: auto;
-					margin-right: auto;
-				}
-				.is-style-aldus-codex .wp-block-heading {
-					font-weight: 300;
-					letter-spacing: 0.01em;
-				}
-
-				/* Solstice: minimal, luminous, clean */
-				.is-style-aldus-solstice {
-					background-color: #fafafa !important;
-					color: #222 !important;
-					padding: var(--aldus-section-spacing) var(--aldus-gap);
-					border-radius: 8px;
-				}
-
-				/* Folio: editorial asymmetry */
-				.is-style-aldus-folio {
-					border-left: 3px solid currentColor;
-					padding-left: var(--aldus-gap);
-				}
-
-				/* Dusk: gradient atmosphere */
-				.is-style-aldus-dusk {
-					background: linear-gradient(
-						135deg,
-						#1a1a2e 0%,
-						#16213e 50%,
-						#0f3460 100%
-					) !important;
-					color: #e8e8e8 !important;
-					padding: var(--aldus-section-spacing) var(--aldus-gap);
-				}
-			',
+		array(
+			'slug' => 'aldus-gap',
+			'size' => '40px',
+			'name' => 'Aldus Gap',
+		),
+		array(
+			'slug' => 'aldus-tight',
+			'size' => '20px',
+			'name' => 'Aldus Tight',
 		),
 	);
 
-	$theme_json->update_with( $additions );
-	return $theme_json;
+	// WP 6.6+ stores spacingSizes keyed by origin: {'default': [...], 'theme': [...]}.
+	// WP 6.4–6.5 stores them as a flat array.  Handle both formats.
+	$existing = $data['settings']['spacing']['spacingSizes'] ?? array();
+	$first    = ! empty( $existing ) ? reset( $existing ) : null;
+
+	if ( null !== $first && is_array( $first ) && ! isset( $first['slug'] ) ) {
+		// WP 6.6+ origin-keyed format: append to the 'theme' bucket so that
+		// WordPress generates the correct --wp--preset--spacing--* CSS variables.
+		$existing['theme'] = array_merge( $existing['theme'] ?? array(), $aldus_sizes );
+	} else {
+		// Pre-6.6 flat array or no existing sizes: simply append.
+		$existing = array_merge( $existing, $aldus_sizes );
+	}
+
+	$data['settings']['spacing']['spacingSizes'] = $existing;
+
+	// -------------------------------------------------------------------------
+	// Step 2: Inject CSS custom properties and personality block-style rules.
+	// Append to any existing styles.css so the theme's own CSS is preserved.
+	// update_with() uses array_replace_recursive which would REPLACE the CSS
+	// string rather than append it, so we concatenate directly in $data.
+	// -------------------------------------------------------------------------
+	$aldus_css = '
+			:root {
+				--aldus-section-spacing: 80px;
+				--aldus-gap: 40px;
+				--aldus-tight: 20px;
+				--aldus-overlay-dark: rgba(0,0,0,0.55);
+				--aldus-overlay-accent: rgba(0,0,0,0.35);
+			}
+
+			/* --- Aldus Personality Block Style Variations --- */
+
+			/* Dispatch: high-contrast, urgent, dark */
+			.is-style-aldus-dispatch {
+				background-color: #111 !important;
+				color: #fff !important;
+				padding: var(--aldus-section-spacing) var(--aldus-gap);
+			}
+			.is-style-aldus-dispatch .wp-block-heading {
+				font-weight: 800;
+				letter-spacing: -0.02em;
+			}
+
+			/* Nocturne: cinematic, atmospheric dark */
+			.is-style-aldus-nocturne {
+				background-color: #0a0a14 !important;
+				color: #e8e8e8 !important;
+				padding: var(--aldus-section-spacing) var(--aldus-gap);
+			}
+			.is-style-aldus-nocturne .wp-block-cover__background {
+				opacity: 0.7;
+			}
+
+			/* Codex: restrained, typographic, generous whitespace */
+			.is-style-aldus-codex {
+				padding: calc(var(--aldus-section-spacing) * 1.5) var(--aldus-gap);
+				max-width: 42rem;
+				margin-left: auto;
+				margin-right: auto;
+			}
+			.is-style-aldus-codex .wp-block-heading {
+				font-weight: 300;
+				letter-spacing: 0.01em;
+			}
+
+			/* Solstice: minimal, luminous, clean */
+			.is-style-aldus-solstice {
+				background-color: #fafafa !important;
+				color: #222 !important;
+				padding: var(--aldus-section-spacing) var(--aldus-gap);
+				border-radius: 8px;
+			}
+
+			/* Folio: editorial asymmetry */
+			.is-style-aldus-folio {
+				border-left: 3px solid currentColor;
+				padding-left: var(--aldus-gap);
+			}
+
+			/* Dusk: gradient atmosphere */
+			.is-style-aldus-dusk {
+				background: linear-gradient(
+					135deg,
+					#1a1a2e 0%,
+					#16213e 50%,
+					#0f3460 100%
+				) !important;
+				color: #e8e8e8 !important;
+				padding: var(--aldus-section-spacing) var(--aldus-gap);
+			}
+
+			/* Soft lift on hover for card-style personalities */
+			.is-style-aldus-solstice:hover,
+			.is-style-aldus-codex:hover {
+				box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+				transition: box-shadow 0.2s ease;
+			}
+
+			/* Keyboard-focus ring for all Aldus wrapper styles */
+			.is-style-aldus-dispatch:focus-within,
+			.is-style-aldus-nocturne:focus-within,
+			.is-style-aldus-codex:focus-within,
+			.is-style-aldus-solstice:focus-within,
+			.is-style-aldus-folio:focus-within,
+			.is-style-aldus-dusk:focus-within {
+				outline: 2px solid var(--wp--preset--color--primary, #005f99);
+				outline-offset: 4px;
+			}
+
+			/* Active press state for interactive Aldus sections */
+			.is-style-aldus-dispatch:active,
+			.is-style-aldus-nocturne:active {
+				filter: brightness(1.05);
+				transition: filter 0.1s ease;
+			}
+	';
+
+	$data['styles']['css'] = ( $data['styles']['css'] ?? '' ) . $aldus_css;
+
+	// Rebuild and return a fresh WP_Theme_JSON_Data from the fully-patched array.
+	// The WP constructor re-validates presets but respects data already in the
+	// origin-keyed format, so the aldus spacingSizes survive intact.
+	return new WP_Theme_JSON_Data( $data, 'theme' );
 }
+

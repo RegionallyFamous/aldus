@@ -166,8 +166,16 @@ function aldus_bindings_get_value( array $source_args, WP_Block $block_instance 
 
 	// Only expose fields that Aldus explicitly writes to bound blocks.
 	// Allowlisting prevents accidental exposure of future item keys.
+	// Supported fields:
+	//   content     — generic text content (paragraph, heading, quote)
+	//   url         — image src or button href
+	//   alt         — core/image alt text
+	//   title       — core/image title attribute
+	//   text        — core/button visible label (maps to block 'text' attr)
+	//   linktarget  — core/button linkTarget (_blank / '') — sanitize_key lowercases
+	//   rel         — core/button rel attribute
 	$field = sanitize_key( $source_args['field'] ?? 'content' );
-	if ( ! in_array( $field, array( 'content', 'url' ), true ) ) {
+	if ( ! in_array( $field, array( 'content', 'url', 'alt', 'title', 'text', 'linktarget', 'rel' ), true ) ) {
 		return null;
 	}
 

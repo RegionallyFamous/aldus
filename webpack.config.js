@@ -59,6 +59,9 @@ module.exports = {
 			// via viewScriptModule in block.json so WP loads it only on pages with
 			// Aldus blocks. Requires @wordpress/interactivity (WP 6.5+).
 			'frontend-interactivity': './src/frontend/interactivity.js',
+			// Compiles src/admin.css → build/admin.css.
+			// Enqueued only on the Aldus welcome page via admin_enqueue_scripts.
+			admin: './src/admin.css',
 		};
 	},
 	experiments: {

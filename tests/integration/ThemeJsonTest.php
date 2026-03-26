@@ -32,6 +32,35 @@ class ThemeJsonTest extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * Extracts a flat list of spacing size entries from get_data() output.
+	 *
+	 * WordPress 6.6 changed the internal storage so that preset arrays (including
+	 * spacingSizes) are keyed by origin inside WP_Theme_JSON::get_raw_data(), which
+	 * is what WP_Theme_JSON_Data::get_data() calls.  The structure becomes:
+	 *
+	 *   settings.spacing.spacingSizes = [ 'theme' => [...], 'default' => [...] ]
+	 *
+	 * instead of the pre-6.6 flat indexed array.  This helper normalises both
+	 * formats so the tests work across WP 6.4 through the latest release.
+	 *
+	 * @param array $data  Return value of WP_Theme_JSON_Data::get_data().
+	 * @return array Flat list of spacing-size preset entries (each has slug/size/name).
+	 */
+	private function get_flat_spacing_sizes( array $data ): array {
+		$raw = $data['settings']['spacing']['spacingSizes'] ?? [];
+		if ( empty( $raw ) ) {
+			return [];
+		}
+		// If the first element is itself a list of presets (not a single preset),
+		// we are looking at the origin-keyed format: merge all origins together.
+		$first = reset( $raw );
+		if ( is_array( $first ) && ! isset( $first['slug'] ) ) {
+			return array_merge( ...array_values( $raw ) );
+		}
+		return $raw;
+	}
+
 	// -----------------------------------------------------------------------
 	// Test: filter returns a WP_Theme_JSON_Data-compatible object
 	// -----------------------------------------------------------------------
@@ -70,8 +99,7 @@ class ThemeJsonTest extends WP_UnitTestCase {
 		$input  = $this->make_theme_json_data();
 		$result = aldus_inject_theme_json( $input );
 
-		$data          = $result->get_data();
-		$spacing_sizes = $data['settings']['spacing']['spacingSizes'] ?? [];
+		$spacing_sizes = $this->get_flat_spacing_sizes( $result->get_data() );
 
 		// At least one Aldus spacing preset must be present.
 		$aldus_slugs = array_column( $spacing_sizes, 'slug' );
@@ -100,8 +128,7 @@ class ThemeJsonTest extends WP_UnitTestCase {
 		$input  = $this->make_theme_json_data();
 		$result = aldus_inject_theme_json( $input );
 
-		$data          = $result->get_data();
-		$spacing_sizes = $data['settings']['spacing']['spacingSizes'] ?? [];
+		$spacing_sizes = $this->get_flat_spacing_sizes( $result->get_data() );
 
 		// Index by slug for easy lookup.
 		$by_slug = [];

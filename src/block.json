@@ -2,7 +2,7 @@
 	"$schema": "https://schemas.wp.org/trunk/block.json",
 	"apiVersion": 3,
 	"name": "aldus/layout-generator",
-	"version": "1.16.0",
+	"version": "1.17.0",
 	"title": "Aldus",
 	"category": "aldus",
 	"icon": "table-col-after",
@@ -277,11 +277,22 @@
 		"root": ".wp-block-aldus-layout-generator"
 	},
 	"render": "file:./render.php",
+	"providesContext": {
+		"aldus/layoutStyle": "insertedPersonality"
+	},
 	"supports": {
 		"html": false,
 		"multiple": false,
 		"reusable": false,
-		"lock": false
+		"lock": false,
+		"align": [ "wide", "full" ],
+		"anchor": true,
+		"spacing": { "margin": true, "padding": true, "blockGap": false },
+		"color": { "background": true, "text": false, "gradients": false, "link": false },
+		"border": { "color": true, "radius": true, "style": true, "width": true },
+		"dimensions": { "minHeight": true },
+		"shadow": true,
+		"typography": false
 	},
 	"viewScriptModule": "file:./frontend-interactivity.js",
 	"editorScript": "file:./index.js",

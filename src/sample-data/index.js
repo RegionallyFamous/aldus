@@ -7,50 +7,93 @@
  * Aldus_Content_Distributor's cursor advances through diverse copy.
  *
  * --- Lazy-loading strategy ---
- * `PACKS` (full data) is still exported for backward compat with any code that
- * needs the content synchronously.  For the PackSelector UI, import `PACK_META`
- * instead — it contains only id / label / emoji / description / palette and
- * keeps the main bundle light.  When content is actually needed (the user
+ * Pack content is NOT imported statically — that would add ~40 KB of copy to the
+ * main bundle even for users who never visit the Browse Styles screen.
+ * `PACK_META` (id / label / emoji / description / palette only) is inlined here
+ * and kept in the main bundle.  When content is actually needed (the user
  * clicks a pack), call `await loadPackContent( packId )` to dynamically import
- * just that pack's module.
+ * just that pack's module — webpack emits one small chunk per pack.
  */
 
-import { roast } from './roast.js';
-import { meridian } from './meridian.js';
-import { hearth } from './hearth.js';
-import { plume } from './plume.js';
-import { grove } from './grove.js';
-import { loot } from './loot.js';
-import { signal } from './signal.js';
-import { forge } from './forge.js';
-import { slim } from './slim.js';
-
-export { roast, meridian, hearth, plume, grove, loot, signal, forge, slim };
-export const PACKS = [
-	roast,
-	meridian,
-	hearth,
-	plume,
-	grove,
-	loot,
-	signal,
-	forge,
-	slim,
-];
-
 // ---------------------------------------------------------------------------
-// Pack metadata only — safe to keep in the main bundle (no content strings).
+// Pack metadata only — inlined so the main bundle stays small.
 // ---------------------------------------------------------------------------
 
 /**
- * Strips the heavy `content` key from a pack object.
- *
- * @param {Object} root0         Pack object.
- * @param {Object} root0.content Pack content map (removed from output).
+ * Lightweight pack descriptors: id, label, emoji, description, palette.
+ * No `content` key — use loadPackContent( packId ) to load that on demand.
  */
-const stripContent = ( { content: _content, ...meta } ) => meta; // eslint-disable-line no-unused-vars
+export const PACK_META = [
+	{
+		id: 'roast',
+		label: 'Roast',
+		emoji: '☕',
+		description: 'Specialty coffee roaster',
+		palette: { primary: '#3B1F0A', secondary: '#7C4A1E', accent: '#D4832A', light: '#F5ECD7', image: [ '#7C4A1E', '#3B1F0A', '#D4832A', '#A0612B' ], imagePattern: 'grain' },
+	},
+	{
+		id: 'meridian',
+		label: 'Meridian',
+		emoji: '⚡',
+		description: 'Developer tools & deployment',
+		palette: { primary: '#0D1B2A', secondary: '#1B3A5C', accent: '#0EA5E9', light: '#F0F6FF', image: [ '#0D1B2A', '#1B3A5C', '#0EA5E9', '#0369A1' ], imagePattern: 'grid' },
+	},
+	{
+		id: 'hearth',
+		label: 'Hearth',
+		emoji: '🤝',
+		description: 'Nonprofit & community',
+		palette: { primary: '#1A2E1A', secondary: '#2D5A2D', accent: '#5C9E5C', light: '#F2F7F2', image: [ '#2D5A2D', '#1A2E1A', '#5C9E5C', '#3D7A3D' ], imagePattern: 'strata' },
+	},
+	{
+		id: 'plume',
+		label: 'Plume',
+		emoji: '✈️',
+		description: 'Travel & culture editorial',
+		palette: { primary: '#1C1410', secondary: '#4A3728', accent: '#C4773A', light: '#FBF5EE', image: [ '#4A3728', '#1C1410', '#C4773A', '#8B5E3C' ], imagePattern: 'strata' },
+	},
+	{
+		id: 'grove',
+		label: 'Grove',
+		emoji: '🌿',
+		description: 'Farm-to-table produce',
+		palette: { primary: '#1B2A0E', secondary: '#3A5A1C', accent: '#7AAF35', light: '#F5F8EF', image: [ '#3A5A1C', '#1B2A0E', '#7AAF35', '#5A8A28' ], imagePattern: 'grain' },
+	},
+	{
+		id: 'loot',
+		label: 'Loot',
+		emoji: '🎲',
+		description: 'Board game & hobby shop',
+		palette: { primary: '#1A0F2E', secondary: '#3D2766', accent: '#E8553D', light: '#F8F4FF', image: [ '#3D2766', '#1A0F2E', '#E8553D', '#8B5CF6' ], imagePattern: 'hex' },
+	},
+	{
+		id: 'signal',
+		label: 'Signal',
+		emoji: '🔒',
+		description: 'Privacy-first email',
+		palette: { primary: '#0C0C0C', secondary: '#2A2A2A', accent: '#22C55E', light: '#F0FDF4', image: [ '#2A2A2A', '#0C0C0C', '#22C55E', '#166534' ], imagePattern: 'diagonal' },
+	},
+	{
+		id: 'forge',
+		label: 'Forge',
+		emoji: '🔥',
+		description: 'Handmade — warm industrial craft',
+		palette: { primary: '#1C1C1C', secondary: '#4A4A4A', accent: '#D4621A', light: '#F0EBE3', image: [ '#1C1C1C', '#4A4A4A', '#D4621A', '#F0EBE3' ], imagePattern: 'strata' },
+	},
+	{
+		id: 'slim',
+		label: 'Slim',
+		emoji: '◽',
+		description: 'Minimal input — shows layout shape',
+		palette: { primary: '#333333', secondary: '#555555', accent: '#111111', light: '#f5f5f5', image: [ '#333333', '#555555', '#777777', '#999999' ], imagePattern: 'diagonal' },
+	},
+];
 
-export const PACK_META = PACKS.map( stripContent );
+/**
+ * Backward-compat alias — metadata only (no `content` key).
+ * Use loadPackContent( packId ) to get the full pack with content.
+ */
+export const PACKS = PACK_META;
 
 // ---------------------------------------------------------------------------
 // Lazy pack content loader — dynamically imports the pack module on demand.
@@ -141,28 +184,9 @@ export async function loadPackContent( packId ) {
 							err
 						);
 					}
-					// Fall through to static bundle below.
 					return null;
 				} )
-				.then( ( pack ) => {
-					if ( pack ) {
-						return pack;
-					}
-					const fallback =
-						PACKS.find( ( p ) => p.id === packId ) ?? null;
-					if ( fallback ) {
-						packCache.set( packId, fallback );
-					}
-					return fallback;
-				} )
-		: Promise.resolve(
-				PACKS.find( ( p ) => p.id === packId ) ?? null
-		  ).then( ( fallback ) => {
-				if ( fallback ) {
-					packCache.set( packId, fallback );
-				}
-				return fallback;
-		  } );
+		: Promise.resolve( null );
 
 	packInflight.set( packId, loadPromise );
 	return loadPromise;

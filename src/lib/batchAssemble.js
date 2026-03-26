@@ -52,6 +52,12 @@ export async function batchAssemble(
 					data,
 					signal: controller.signal,
 				} );
+				if ( window?.aldusDebug && response?.timing_ms != null ) {
+					// eslint-disable-next-line no-console
+					console.debug(
+						`[Aldus] ${ label } assembled in ${ response.timing_ms }ms`
+					);
+				}
 				results[ idx ] = response;
 			} catch ( err ) {
 				// Failures are not blocking — the caller filters non-null results.

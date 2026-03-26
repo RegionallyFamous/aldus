@@ -70,6 +70,13 @@ const ERROR_MESSAGES = {
 			'aldus'
 		),
 	},
+	storage_full: {
+		headline: __( 'Not enough browser storage.', 'aldus' ),
+		detail: __(
+			'The AI model needs ~200 MB of browser storage. Try clearing your browser cache or closing other tabs, then try again.',
+			'aldus'
+		),
+	},
 };
 
 /**

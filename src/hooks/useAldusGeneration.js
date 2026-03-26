@@ -39,10 +39,58 @@ import { useState, useCallback, useRef } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import { speak } from '@wordpress/a11y';
 import { dispatch as wpDispatch } from '@wordpress/data';
+import apiFetch from '@wordpress/api-fetch';
 import { batchAssemble } from '../lib/batchAssemble.js';
 import { isValidAssembleResponse } from '../lib/api-utils.js';
 import { SCREEN } from '../constants.js';
 import { computeCoverage } from '../data/tokens.js';
+
+/**
+ * Creates a server-side AI engine shim that delegates `chat.completions.create`
+ * calls to the /aldus/v1/ai-generate REST endpoint.
+ *
+ * The shim implements the same interface as a WebLLM MLCEngine so that all
+ * downstream intelligence functions (inferStyleDirection, inferTokens, etc.)
+ * work without modification when WebGPU is unavailable.
+ *
+ * Only constructed when `window.__aldusCapabilities.serverAI` is true and
+ * the local WebLLM engine fails to initialise.
+ *
+ * @return {Object} Engine shim with `chat.completions.create` method.
+ */
+function createServerEngineShim() {
+	return {
+		chat: {
+			completions: {
+				/**
+				 * Proxies a chat completion request to the WP 7.0 AI Client.
+				 *
+				 * @param {Object} params          OpenAI-compatible request params.
+				 * @param {Array}  params.messages Message array (uses last user message as prompt).
+				 * @param {Object} [params.schema] Optional JSON schema for constrained output.
+				 * @return {Promise<Object>} OpenAI-compatible completion response.
+				 */
+				async create( params ) {
+					const lastUser = [ ...( params.messages ?? [] ) ]
+						.reverse()
+						.find( ( m ) => m.role === 'user' );
+					const prompt = lastUser?.content ?? '';
+
+					const response = await apiFetch( {
+						path: '/aldus/v1/ai-generate',
+						method: 'POST',
+						data: {
+							prompt,
+							schema: params.response_format?.schema ?? null,
+						},
+					} );
+
+					return response;
+				},
+			},
+		},
+	};
+}
 
 export function useAldusGeneration( {
 	initEngine,
@@ -141,8 +189,19 @@ export function useAldusGeneration( {
 			let engineWasReady = false;
 
 			try {
-				// Step 1: initialise/download the engine.
-				const engine = await initEngine();
+				// Step 1: initialise the engine — local WebLLM first, server AI fallback.
+				let engine;
+				try {
+					engine = await initEngine();
+				} catch ( initError ) {
+					// WebLLM failed (no WebGPU, download error, etc.).
+					// Fall back to the WP 7.0 server-side AI if available.
+					if ( window.__aldusCapabilities?.serverAI ) {
+						engine = createServerEngineShim();
+					} else {
+						throw initError;
+					}
+				}
 				engineWasReady = true;
 				onScreenChange( SCREEN.LOADING );
 

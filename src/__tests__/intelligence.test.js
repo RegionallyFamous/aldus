@@ -78,25 +78,25 @@ describe( 'inferStyleDirection()', () => {
 	it( 'returns a known style string on valid engine response', async () => {
 		const engine = makeEngine( '{"style": "text-heavy editorial"}' );
 		const result = await inferStyleDirection( engine, MANIFEST, ITEMS );
-		expect( result ).toEqual( { style: 'text-heavy editorial' } );
+		expect( result ).toEqual( { style: 'text-heavy editorial', tone: '' } );
 	} );
 
 	it( 'returns { style: "" } when the engine returns an unknown style value', async () => {
 		const engine = makeEngine( '{"style": "totally-made-up-style"}' );
 		const result = await inferStyleDirection( engine, MANIFEST, ITEMS );
-		expect( result ).toEqual( { style: '' } );
+		expect( result ).toEqual( { style: '', tone: '' } );
 	} );
 
 	it( 'returns { style: "" } on parse failure', async () => {
 		const engine = makeEngine( 'not json at all' );
 		const result = await inferStyleDirection( engine, MANIFEST, ITEMS );
-		expect( result ).toEqual( { style: '' } );
+		expect( result ).toEqual( { style: '', tone: '' } );
 	} );
 
 	it( 'returns { style: "" } when the engine rejects', async () => {
 		const engine = makeRejectedEngine();
 		const result = await inferStyleDirection( engine, MANIFEST, ITEMS );
-		expect( result ).toEqual( { style: '' } );
+		expect( result ).toEqual( { style: '', tone: '' } );
 	} );
 
 	it( 'strips markdown code fences from the response before parsing', async () => {
@@ -104,7 +104,23 @@ describe( 'inferStyleDirection()', () => {
 			'```json\n{"style": "minimal product"}\n```'
 		);
 		const result = await inferStyleDirection( engine, MANIFEST, ITEMS );
-		expect( result ).toEqual( { style: 'minimal product' } );
+		expect( result ).toEqual( { style: 'minimal product', tone: '' } );
+	} );
+
+	it( 'includes a valid tone when the model returns one', async () => {
+		const engine = makeEngine(
+			'{"style": "cta-focused landing", "tone": "urgent"}'
+		);
+		const result = await inferStyleDirection( engine, MANIFEST, ITEMS );
+		expect( result ).toEqual( { style: 'cta-focused landing', tone: 'urgent' } );
+	} );
+
+	it( 'ignores an unknown tone value', async () => {
+		const engine = makeEngine(
+			'{"style": "text-heavy editorial", "tone": "alien"}'
+		);
+		const result = await inferStyleDirection( engine, MANIFEST, ITEMS );
+		expect( result ).toEqual( { style: 'text-heavy editorial', tone: '' } );
 	} );
 } );
 
@@ -160,6 +176,13 @@ describe( 'inferLayoutDescription()', () => {
 	};
 	const TOKENS = [ 'cover:dark', 'heading:h2', 'separator', 'buttons:cta' ];
 
+	// A distinct personality used only for failure-path tests so they never
+	// share a cache key with the success test above.
+	const PERSONALITY_FAIL = {
+		name: 'DispatchFail',
+		description: 'Same structure, separate cache key for error-path tests.',
+	};
+
 	it( 'returns a description string on valid engine response', async () => {
 		const engine = makeEngine(
 			'{"description": "A dramatic dark opener anchors the layout before editorial headings guide the reader to action."}'
@@ -177,7 +200,7 @@ describe( 'inferLayoutDescription()', () => {
 		const engine = makeEngine( '{"description": "Short."}' );
 		const result = await inferLayoutDescription(
 			engine,
-			PERSONALITY,
+			PERSONALITY_FAIL,
 			TOKENS
 		);
 		expect( result ).toEqual( { description: '' } );
@@ -187,8 +210,8 @@ describe( 'inferLayoutDescription()', () => {
 		const engine = makeEngine( 'I cannot help with that.' );
 		const result = await inferLayoutDescription(
 			engine,
-			PERSONALITY,
-			TOKENS
+			PERSONALITY_FAIL,
+			[ 'cover:dark', 'heading:h2', 'separator' ]
 		);
 		expect( result ).toEqual( { description: '' } );
 	} );
@@ -197,8 +220,8 @@ describe( 'inferLayoutDescription()', () => {
 		const engine = makeRejectedEngine();
 		const result = await inferLayoutDescription(
 			engine,
-			PERSONALITY,
-			TOKENS
+			PERSONALITY_FAIL,
+			[ 'cover:dark', 'heading:h2' ]
 		);
 		expect( result ).toEqual( { description: '' } );
 	} );
@@ -264,24 +287,34 @@ describe( 'recommendPersonalities()', () => {
 		expect( result.recommended.length ).toBeLessThanOrEqual( 3 );
 	} );
 
-	it( 'returns { recommended: [] } on parse failure', async () => {
+	it( 'falls back to deterministic top-3 on parse failure', async () => {
 		const engine = makeEngine( 'bad output' );
 		const result = await recommendPersonalities(
 			engine,
 			MANIFEST,
 			PERSONALITIES
 		);
-		expect( result ).toEqual( { recommended: [] } );
+		// The function now falls back to anchor-score top-3 rather than []
+		// so users always see useful recommendations even when the LLM fails.
+		const validNames = new Set( PERSONALITIES.map( ( p ) => p.name ) );
+		expect( Array.isArray( result.recommended ) ).toBe( true );
+		result.recommended.forEach( ( name ) =>
+			expect( validNames.has( name ) ).toBe( true )
+		);
 	} );
 
-	it( 'returns { recommended: [] } when the engine rejects', async () => {
+	it( 'falls back to deterministic top-3 when the engine rejects', async () => {
 		const engine = makeRejectedEngine();
 		const result = await recommendPersonalities(
 			engine,
 			MANIFEST,
 			PERSONALITIES
 		);
-		expect( result ).toEqual( { recommended: [] } );
+		const validNames = new Set( PERSONALITIES.map( ( p ) => p.name ) );
+		expect( Array.isArray( result.recommended ) ).toBe( true );
+		result.recommended.forEach( ( name ) =>
+			expect( validNames.has( name ) ).toBe( true )
+		);
 	} );
 } );
 

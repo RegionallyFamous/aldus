@@ -34,6 +34,19 @@ function aldus_register_admin_page(): void {
 add_action( 'admin_menu', 'aldus_register_admin_page' );
 
 /**
+ * Enqueues the Aldus admin stylesheet only on the welcome page.
+ *
+ * @param string $hook The current admin page hook suffix.
+ */
+function aldus_admin_enqueue_styles( string $hook ): void {
+	if ( 'admin_page_aldus-welcome' !== $hook ) {
+		return;
+	}
+	wp_enqueue_style( 'aldus-admin', ALDUS_URL . 'build/admin.css', array(), ALDUS_VERSION );
+}
+add_action( 'admin_enqueue_scripts', 'aldus_admin_enqueue_styles' );
+
+/**
  * Renders the welcome / about admin page.
  */
 function aldus_render_admin_page(): void {
@@ -58,44 +71,44 @@ function aldus_render_admin_page(): void {
 		? get_edit_post_link( $recent[0]->ID, 'raw' )
 		: admin_url( 'post-new.php' );
 	?>
-	<div class="wrap aldus-welcome-wrap" style="max-width:760px;margin:40px auto 0;">
-		<h1 style="display:flex;align-items:center;gap:10px;font-size:28px;">
-			<span style="font-size:32px;">✦</span>
+	<div class="wrap aldus-welcome-wrap">
+		<h1 class="aldus-welcome-title">
+			<span class="aldus-welcome-icon">✦</span>
 			<?php esc_html_e( 'Welcome to Aldus', 'aldus' ); ?>
-			<span style="font-size:14px;font-weight:400;color:#646970;margin-left:6px;">v<?php echo esc_html( ALDUS_VERSION ); ?></span>
+			<span class="aldus-version-badge">v<?php echo esc_html( ALDUS_VERSION ); ?></span>
 		</h1>
 
-		<p style="font-size:16px;color:#3c434a;max-width:620px;line-height:1.6;">
+		<p class="aldus-welcome-intro">
 			<?php
 			// phpcs:ignore Generic.Files.LineLength.MaxExceeded
 			esc_html_e( 'You bring the words. Aldus shows you every way they could look — editorial spreads, cinematic heroes, newspaper columns, minimal typography, and more. Pick the one that fits. It becomes real WordPress blocks, fully editable, no lock-in.', 'aldus' );
 			?>
 		</p>
 
-		<a href="<?php echo esc_url( $editor_url ); ?>" class="button button-primary button-hero" style="margin-top:8px;">
+		<a href="<?php echo esc_url( $editor_url ); ?>" class="button button-primary button-hero aldus-welcome-cta">
 			<?php esc_html_e( 'Try it in the editor →', 'aldus' ); ?>
 		</a>
 
-		<hr style="margin:36px 0;">
+		<hr class="aldus-section-divider">
 
-		<h2 style="font-size:18px;"><?php esc_html_e( 'How it works', 'aldus' ); ?></h2>
-		<ol style="font-size:15px;line-height:2;color:#3c434a;max-width:580px;">
+		<h2 class="aldus-section-title"><?php esc_html_e( 'How it works', 'aldus' ); ?></h2>
+		<ol class="aldus-how-it-works-list">
 			<li><?php esc_html_e( 'Open any post or page and insert the Aldus block.', 'aldus' ); ?></li>
 			<li><?php esc_html_e( 'Add what the page needs — headline, paragraphs, images, quotes, a button.', 'aldus' ); ?></li>
 			<li><?php esc_html_e( 'Click "Make it happen."', 'aldus' ); ?></li>
 			<li><?php esc_html_e( 'Browse every layout style. Click the one that fits.', 'aldus' ); ?></li>
 			<li><?php esc_html_e( 'Done — real WordPress blocks, ready to edit or publish.', 'aldus' ); ?></li>
 		</ol>
-		<p style="font-size:13px;color:#787c82;max-width:560px;margin-top:4px;">
+		<p class="aldus-welcome-footnote">
 			<?php
 			// phpcs:ignore Generic.Files.LineLength.MaxExceeded
 			esc_html_e( 'The first time, the browser downloads a small AI model (~200 MB). After that, everything works instantly — even offline.', 'aldus' );
 			?>
 		</p>
 
-		<hr style="margin:36px 0;">
+		<hr class="aldus-section-divider">
 
-		<h2 style="font-size:18px;"><?php esc_html_e( 'Resources', 'aldus' ); ?></h2>
+		<h2 class="aldus-section-title"><?php esc_html_e( 'Resources', 'aldus' ); ?></h2>
 		<p>
 			<a href="<?php echo esc_url( $wiki_url ); ?>" target="_blank" rel="noopener noreferrer">
 				<?php esc_html_e( 'Documentation & Wiki', 'aldus' ); ?>
@@ -110,7 +123,7 @@ function aldus_render_admin_page(): void {
 			</a>
 		</p>
 
-		<p style="margin-top:24px;font-size:13px;color:#787c82;">
+		<p class="aldus-privacy-note">
 			<?php
 			printf(
 				/* translators: %s = privacy policy guide link */
@@ -169,6 +182,53 @@ function aldus_add_privacy_policy_content(): void {
 }
 
 /**
+ * Exposes Aldus usage stats in Tools → Site Health → Info.
+ *
+ * The `debug_information` filter is the standard hook for adding plugin data
+ * to the Site Health Info tab (WP 5.2+). This lets admins and support teams
+ * find usage stats without diving into the database.
+ *
+ * @param mixed $info Existing debug info sections.
+ * @return mixed
+ */
+add_filter(
+	'debug_information',
+	static function ( $info ) {
+		if ( ! is_array( $info ) ) {
+			return $info;
+		}
+		$stats = get_option( 'aldus_usage', array() );
+		$total = array_sum( array_map( 'intval', $stats ) );
+		$top   = 'none';
+		if ( $total > 0 ) {
+			$max = max( $stats );
+			$key = array_search( $max, $stats, true );
+			if ( false !== $key ) {
+				$top = (string) $key;
+			}
+		}
+		$info['aldus'] = array(
+			'label'  => __( 'Aldus Layout Explorer', 'aldus' ),
+			'fields' => array(
+				'version'       => array(
+					'label' => __( 'Version', 'aldus' ),
+					'value' => ALDUS_VERSION,
+				),
+				'total_layouts' => array(
+					'label' => __( 'Layouts generated', 'aldus' ),
+					'value' => $total,
+				),
+				'top_style'     => array(
+					'label' => __( 'Most used style', 'aldus' ),
+					'value' => $top,
+				),
+			),
+		);
+		return $info;
+	}
+);
+
+/**
  * Adds an "Aldus" indicator column to the Posts and Pages admin list screens.
  *
  * @param mixed $columns Existing columns (array expected).
@@ -197,8 +257,8 @@ function aldus_render_posts_column( mixed $column, mixed $post_id ): void {
 		return;
 	}
 	if ( has_block( 'aldus/layout-generator', $post ) ) {
-		echo '<span style="color:#0073aa;font-size:16px;" aria-label="' . esc_attr__( 'Uses Aldus', 'aldus' ) . '" title="' . esc_attr__( 'This post was designed with Aldus.', 'aldus' ) . '">✦</span>';
+		echo '<span class="aldus-used-indicator" aria-label="' . esc_attr__( 'Uses Aldus', 'aldus' ) . '" title="' . esc_attr__( 'This post was designed with Aldus.', 'aldus' ) . '">✦</span>';
 	} else {
-		echo '<span style="color:#ccc;" aria-hidden="true">—</span>';
+		echo '<span class="aldus-unused-indicator" aria-hidden="true">—</span>';
 	}
 }

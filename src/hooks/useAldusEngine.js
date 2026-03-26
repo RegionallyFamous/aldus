@@ -100,9 +100,22 @@ export function useAldusEngine( {
 				const mod = await import(
 					/* webpackIgnore: true */ scriptModuleUrl
 				);
+				// Runtime integrity check: ensure the expected export is present
+				// before trusting the module — guards against a corrupted or
+				// tampered build chunk.
+				if ( typeof mod.CreateMLCEngine !== 'function' ) {
+					throw new Error(
+						'[Aldus] WebLLM module integrity check failed — CreateMLCEngine not exported.'
+					);
+				}
 				CreateMLCEngine = mod.CreateMLCEngine;
 			} else {
 				( { CreateMLCEngine } = await import( '@mlc-ai/web-llm' ) );
+				if ( typeof CreateMLCEngine !== 'function' ) {
+					throw new Error(
+						'[Aldus] WebLLM module integrity check failed — CreateMLCEngine not exported.'
+					);
+				}
 			}
 
 			const dlController = new AbortController();
@@ -138,36 +151,49 @@ export function useAldusEngine( {
 				},
 			};
 
+		try {
+			// First attempt.
 			try {
-				// First attempt.
-				try {
-					engineRef.current = await CreateMLCEngine(
-						MODEL_ID,
-						engineOptions
-					);
-				} catch ( firstErr ) {
-					// On transient GPU device-lost events the browser reallocates the
-					// GPU context within a second or two. Retry once after a short
-					// pause; re-throw everything else immediately.
-					const isTransient =
-						firstErr?.message
-							?.toLowerCase()
-							.includes( 'device lost' ) ||
-						firstErr?.message
-							?.toLowerCase()
-							.includes( 'gpudevice' );
-					if ( ! isTransient ) {
-						throw firstErr;
-					}
-					await new Promise( ( r ) => setTimeout( r, 2000 ) );
-					engineRef.current = await CreateMLCEngine(
-						MODEL_ID,
-						engineOptions
-					);
+				engineRef.current = await CreateMLCEngine(
+					MODEL_ID,
+					engineOptions
+				);
+			} catch ( firstErr ) {
+				// Surface browser storage quota errors as a specific code so the
+				// UI can show a targeted "clear your cache" message rather than a
+				// generic failure.
+				const isQuota =
+					firstErr?.name === 'QuotaExceededError' ||
+					firstErr?.message?.toLowerCase().includes( 'quota' ) ||
+					firstErr?.message?.toLowerCase().includes( 'storage' );
+				if ( isQuota ) {
+					const quotaErr = new Error( 'storage_full' );
+					quotaErr.code = 'storage_full';
+					throw quotaErr;
 				}
-			} finally {
-				abortRef.current = null;
+
+				// On transient GPU device-lost events the browser reallocates the
+				// GPU context within a second or two. Retry once after a short
+				// pause; re-throw everything else immediately.
+				const isTransient =
+					firstErr?.message
+						?.toLowerCase()
+						.includes( 'device lost' ) ||
+					firstErr?.message
+						?.toLowerCase()
+						.includes( 'gpudevice' );
+				if ( ! isTransient ) {
+					throw firstErr;
+				}
+				await new Promise( ( r ) => setTimeout( r, 2000 ) );
+				engineRef.current = await CreateMLCEngine(
+					MODEL_ID,
+					engineOptions
+				);
 			}
+		} finally {
+			abortRef.current = null;
+		}
 
 			onModelDownloaded?.();
 			onDownloadDone?.();

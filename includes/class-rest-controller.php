@@ -125,6 +125,19 @@ class Aldus_REST_Controller extends WP_REST_Controller {
 			);
 		}
 
+		// Reject requests that are not JSON-encoded. WordPress's REST layer
+		// accepts both application/json and form-encoded bodies; an explicit
+		// check here prevents edge cases where a misconfigured client submits
+		// form data that passes sanitisation but produces unexpected results.
+		$content_type = $request->get_content_type();
+		if ( $content_type && ! str_contains( $content_type['value'] ?? '', 'json' ) ) {
+			return new WP_Error(
+				'invalid_content_type',
+				__( 'Request must use application/json content type.', 'aldus' ),
+				array( 'status' => 415 )
+			);
+		}
+
 		return true;
 	}
 

@@ -23,7 +23,7 @@ function aldus_sanitize_token( mixed $token ): string {
 }
 
 /** Maximum character length for a single content string. */
-const ALDUS_MAX_CONTENT_LENGTH = 5000;
+defined( 'ALDUS_MAX_CONTENT_LENGTH' ) || define( 'ALDUS_MAX_CONTENT_LENGTH', 5000 );
 
 /** Content types the distributor and renderers understand. */
 const ALDUS_VALID_ITEM_TYPES = array(

@@ -3,7 +3,7 @@ Contributors: regionallyfamous
 Tags: blocks, gutenberg, layout, design, composer
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 1.16.0
+Stable tag: 1.17.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -128,6 +128,27 @@ An optional free-text field on the building screen that steers the layout model 
 
 == Changelog ==
 
+= 1.17.0 =
+* Pack data is now lazy-loaded — it only downloads when you open the Browse Styles tab, reducing the initial bundle by ~40 KB and speeding up block load times on shared hosting.
+* PHP files are now loaded conditionally by request type: front-end page loads that don't contain an Aldus block skip the full renderer stack, saving ~1-2 ms per request on high-traffic sites.
+* Storage quota exceeded (common on mobile and restricted corporate environments when the AI model download fills browser storage) now shows a clear error message explaining what happened and how to resolve it.
+* The onboarding flag is now stored in the WordPress Preferences API (core/preferences store) instead of browser localStorage, so it follows the user across devices and sessions.
+* Usage statistics are now stored as a single consolidated option instead of one database row per layout style, reducing wp_options table bloat on busy sites.
+* The plugin's stats (total layouts generated, most-used style) are now visible in Tools → Site Health → Info, making it easier to diagnose issues from support tickets.
+* The fallback layout renderer now uses serialize_block() to produce canonical WordPress block markup, preventing subtle validation differences that could cause block warnings.
+* WordPress 6.7+ sites automatically use the new block metadata collection API for faster block registration.
+* The REST endpoint for layout assembly now validates Content-Type (must be application/json), preventing edge cases where form-encoded data was accepted.
+* Assembly timing is now returned in the API response and logged in the browser console under window.aldusDebug for performance diagnostics.
+* Error counts are now tracked per layout style and exposed via the GET /aldus/v1/health endpoint, making it easier to identify which styles have reliability issues.
+* The health endpoint (GET /aldus/v1/health) now returns plugin version, PHP/WP versions, object cache status, palette size, and per-style error rates.
+* Uninstalling the plugin now removes all transients, post meta, user meta, and usage counters — no database residue left behind.
+* Theme data cache is now flushed when a theme is updated via the WordPress admin (upgrader_process_complete hook), preventing stale palette colours after a theme update.
+* The content/preview tab toggle in the editor now uses the core TabPanel component, with proper ARIA roles and keyboard navigation.
+* The admin welcome page styles are now enqueued as a stylesheet via admin_enqueue_scripts instead of inline style attributes, improving CSP compatibility.
+* Fixed a regression where spacingSizes injected via the theme.json filter were silently lost in certain WordPress versions (6.4, 6.7) due to preset origin-tracking in WP_Theme_JSON::merge().
+* Fixed constant redefinition warnings in the integration test bootstrap.
+* Fixed PHPUnit 9.6 / PHPUnit 10 schema mismatch in phpunit-integration.xml.dist.
+
 = 1.16.0 =
 * When the AI model is ready and you've added content, Aldus now suggests a style direction (e.g. "bold editorial", "minimal text-first") based on what you've written — one click applies it, another dismisses it.
 * Layout cards now show a "✦ Recommended" badge for the styles that best match your content mix, so the most relevant options are obvious at a glance.
@@ -208,6 +229,9 @@ An optional free-text field on the building screen that steers the layout model 
 * Initial release. Add your content, see every layout style at once, pick the one that fits — no external services, no API keys, nothing leaves your browser.
 
 == Upgrade Notice ==
+
+= 1.17.0 =
+Performance, reliability, and polish. Smaller initial bundle, faster PHP on shared hosting, better error messages, thorough uninstall cleanup, and a fix for spacing presets disappearing in WP 6.4/6.7. Safe to update.
 
 = 1.16.0 =
 Five new features — style suggestions, recommendation badges, before/after compare, layout history, and 17 new block patterns. Complete copy rewrite. Critical privacy policy correction. Safe to update.

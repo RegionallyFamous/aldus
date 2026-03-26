@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Plugin Name:       Aldus — Layout Explorer
  * Plugin URI:        https://github.com/RegionallyFamous/aldus
  * Description:       You write it. Aldus designs it. Layout styles for your content — pick the one that fits, and it becomes real WordPress blocks.
- * Version:           1.16.0
+ * Version:           1.17.0
  * Requires at least: 6.4
  * Requires PHP:      8.0
  * Author:            Regionally Famous
@@ -21,9 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'ALDUS_VERSION', '1.16.0' );
-define( 'ALDUS_PATH', plugin_dir_path( __FILE__ ) );
-define( 'ALDUS_URL', plugin_dir_url( __FILE__ ) );
+defined( 'ALDUS_VERSION' ) || define( 'ALDUS_VERSION', '1.17.0' );
+defined( 'ALDUS_PATH' ) || define( 'ALDUS_PATH', plugin_dir_path( __FILE__ ) );
+defined( 'ALDUS_URL' ) || define( 'ALDUS_URL', plugin_dir_url( __FILE__ ) );
 
 register_activation_hook( __FILE__, 'aldus_activate' );
 register_deactivation_hook( __FILE__, 'aldus_deactivate' );
@@ -55,38 +55,43 @@ add_action( 'plugins_loaded', 'aldus_init' );
  *   Foundation → Configuration → Renderers → API layer → Admin
  */
 function aldus_init(): void {
-	// Foundation — no dependencies on other Aldus files.
+	// Tier 1 — always needed: block registration, server-side render callback,
+	// theme.json filter, and Block Bindings source resolution on the front end.
 	require_once ALDUS_PATH . 'includes/sanitize.php';
 	require_once ALDUS_PATH . 'includes/tokens.php';
 	require_once ALDUS_PATH . 'includes/theme.php';
-	require_once ALDUS_PATH . 'includes/class-content-distributor.php';
-
-	// Configuration — depends on theme helpers.
 	require_once ALDUS_PATH . 'includes/personality.php';
 	require_once ALDUS_PATH . 'includes/block-html.php';
 	require_once ALDUS_PATH . 'includes/serialize.php';
-
-	// Renderers.
-	require_once ALDUS_PATH . 'includes/renderers/cover.php';
-	require_once ALDUS_PATH . 'includes/renderers/columns.php';
-	require_once ALDUS_PATH . 'includes/renderers/group.php';
-	require_once ALDUS_PATH . 'includes/renderers/media-text.php';
-	require_once ALDUS_PATH . 'includes/renderers/pullquote.php';
-	require_once ALDUS_PATH . 'includes/renderers/heading.php';
-	require_once ALDUS_PATH . 'includes/renderers/text.php';
-	require_once ALDUS_PATH . 'includes/renderers/media.php';
-	require_once ALDUS_PATH . 'includes/renderers/structure.php';
-	require_once ALDUS_PATH . 'includes/renderers/layout.php';
-	require_once ALDUS_PATH . 'includes/render-router.php';
-
-	// API layer — depends on everything above.
-	require_once ALDUS_PATH . 'includes/class-rest-controller.php';
-	require_once ALDUS_PATH . 'includes/api.php';
-	require_once ALDUS_PATH . 'includes/bindings.php';
-	require_once ALDUS_PATH . 'includes/patterns.php';
-	require_once ALDUS_PATH . 'includes/pattern-library.php';
-	require_once ALDUS_PATH . 'includes/admin-page.php';
 	require_once ALDUS_PATH . 'includes/styles.php';
+	require_once ALDUS_PATH . 'includes/bindings.php';
+
+	// Tier 2 — REST API or admin: the full renderer stack and assembly endpoint.
+	// Front-end page loads that don't contain an Aldus block skip this tier entirely.
+	if ( wp_is_serving_rest_request() || is_admin() ) {
+		require_once ALDUS_PATH . 'includes/class-content-distributor.php';
+		require_once ALDUS_PATH . 'includes/renderers/cover.php';
+		require_once ALDUS_PATH . 'includes/renderers/columns.php';
+		require_once ALDUS_PATH . 'includes/renderers/group.php';
+		require_once ALDUS_PATH . 'includes/renderers/media-text.php';
+		require_once ALDUS_PATH . 'includes/renderers/pullquote.php';
+		require_once ALDUS_PATH . 'includes/renderers/heading.php';
+		require_once ALDUS_PATH . 'includes/renderers/text.php';
+		require_once ALDUS_PATH . 'includes/renderers/media.php';
+		require_once ALDUS_PATH . 'includes/renderers/structure.php';
+		require_once ALDUS_PATH . 'includes/renderers/layout.php';
+		require_once ALDUS_PATH . 'includes/render-router.php';
+		require_once ALDUS_PATH . 'includes/class-rest-controller.php';
+		require_once ALDUS_PATH . 'includes/api.php';
+		require_once ALDUS_PATH . 'includes/ai-client.php';
+	}
+
+	// Tier 3 — admin only: block patterns and the admin welcome/settings page.
+	if ( is_admin() ) {
+		require_once ALDUS_PATH . 'includes/patterns.php';
+		require_once ALDUS_PATH . 'includes/pattern-library.php';
+		require_once ALDUS_PATH . 'includes/admin-page.php';
+	}
 
 	add_action( 'init', 'aldus_register_block' );
 	add_action(
@@ -100,6 +105,21 @@ function aldus_init(): void {
 	// Flush cached theme data whenever the active theme or Customizer settings change.
 	add_action( 'switch_theme', 'aldus_flush_theme_cache' );
 	add_action( 'customize_save_after', 'aldus_flush_theme_cache' );
+	// Also flush when a theme is updated via the admin so stale palette/font
+	// caches don't persist until the 1-hour object-cache TTL expires.
+	add_action(
+		'upgrader_process_complete',
+		static function ( $upgrader, $options ) {
+			if (
+				'update' === ( $options['action'] ?? '' ) &&
+				'theme' === ( $options['type'] ?? '' )
+			) {
+				aldus_flush_theme_cache();
+			}
+		},
+		10,
+		2
+	);
 
 	// Inject Aldus spacing presets and CSS custom properties into the active theme's
 	// theme.json data so generated layouts render consistently regardless of theme.

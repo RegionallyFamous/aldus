@@ -30,3 +30,6 @@ npm-debug.log*
 .env.local
 .env.*.local
 .phpunit.result.cache
+
+# Jest coverage output
+coverage/

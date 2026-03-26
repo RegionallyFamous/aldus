@@ -11,7 +11,7 @@ import {
 	useMemo,
 	useEffect,
 } from '@wordpress/element';
-import { Button, Notice, Popover, Spinner, Icon } from '@wordpress/components';
+import { Button, Notice, Popover, Spinner, Icon, TabPanel } from '@wordpress/components';
 import { BlockPreview } from '@wordpress/block-editor';
 import { useSelect } from '@wordpress/data';
 import apiFetch from '@wordpress/api-fetch';
@@ -317,29 +317,18 @@ export function BuildingScreen( {
 					</div>
 				</div>
 
-				{ /* Mode tabs */ }
-				<div className="aldus-mode-tabs" role="tablist">
-					<button
-						role="tab"
-						aria-selected={ buildingMode === 'content' }
-						className={ `aldus-mode-tab ${
-							buildingMode === 'content' ? 'is-active' : ''
-						}` }
-						onClick={ () => setBuildingMode( 'content' ) }
-					>
-						{ __( 'Your content', 'aldus' ) }
-					</button>
-					<button
-						role="tab"
-						aria-selected={ buildingMode === 'preview' }
-						className={ `aldus-mode-tab ${
-							buildingMode === 'preview' ? 'is-active' : ''
-						}` }
-						onClick={ () => setBuildingMode( 'preview' ) }
-					>
-						{ __( 'Browse styles', 'aldus' ) }
-					</button>
-				</div>
+			{ /* Mode tabs — uses core TabPanel for built-in ARIA roles and keyboard nav */ }
+			<TabPanel
+				className="aldus-mode-tabs"
+				tabs={ [
+					{ name: 'content', title: __( 'Your content', 'aldus' ) },
+					{ name: 'preview', title: __( 'Browse styles', 'aldus' ) },
+				] }
+				onSelect={ setBuildingMode }
+				initialTabName={ buildingMode }
+			>
+				{ () => null }
+			</TabPanel>
 			</header>
 
 			{ buildingMode === 'content' && (

@@ -20,6 +20,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return WP_REST_Response|WP_Error
  */
 function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+	$start_time = microtime( true );
+
 	// Items arrive pre-sanitized by the route's sanitize_callback. Re-run sanitization
 	// here as defense-in-depth: this guards against any path that bypasses the REST
 	// layer (e.g. direct PHP calls in tests or future internal callers).
@@ -100,8 +102,7 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 	$active_theme = get_stylesheet();
 	$cache_key    = 'aldus_asm_' . substr(
 		md5(
-			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize
-			serialize( compact( 'tokens', 'items', 'personality', 'reroll_count', 'custom_styles', 'section_label', 'active_theme', 'post_id' ) )
+			wp_json_encode( compact( 'tokens', 'items', 'personality', 'reroll_count', 'custom_styles', 'section_label', 'active_theme', 'post_id' ) )
 		),
 		0,
 		20
@@ -202,6 +203,7 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 				),
 			);
 		} else {
+			aldus_record_assembly_error( $personality );
 			return new WP_Error( 'empty_markup', __( 'Could not build markup for this layout. Try again.', 'aldus' ), array( 'status' => 422 ) );
 		}
 	}
@@ -229,6 +231,7 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 				),
 			);
 		} else {
+			aldus_record_assembly_error( $personality );
 			return new WP_Error( 'empty_markup', __( 'Could not build markup for this layout. Try again.', 'aldus' ), array( 'status' => 422 ) );
 		}
 	}
@@ -245,11 +248,12 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 	do_action( 'aldus_layout_generated', $personality, $tokens, $markup );
 
 	$response_data = array(
-		'success'  => true,
-		'label'    => $personality,
-		'blocks'   => $markup,
-		'tokens'   => $tokens,
-		'sections' => $sections,
+		'success'   => true,
+		'label'     => $personality,
+		'blocks'    => $markup,
+		'tokens'    => $tokens,
+		'sections'  => $sections,
+		'timing_ms' => round( ( microtime( true ) - $start_time ) * 1000, 1 ),
 	);
 
 	// In WP_DEBUG mode, validate the markup and log any issues before caching.
@@ -283,51 +287,94 @@ function aldus_render_fallback_item( array $item ): string {
 	$content = trim( (string) ( $item['content'] ?? '' ) );
 	$url     = esc_url( (string) ( $item['url'] ?? '' ) );
 
+	// All cases use serialize_block() so block comment delimiters are generated
+	// canonically (correct attribute JSON encoding, escaped -- sequences, etc.).
 	switch ( $type ) {
 		case 'headline':
 			if ( '' === $content ) {
 				return '';
 			}
-			return "<!-- wp:heading -->\n<h2>" . esc_html( $content ) . "</h2>\n<!-- /wp:heading -->\n";
+			return serialize_block(
+				array(
+					'blockName'    => 'core/heading',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<h2 class="wp-block-heading">' . esc_html( $content ) . '</h2>' ),
+				)
+			);
 
 		case 'subheading':
 			if ( '' === $content ) {
 				return '';
 			}
-			return "<!-- wp:heading {\"level\":3} -->\n<h3>" . esc_html( $content ) . "</h3>\n<!-- /wp:heading -->\n";
+			return serialize_block(
+				array(
+					'blockName'    => 'core/heading',
+					'attrs'        => array( 'level' => 3 ),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<h3 class="wp-block-heading">' . esc_html( $content ) . '</h3>' ),
+				)
+			);
 
 		case 'paragraph':
 		case 'details':
 			if ( '' === $content ) {
 				return '';
 			}
-			return "<!-- wp:paragraph -->\n<p>" . esc_html( $content ) . "</p>\n<!-- /wp:paragraph -->\n";
+			return serialize_block(
+				array(
+					'blockName'    => 'core/paragraph',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<p>' . esc_html( $content ) . '</p>' ),
+				)
+			);
 
 		case 'quote':
 			if ( '' === $content ) {
 				return '';
 			}
-			return "<!-- wp:quote -->\n<blockquote class=\"wp-block-quote\"><p>" . esc_html( $content ) . "</p></blockquote>\n<!-- /wp:quote -->\n";
+			return serialize_block(
+				array(
+					'blockName'    => 'core/quote',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<blockquote class="wp-block-quote"><p>' . esc_html( $content ) . '</p></blockquote>' ),
+				)
+			);
 
 		case 'image':
 			if ( '' === $url ) {
 				return '';
 			}
-			return sprintf(
-				"<!-- wp:image -->\n<figure class=\"wp-block-image\"><img src=\"%s\" alt=\"%s\"/></figure>\n<!-- /wp:image -->\n",
-				$url,
-				esc_attr( $content )
+			return serialize_block(
+				array(
+					'blockName'    => 'core/image',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<figure class="wp-block-image"><img src="' . $url . '" alt="' . esc_attr( $content ) . '"/></figure>' ),
+				)
 			);
 
 		case 'cta':
 			if ( '' === $content ) {
 				return '';
 			}
-			$button_url = '' !== $url ? $url : '#';
-			return sprintf(
-				"<!-- wp:buttons -->\n<div class=\"wp-block-buttons\"><!-- wp:button --><div class=\"wp-block-button\"><a class=\"wp-block-button__link wp-element-button\" href=\"%s\">%s</a></div><!-- /wp:button --></div>\n<!-- /wp:buttons -->\n",
-				esc_url( $button_url ),
-				esc_html( $content )
+			$button_url  = '' !== $url ? $url : '#';
+			$button_html = '<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="' . esc_url( $button_url ) . '">' . esc_html( $content ) . '</a></div>';
+			$button_block = array(
+				'blockName'    => 'core/button',
+				'attrs'        => array(),
+				'innerBlocks'  => array(),
+				'innerContent' => array( $button_html ),
+			);
+			return serialize_block(
+				array(
+					'blockName'    => 'core/buttons',
+					'attrs'        => array(),
+					'innerBlocks'  => array( $button_block ),
+					'innerContent' => array( '<div class="wp-block-buttons">', null, '</div>' ),
+				)
 			);
 
 		case 'list':
@@ -343,23 +390,43 @@ function aldus_render_fallback_item( array $item ): string {
 					$lines
 				)
 			);
-			return "<!-- wp:list -->\n<ul>" . $list_items . "</ul>\n<!-- /wp:list -->\n";
+			return serialize_block(
+				array(
+					'blockName'    => 'core/list',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<ul class="wp-block-list">' . $list_items . '</ul>' ),
+				)
+			);
 
 		case 'video':
 			if ( '' === $url ) {
 				return '';
 			}
-			return sprintf(
-				"<!-- wp:embed {\"url\":\"%s\",\"type\":\"video\"} -->\n<figure class=\"wp-block-embed is-type-video\"><div class=\"wp-block-embed__wrapper\">%s</div></figure>\n<!-- /wp:embed -->\n",
-				esc_url( $url ),
-				esc_html( $url )
+			return serialize_block(
+				array(
+					'blockName'    => 'core/embed',
+					'attrs'        => array(
+						'url'  => $url,
+						'type' => 'video',
+					),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<figure class="wp-block-embed is-type-video"><div class="wp-block-embed__wrapper">' . esc_html( $url ) . '</div></figure>' ),
+				)
 			);
 
 		case 'table':
 			if ( '' === $content ) {
 				return '';
 			}
-			return "<!-- wp:preformatted -->\n<pre class=\"wp-block-preformatted\">" . esc_html( $content ) . "</pre>\n<!-- /wp:preformatted -->\n";
+			return serialize_block(
+				array(
+					'blockName'    => 'core/preformatted',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<pre class="wp-block-preformatted">' . esc_html( $content ) . '</pre>' ),
+				)
+			);
 
 		case 'gallery':
 			$gallery_urls = array();
@@ -386,13 +453,30 @@ function aldus_render_fallback_item( array $item ): string {
 					array_slice( $gallery_urls, 0, 6 )
 				)
 			);
-			return "<!-- wp:gallery -->\n<figure class=\"wp-block-gallery has-nested-images columns-default is-cropped\">" . $images . "</figure>\n<!-- /wp:gallery -->\n";
+			return serialize_block(
+				array(
+					'blockName'    => 'core/gallery',
+					'attrs'        => array(
+						'columns'   => 3,
+						'imageCrop' => true,
+					),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<figure class="wp-block-gallery has-nested-images columns-default is-cropped">' . $images . '</figure>' ),
+				)
+			);
 
 		case 'code':
 			if ( '' === $content ) {
 				return '';
 			}
-			return "<!-- wp:code -->\n<pre class=\"wp-block-code\"><code>" . esc_html( $content ) . "</code></pre>\n<!-- /wp:code -->\n";
+			return serialize_block(
+				array(
+					'blockName'    => 'core/code',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerContent' => array( '<pre class="wp-block-code"><code>' . esc_html( $content ) . '</code></pre>' ),
+				)
+			);
 
 		default:
 			return '';
@@ -425,9 +509,10 @@ function aldus_render_fallback_markup( array $items ): string {
 /**
  * Increments the per-personality usage counter stored in wp_options.
  *
- * Counter key format: `aldus_usage_{name}` (e.g. `aldus_usage_dispatch`).
- * The value is a plain integer.  Fires the `aldus_layout_chosen` action so
- * third-party code can hook in without touching the REST endpoint.
+ * All counters are stored in a single `aldus_usage` option (an associative
+ * array keyed by personality name) instead of one option per personality.
+ * This keeps wp_options tidy: 1 row instead of 16+.
+ * Fires the `aldus_layout_chosen` action so third-party code can hook in.
  *
  * @param WP_REST_Request $request
  * @return WP_REST_Response|WP_Error
@@ -440,22 +525,23 @@ function aldus_handle_record_use( WP_REST_Request $request ): WP_REST_Response|W
 	}
 
 	// Validate against the known personality list (including filtered additions).
-	// This prevents arbitrary option key proliferation from rogue authenticated requests.
+	// This prevents arbitrary key injection into the consolidated option.
 	$known = array_keys( aldus_anchor_tokens() );
 	if ( ! in_array( $personality, $known, true ) ) {
 		return new WP_Error( 'unknown_personality', __( 'Unknown personality.', 'aldus' ), array( 'status' => 400 ) );
 	}
 
-	$option_key = 'aldus_usage_' . strtolower( sanitize_html_class( $personality ) );
-	$current    = (int) get_option( $option_key, 0 );
-	$saved      = update_option( $option_key, $current + 1, false );
+	$stats                = get_option( 'aldus_usage', array() );
+	$stats[ $personality ] = ( isset( $stats[ $personality ] ) ? (int) $stats[ $personality ] : 0 ) + 1;
+	$new_count            = $stats[ $personality ];
+	$saved                = update_option( 'aldus_usage', $stats, false );
 
 	if ( ! $saved ) {
-		// update_option returns false when the value is unchanged (already at current+1)
-		// or on a DB write failure. Either way, proceed — analytics is best-effort.
+		// update_option returns false when the value is unchanged or on DB failure.
+		// Analytics is best-effort — proceed regardless.
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			error_log( "Aldus: could not update usage counter for {$option_key}" );
+			error_log( "Aldus: could not update usage counter for {$personality}" );
 		}
 	}
 
@@ -465,7 +551,7 @@ function aldus_handle_record_use( WP_REST_Request $request ): WP_REST_Response|W
 	return rest_ensure_response(
 		array(
 			'success' => true,
-			'count'   => $current + 1,
+			'count'   => $new_count,
 		)
 	);
 }
@@ -530,7 +616,18 @@ function aldus_register_config_route(): void {
 			'methods'             => WP_REST_Server::READABLE,
 			'callback'            => 'aldus_handle_config',
 			'permission_callback' => static function () {
-				return current_user_can( 'edit_posts' );
+				/**
+				 * Filters the capability required to access GET /aldus/v1/config.
+				 *
+				 * Defaults to 'edit_posts'. Tighten to 'edit_theme_options' on
+				 * multisite installations where Contributors should not see theme
+				 * configuration details.
+				 *
+				 * @param string $capability WordPress capability slug.
+				 */
+				return current_user_can(
+					apply_filters( 'aldus_config_capability', 'edit_posts' )
+				);
 			},
 		)
 	);
@@ -681,7 +778,20 @@ function aldus_register_block(): void {
 		return;
 	}
 
-	register_block_type( $build_path );
+	// Block registration — tiered by WP version for maximum efficiency.
+	//   WP 6.8+: one call registers all blocks from the manifest, no separate
+	//            register_block_type() needed (eliminates per-block filesystem reads).
+	//   WP 6.7:  register metadata collection first, then register_block_type() still required.
+	//   WP ≤ 6.6 or no manifest: plain register_block_type().
+	$manifest = $build_path . '/blocks-manifest.php';
+	if ( function_exists( 'wp_register_block_types_from_metadata_collection' ) && file_exists( $manifest ) ) {
+		wp_register_block_types_from_metadata_collection( $build_path, $manifest );
+	} elseif ( function_exists( 'wp_register_block_metadata_collection' ) && file_exists( $manifest ) ) {
+		wp_register_block_metadata_collection( $build_path, $manifest );
+		register_block_type( $build_path );
+	} else {
+		register_block_type( $build_path );
+	}
 
 	// Load a minimal frontend stylesheet only on pages that contain this block.
 	// Passing 'path' lets WordPress inline the stylesheet above the fold rather
@@ -738,7 +848,108 @@ function aldus_register_block(): void {
 			'before'
 		);
 	}
+
+	// Load block CSS only when the block is present on the page rather than
+	// unconditionally on every front-end request (WP 6.8+).
+	add_filter( 'should_load_block_assets_on_demand', '__return_true' );
 }
+
+// ---------------------------------------------------------------------------
+// Block editor capability settings
+// ---------------------------------------------------------------------------
+
+add_filter(
+	'block_editor_settings_all',
+	static function ( array $settings ): array {
+		// Only editors and above can lock or unlock Aldus-generated layouts.
+		// Contributors and authors see content-only editing and cannot add
+		// new block-locking rules of their own.
+		$settings['canLockBlocks'] = current_user_can( 'edit_others_posts' );
+		return $settings;
+	}
+);
+
+// ---------------------------------------------------------------------------
+// Error rate tracking
+// ---------------------------------------------------------------------------
+
+/**
+ * Increments the per-personality assembly error counter stored in wp_options.
+ *
+ * Counter key format: `aldus_errors_{name}` (e.g. `aldus_errors_dispatch`).
+ * Errors are exposed by the /health endpoint so unusual failure rates are
+ * visible without digging through server logs.
+ *
+ * @param string $personality Personality name.
+ */
+function aldus_record_assembly_error( string $personality ): void {
+	$key     = 'aldus_errors_' . strtolower( sanitize_html_class( $personality ) );
+	$current = (int) get_option( $key, 0 );
+	update_option( $key, $current + 1, false );
+}
+
+// ---------------------------------------------------------------------------
+// Health check endpoint
+// ---------------------------------------------------------------------------
+
+/**
+ * Registers the GET /aldus/v1/health endpoint.
+ */
+function aldus_register_health_route(): void {
+	register_rest_route(
+		'aldus/v1',
+		'/health',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'aldus_handle_health',
+			'permission_callback' => static function () {
+				return current_user_can( 'manage_options' );
+			},
+		)
+	);
+}
+add_action( 'rest_api_init', 'aldus_register_health_route' );
+
+/**
+ * Handles GET /aldus/v1/health.
+ *
+ * Returns plugin version, server environment, object-cache status, theme
+ * configuration summary, personality count, and per-personality error rates.
+ * Requires manage_options so it is accessible only to site administrators.
+ *
+ * @return WP_REST_Response
+ */
+function aldus_handle_health(): WP_REST_Response {
+	$personalities = array_keys( aldus_anchor_tokens() );
+
+	// Build per-personality error counts from stored options.
+	$error_counts = array();
+	foreach ( $personalities as $name ) {
+		$key = 'aldus_errors_' . strtolower( sanitize_html_class( $name ) );
+		$n   = (int) get_option( $key, 0 );
+		if ( $n > 0 ) {
+			$error_counts[ $name ] = $n;
+		}
+	}
+
+	return rest_ensure_response(
+		array(
+			'version'       => ALDUS_VERSION,
+			'php'           => PHP_VERSION,
+			'wp'            => get_bloginfo( 'version' ),
+			'object_cache'  => wp_using_ext_object_cache(),
+			'theme'         => get_stylesheet(),
+			'palette_size'  => count( aldus_get_theme_palette() ),
+			'font_sizes'    => count( aldus_get_theme_font_sizes() ),
+			'personalities' => count( $personalities ),
+			'error_counts'  => $error_counts,
+		)
+	);
+}
+
+// ---------------------------------------------------------------------------
+// WebLLM module preload
+// ---------------------------------------------------------------------------
 
 /**
  * Emits <link rel="modulepreload"> and <link rel="prefetch"> hints for the
