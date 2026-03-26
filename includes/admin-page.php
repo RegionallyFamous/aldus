@@ -72,66 +72,146 @@ function aldus_render_admin_page(): void {
 		: admin_url( 'post-new.php' );
 	?>
 	<div class="wrap aldus-welcome-wrap">
-		<h1 class="aldus-welcome-title">
-			<span class="aldus-welcome-icon">✦</span>
-			<?php esc_html_e( 'Welcome to Aldus', 'aldus' ); ?>
-			<span class="aldus-version-badge">v<?php echo esc_html( ALDUS_VERSION ); ?></span>
-		</h1>
 
-		<p class="aldus-welcome-intro">
-			<?php
-			// phpcs:ignore Generic.Files.LineLength.MaxExceeded
-			esc_html_e( 'You bring the words. Aldus shows you every way they could look — editorial spreads, cinematic heroes, newspaper columns, minimal typography, and more. Pick the one that fits. It becomes real WordPress blocks, fully editable, no lock-in.', 'aldus' );
-			?>
-		</p>
-
-		<a href="<?php echo esc_url( $editor_url ); ?>" class="button button-primary button-hero aldus-welcome-cta">
-			<?php esc_html_e( 'Try it in the editor →', 'aldus' ); ?>
-		</a>
-
-		<hr class="aldus-section-divider">
-
-		<h2 class="aldus-section-title"><?php esc_html_e( 'How it works', 'aldus' ); ?></h2>
-		<ol class="aldus-how-it-works-list">
-			<li><?php esc_html_e( 'Open any post or page and insert the Aldus block.', 'aldus' ); ?></li>
-			<li><?php esc_html_e( 'Add what the page needs — headline, paragraphs, images, quotes, a button.', 'aldus' ); ?></li>
-			<li><?php esc_html_e( 'Click "Make it happen."', 'aldus' ); ?></li>
-			<li><?php esc_html_e( 'Browse every layout style. Click the one that fits.', 'aldus' ); ?></li>
-			<li><?php esc_html_e( 'Done — real WordPress blocks, ready to edit or publish.', 'aldus' ); ?></li>
-		</ol>
-		<p class="aldus-welcome-footnote">
-			<?php
-			// phpcs:ignore Generic.Files.LineLength.MaxExceeded
-			esc_html_e( 'The first time, the browser downloads a small AI model (~200 MB). After that, everything works instantly — even offline.', 'aldus' );
-			?>
-		</p>
-
-		<hr class="aldus-section-divider">
-
-		<h2 class="aldus-section-title"><?php esc_html_e( 'Resources', 'aldus' ); ?></h2>
-		<p>
-			<a href="<?php echo esc_url( $wiki_url ); ?>" target="_blank" rel="noopener noreferrer">
-				<?php esc_html_e( 'Documentation & Wiki', 'aldus' ); ?>
+		<?php /* ---- Section 1: Hero ---- */ ?>
+		<div class="aldus-welcome-hero">
+			<h1>
+				<span aria-hidden="true">✦</span>
+				<?php esc_html_e( 'Aldus', 'aldus' ); ?>
+				<span class="aldus-welcome-version">v<?php echo esc_html( ALDUS_VERSION ); ?></span>
+			</h1>
+			<p>
+				<?php
+				// phpcs:ignore Generic.Files.LineLength.MaxExceeded
+				esc_html_e( 'The block editor has everything a great page needs. What\'s missing is the design instinct — which blocks to combine, in what order, with what mood. You bring the words. Aldus shows you every way they could look. Pick the one that fits.', 'aldus' );
+				?>
+			</p>
+			<a href="<?php echo esc_url( $editor_url ); ?>" class="button button-primary button-hero">
+				<?php esc_html_e( 'Try it in the editor →', 'aldus' ); ?>
 			</a>
-			&nbsp;·&nbsp;
-			<a href="<?php echo esc_url( $release_url ); ?>" target="_blank" rel="noopener noreferrer">
-				<?php esc_html_e( 'Release notes', 'aldus' ); ?>
-			</a>
-			&nbsp;·&nbsp;
-			<a href="<?php echo esc_url( $support_url ); ?>" target="_blank" rel="noopener noreferrer">
-				<?php esc_html_e( 'Support forum', 'aldus' ); ?>
-			</a>
-		</p>
+			<p class="aldus-welcome-subtext">
+				<?php esc_html_e( 'Add your content. See every arrangement. Pick the one that fits.', 'aldus' ); ?>
+			</p>
+		</div>
 
-		<p class="aldus-privacy-note">
-			<?php
-			printf(
-				/* translators: %s = privacy policy guide link */
-				esc_html__( 'Nothing you write ever leaves your computer — the AI runs entirely in your browser. For the full privacy statement, see your site\'s %s.', 'aldus' ),
-				'<a href="' . esc_url( admin_url( 'privacy.php' ) ) . '">' . esc_html__( 'Privacy Policy Guide', 'aldus' ) . '</a>'
-			);
-			?>
-		</p>
+		<?php /* ---- Section 2: Before / after wireframe ---- */ ?>
+		<div class="aldus-welcome-transform" aria-hidden="true">
+			<div class="aldus-welcome-transform-side aldus-welcome-before">
+				<div class="aldus-welcome-block is-heading"></div>
+				<div class="aldus-welcome-block"></div>
+				<div class="aldus-welcome-block"></div>
+				<div class="aldus-welcome-block is-image"></div>
+				<div class="aldus-welcome-block"></div>
+				<div class="aldus-welcome-block is-button"></div>
+			</div>
+			<div class="aldus-welcome-transform-arrow">→</div>
+			<div class="aldus-welcome-transform-side aldus-welcome-after">
+				<div class="aldus-welcome-block is-cover"></div>
+				<div class="aldus-welcome-columns">
+					<div class="aldus-welcome-col"></div>
+					<div class="aldus-welcome-col"></div>
+				</div>
+				<div class="aldus-welcome-block is-pullquote"></div>
+				<div class="aldus-welcome-block is-cta"></div>
+			</div>
+		</div>
+		<div class="aldus-welcome-transform-labels">
+			<span class="aldus-welcome-transform-label">
+				<?php esc_html_e( 'Your content as a stack of blocks.', 'aldus' ); ?>
+			</span>
+			<span class="aldus-welcome-transform-label">
+				<?php esc_html_e( 'The same content, designed by Aldus.', 'aldus' ); ?>
+			</span>
+		</div>
+
+		<?php /* ---- Section 3: How it works ---- */ ?>
+		<div class="aldus-welcome-steps">
+			<div class="aldus-welcome-step">
+				<div class="aldus-welcome-step-number">01</div>
+				<h3><?php esc_html_e( 'Add your words.', 'aldus' ); ?></h3>
+				<p>
+					<?php esc_html_e( 'A headline, paragraphs, an image, a quote — whatever the page needs. Don\'t worry about order.', 'aldus' ); ?>
+				</p>
+			</div>
+			<div class="aldus-welcome-step">
+				<div class="aldus-welcome-step-number">02</div>
+				<h3><?php esc_html_e( 'See every option.', 'aldus' ); ?></h3>
+				<p>
+					<?php esc_html_e( 'Aldus arranges your content in every layout style at once — editorial, cinematic, minimal, and more.', 'aldus' ); ?>
+				</p>
+			</div>
+			<div class="aldus-welcome-step">
+				<div class="aldus-welcome-step-number">03</div>
+				<h3><?php esc_html_e( 'Pick the one that fits.', 'aldus' ); ?></h3>
+				<p>
+					<?php esc_html_e( 'It becomes real WordPress blocks — edit, rearrange, or just publish. Try a different look anytime.', 'aldus' ); ?>
+				</p>
+			</div>
+		</div>
+
+		<?php /* ---- Section 4: Trust signals ---- */ ?>
+		<div class="aldus-welcome-trust">
+			<div class="aldus-welcome-trust-item">
+				<span class="aldus-welcome-trust-icon" aria-hidden="true">🔒</span>
+				<div class="aldus-welcome-trust-body">
+					<h3><?php esc_html_e( 'Your words stay private.', 'aldus' ); ?></h3>
+				<p>
+					<?php
+					// phpcs:ignore Generic.Files.LineLength.MaxExceeded
+					esc_html_e( 'The AI only sees what types of content you have — never your actual text. Nothing leaves your browser.', 'aldus' );
+					?>
+				</p>
+				</div>
+			</div>
+			<div class="aldus-welcome-trust-item">
+				<span class="aldus-welcome-trust-icon" aria-hidden="true">📦</span>
+				<div class="aldus-welcome-trust-body">
+					<h3><?php esc_html_e( 'Pure WordPress blocks.', 'aldus' ); ?></h3>
+				<p>
+					<?php
+					// phpcs:ignore Generic.Files.LineLength.MaxExceeded
+					esc_html_e( 'Every layout is standard core blocks — Cover, Columns, Group, Pullquote. Deactivate Aldus and nothing breaks.', 'aldus' );
+					?>
+				</p>
+				</div>
+			</div>
+			<div class="aldus-welcome-trust-item">
+				<span class="aldus-welcome-trust-icon" aria-hidden="true">🌐</span>
+				<div class="aldus-welcome-trust-body">
+					<h3><?php esc_html_e( 'Works offline.', 'aldus' ); ?></h3>
+				<p>
+					<?php
+					// phpcs:ignore Generic.Files.LineLength.MaxExceeded
+					esc_html_e( 'The AI model downloads once (~200 MB) and is cached in your browser forever. After that, no internet needed.', 'aldus' );
+					?>
+				</p>
+				</div>
+			</div>
+		</div>
+
+		<?php /* ---- Section 5: Footer ---- */ ?>
+		<div class="aldus-welcome-footer">
+			<p>
+				<a href="<?php echo esc_url( $wiki_url ); ?>" target="_blank" rel="noopener noreferrer">
+					<?php esc_html_e( 'Documentation', 'aldus' ); ?>
+				</a>
+				&nbsp;·&nbsp;
+				<a href="<?php echo esc_url( $release_url ); ?>" target="_blank" rel="noopener noreferrer">
+					<?php esc_html_e( 'Release notes', 'aldus' ); ?>
+				</a>
+				&nbsp;·&nbsp;
+				<a href="<?php echo esc_url( $support_url ); ?>" target="_blank" rel="noopener noreferrer">
+					<?php esc_html_e( 'Support forum', 'aldus' ); ?>
+				</a>
+			</p>
+			<p class="aldus-welcome-origin">
+				<?php
+				// phpcs:ignore Generic.Files.LineLength.MaxExceeded
+				esc_html_e( 'Aldus is free, open source, and named after Aldus Manutius — the 15th-century Venetian printer who invented italic type, pioneered the pocket-sized book, and defined what a printed page should look like.', 'aldus' );
+				?>
+			</p>
+		</div>
+
 	</div>
 	<?php
 }
