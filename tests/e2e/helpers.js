@@ -18,6 +18,9 @@
  */
 async function wpLogin( page ) {
 	await page.goto( '/wp-login.php' );
+	// WordPress may redirect to the install page or a different URL on the first
+	// request after wp-env starts. Wait for the login form to actually appear.
+	await page.waitForSelector( '#user_login', { timeout: 60000 } );
 	await page.fill( '#user_login', process.env.WP_USERNAME ?? 'admin' );
 	await page.fill( '#user_pass', process.env.WP_PASSWORD ?? 'password' );
 	await page.click( '#wp-submit' );

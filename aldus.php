@@ -55,10 +55,7 @@ add_action( 'plugins_loaded', 'aldus_init' );
  *   Foundation → Configuration → Renderers → API layer → Admin
  */
 function aldus_init(): void {
-	// Tier 1 — always needed: block registration, server-side render callback,
-	// theme.json filter, Block Bindings, REST registration, and the API layer
-	// (aldus_register_block, aldus_flush_theme_cache, etc. are in api.php and
-	// called unconditionally below).
+	// Core dependencies — always loaded on every request.
 	require_once ALDUS_PATH . 'includes/sanitize.php';
 	require_once ALDUS_PATH . 'includes/tokens.php';
 	require_once ALDUS_PATH . 'includes/theme.php';
@@ -67,35 +64,24 @@ function aldus_init(): void {
 	require_once ALDUS_PATH . 'includes/serialize.php';
 	require_once ALDUS_PATH . 'includes/styles.php';
 	require_once ALDUS_PATH . 'includes/bindings.php';
+	require_once ALDUS_PATH . 'includes/class-content-distributor.php';
+	require_once ALDUS_PATH . 'includes/renderers/cover.php';
+	require_once ALDUS_PATH . 'includes/renderers/columns.php';
+	require_once ALDUS_PATH . 'includes/renderers/group.php';
+	require_once ALDUS_PATH . 'includes/renderers/media-text.php';
+	require_once ALDUS_PATH . 'includes/renderers/pullquote.php';
+	require_once ALDUS_PATH . 'includes/renderers/heading.php';
+	require_once ALDUS_PATH . 'includes/renderers/text.php';
+	require_once ALDUS_PATH . 'includes/renderers/media.php';
+	require_once ALDUS_PATH . 'includes/renderers/structure.php';
+	require_once ALDUS_PATH . 'includes/renderers/layout.php';
+	require_once ALDUS_PATH . 'includes/render-router.php';
 	require_once ALDUS_PATH . 'includes/class-rest-controller.php';
 	require_once ALDUS_PATH . 'includes/api.php';
 	require_once ALDUS_PATH . 'includes/ai-client.php';
 
-	// Tier 2 — REST API or admin: the full renderer stack.
-	// Front-end page loads that don't contain an Aldus block skip the heavy
-	// renderer files (~10 files) entirely.
-	// wp_is_serving_rest_request() was added in WP 6.6; fall back to the
-	// REST_REQUEST constant for WP 6.4–6.5 compatibility.
-	$is_rest = ( function_exists( 'wp_is_serving_rest_request' ) && wp_is_serving_rest_request() )
-		|| ( defined( 'REST_REQUEST' ) && REST_REQUEST );
-
-	if ( $is_rest || is_admin() ) {
-		require_once ALDUS_PATH . 'includes/class-content-distributor.php';
-		require_once ALDUS_PATH . 'includes/renderers/cover.php';
-		require_once ALDUS_PATH . 'includes/renderers/columns.php';
-		require_once ALDUS_PATH . 'includes/renderers/group.php';
-		require_once ALDUS_PATH . 'includes/renderers/media-text.php';
-		require_once ALDUS_PATH . 'includes/renderers/pullquote.php';
-		require_once ALDUS_PATH . 'includes/renderers/heading.php';
-		require_once ALDUS_PATH . 'includes/renderers/text.php';
-		require_once ALDUS_PATH . 'includes/renderers/media.php';
-		require_once ALDUS_PATH . 'includes/renderers/structure.php';
-		require_once ALDUS_PATH . 'includes/renderers/layout.php';
-		require_once ALDUS_PATH . 'includes/render-router.php';
-
-		// Warn about deprecated filter usage (defined in api.php).
-		aldus_check_deprecated_filters();
-	}
+	// Warn about deprecated filter usage (defined in api.php).
+	aldus_check_deprecated_filters();
 
 	// Tier 3 — admin only: block patterns and the admin welcome/settings page.
 	if ( is_admin() ) {
