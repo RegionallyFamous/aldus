@@ -24,7 +24,7 @@ import { useSelect } from '@wordpress/data';
 import apiFetch from '@wordpress/api-fetch';
 import { parse as parseBlocks } from '@wordpress/blocks';
 import { __, sprintf, _n } from '@wordpress/i18n';
-import { close, plus } from '@wordpress/icons';
+import { close, lock, plus } from '@wordpress/icons';
 import { ACTIVE_PERSONALITIES } from '../data/personalities.js';
 import {
 	HINT_TYPE_LABELS,
@@ -543,6 +543,13 @@ export function BuildingScreen( {
 											) }
 										</span>
 									) }
+								<span className="aldus-privacy-note">
+									<Icon icon={ lock } size={ 14 } />
+									{ __(
+										'Your words stay private — the AI only sees content types, never your text.',
+										'aldus'
+									) }
+								</span>
 							</div>
 						</OnboardingTooltip>
 					) }

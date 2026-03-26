@@ -92,6 +92,25 @@ function createServerEngineShim() {
 	};
 }
 
+/**
+ * Computes the Jaccard similarity between two token sequence arrays.
+ *
+ * Returns a value in [0, 1]: 1 means identical token sets, 0 means
+ * completely disjoint. Used to detect when two personalities produce
+ * layouts that are too visually similar.
+ *
+ * @param {string[]} a First token sequence.
+ * @param {string[]} b Second token sequence.
+ * @return {number} Similarity score.
+ */
+function jaccard( a, b ) {
+	const setA = new Set( a );
+	const setB = new Set( b );
+	const intersection = [ ...setA ].filter( ( x ) => setB.has( x ) ).length;
+	const union = new Set( [ ...setA, ...setB ] ).size;
+	return union === 0 ? 0 : intersection / union;
+}
+
 export function useAldusGeneration( {
 	initEngine,
 	destroyEngine,
@@ -285,18 +304,49 @@ export function useAldusGeneration( {
 					return enforceAnchors( p, fallback );
 				} );
 
+				// Step 3b: diversity pass — re-run sequences that are too similar.
+				// Pairwise Jaccard similarity > 0.8 indicates the two personalities
+				// produced nearly identical token sets. Re-running the later sequence
+				// at an elevated temperature gives it more chance to diverge.
+				const diversified = [ ...tokenResults ];
+				for ( let i = 0; i < diversified.length; i++ ) {
+					for ( let j = i + 1; j < diversified.length; j++ ) {
+						if (
+							jaccard( diversified[ i ], diversified[ j ] ) > 0.8
+						) {
+							const p = personalities[ j ];
+							try {
+								// eslint-disable-next-line no-await-in-loop
+								diversified[ j ] = await inferTokens(
+									engine,
+									p,
+									manifest,
+									effectiveStyle,
+									postContext,
+									items,
+									diversified.slice( 0, j ),
+									1.2
+								);
+							} catch {
+								// Re-run failed — keep the existing sequence.
+							}
+						}
+					}
+				}
+				const finalTokenResults = diversified;
+
 				// Step 4: post-generation intelligence — coverage, descriptions, and
 				// the columns:28-72 section label (Folio's narrow label column).
 				// All run in parallel; results are indexed by personality.
 				// Coverage is computed deterministically — no LLM call needed.
-				const coverageResults = tokenResults.map( ( tokens ) =>
+				const coverageResults = finalTokenResults.map( ( tokens ) =>
 					computeCoverage( manifest, tokens )
 				);
 
 				const [ descriptionSettled, labelSettled ] = await Promise.all(
 					[
 						Promise.allSettled(
-							tokenResults.map( ( tokens, i ) =>
+							finalTokenResults.map( ( tokens, i ) =>
 								inferLayoutDescription(
 									engine,
 									personalities[ i ],
@@ -307,7 +357,7 @@ export function useAldusGeneration( {
 						// Section label only fired when columns:28-72 is present and
 						// a paragraph exists; resolves immediately with '' otherwise.
 						Promise.allSettled(
-							tokenResults.map( ( tokens ) => {
+							finalTokenResults.map( ( tokens ) => {
 								if (
 									! tokens.includes( 'columns:28-72' ) ||
 									! inferSectionLabel
@@ -338,7 +388,7 @@ export function useAldusGeneration( {
 					lastLabel: null,
 				} );
 
-				const assembleJobs = tokenResults.map( ( tokens, i ) => {
+				const assembleJobs = finalTokenResults.map( ( tokens, i ) => {
 					const label = personalities[ i ].name;
 					const rerollCount = rerollCountsRef.current[ label ] ?? 0;
 					return {

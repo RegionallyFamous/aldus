@@ -193,19 +193,12 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 	}
 
 	if ( '' === trim( $markup ) ) {
-		$fallback_markup = aldus_render_fallback_markup( $items );
-		if ( '' !== trim( $fallback_markup ) ) {
-			$markup   = $fallback_markup;
-			$sections = array(
-				array(
-					'token'  => 'fallback:generic',
-					'blocks' => $fallback_markup,
-				),
-			);
-		} else {
-			aldus_record_assembly_error( $personality );
-			return new WP_Error( 'empty_markup', __( 'Could not build markup for this layout. Try again.', 'aldus' ), array( 'status' => 422 ) );
-		}
+		aldus_record_assembly_error( $personality );
+		return new WP_Error(
+			'empty_layout',
+			__( 'This style couldn\'t arrange your content well. Try a different style or add more content.', 'aldus' ),
+			array( 'status' => 422 )
+		);
 	}
 
 	/**
@@ -221,19 +214,12 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 	$markup = (string) apply_filters( 'aldus_assembled_blocks', $markup, $personality, $items );
 	// Guard against filters that zero out the markup.
 	if ( '' === trim( $markup ) ) {
-		$fallback_markup = aldus_render_fallback_markup( $items );
-		if ( '' !== trim( $fallback_markup ) ) {
-			$markup   = $fallback_markup;
-			$sections = array(
-				array(
-					'token'  => 'fallback:generic',
-					'blocks' => $fallback_markup,
-				),
-			);
-		} else {
-			aldus_record_assembly_error( $personality );
-			return new WP_Error( 'empty_markup', __( 'Could not build markup for this layout. Try again.', 'aldus' ), array( 'status' => 422 ) );
-		}
+		aldus_record_assembly_error( $personality );
+		return new WP_Error(
+			'empty_layout',
+			__( 'This style couldn\'t arrange your content well. Try a different style or add more content.', 'aldus' ),
+			array( 'status' => 422 )
+		);
 	}
 
 	/**

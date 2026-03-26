@@ -144,7 +144,8 @@ function aldus_render_block_token(
 				'Hero',
 				$cv,
 				$post_id,
-				$ia_parallax
+				$ia_parallax,
+				$s_radius
 			);
 
 		case 'cover:light':
@@ -159,7 +160,8 @@ function aldus_render_block_token(
 				'Feature Cover',
 				$cv,
 				$post_id,
-				$ia_parallax
+				$ia_parallax,
+				$s_radius
 			);
 
 		case 'cover:minimal':
@@ -208,7 +210,8 @@ function aldus_render_block_token(
 				'Dark Section',
 				$variant3,
 				$s_block_gap,
-				$ia_reveal
+				$ia_reveal,
+				$s_radius
 			);
 
 		case 'group:accent-full':
@@ -220,7 +223,8 @@ function aldus_render_block_token(
 				'Accent Section',
 				$variant3,
 				$s_block_gap,
-				$ia_reveal
+				$ia_reveal,
+				$s_radius
 			);
 
 		case 'group:light-full':
@@ -232,7 +236,8 @@ function aldus_render_block_token(
 				'Light Section',
 				$variant3,
 				$s_block_gap,
-				$ia_reveal
+				$ia_reveal,
+				$s_radius
 			);
 
 		case 'group:border-box':

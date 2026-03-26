@@ -27,7 +27,8 @@ function aldus_block_group(
 	string $name = '',
 	int $variant = 0,
 	string $block_gap = '',
-	string $ia_attrs = ''
+	string $ia_attrs = '',
+	string $radius = ''
 ): string {
 	$bg_safe = sanitize_html_class( $bg_slug );
 	$tc_safe = $text_color_slug ? sanitize_html_class( $text_color_slug ) : '';
@@ -50,6 +51,9 @@ function aldus_block_group(
 		),
 		'style'           => array( 'spacing' => $spacing ),
 	);
+	if ( $radius !== '' ) {
+		$attrs['style']['border']['radius'] = $radius;
+	}
 	if ( $name ) {
 		$attrs['metadata'] = array( 'name' => $name );
 	}

@@ -288,6 +288,42 @@ function aldus_get_theme_appearance_tools(): array {
 }
 
 /**
+ * Returns true when the palette has fewer than four entries.
+ *
+ * Themes with very small palettes (black + white only, or three colours)
+ * need special handling because the accent picker can otherwise return the
+ * same slug as the dark picker, producing no visual contrast.
+ *
+ * @param list<array{slug:string,color:string}> $palette
+ * @return bool
+ */
+function aldus_palette_is_minimal( array $palette ): bool {
+	return count( $palette ) < 4;
+}
+
+/**
+ * Lightens a six-digit hex color by the given percentage (0–100).
+ *
+ * Useful for generating inline style values from the theme palette when
+ * a derived shade is needed without registering a new colour preset.
+ * Returns the original (prefixed with #) unchanged on invalid input.
+ *
+ * @param string $hex     Six-digit hex string with or without the leading '#'.
+ * @param int    $percent Lightening amount as a percentage of the max channel value.
+ * @return string Lightened hex colour string including the '#' prefix.
+ */
+function aldus_lighten_hex( string $hex, int $percent ): string {
+	$hex = ltrim( $hex, '#' );
+	if ( strlen( $hex ) !== 6 ) {
+		return '#' . $hex;
+	}
+	$r = min( 255, (int) ( hexdec( substr( $hex, 0, 2 ) ) + 255 * $percent / 100 ) );
+	$g = min( 255, (int) ( hexdec( substr( $hex, 2, 2 ) ) + 255 * $percent / 100 ) );
+	$b = min( 255, (int) ( hexdec( substr( $hex, 4, 2 ) ) + 255 * $percent / 100 ) );
+	return sprintf( '#%02x%02x%02x', $r, $g, $b );
+}
+
+/**
  * Calculates relative luminance of a hex color string (for palette sorting).
  *
  * @param string $hex e.g. "#ff6600" or "ff6600"
@@ -330,6 +366,10 @@ function aldus_pick_light( array $palette ): string {
  * Returns a mid-range palette slug to use as an accent.
  * Picks the entry closest to 40% luminance.
  *
+ * On minimal palettes (< 4 colours) the luminance target often resolves to the
+ * same slug as the dark colour, leaving no visual contrast. When that happens,
+ * fall back to the lightest slug so the accent is always visually distinct.
+ *
  * @param list<array{slug:string,color:string}> $palette
  */
 function aldus_pick_accent( array $palette ): string {
@@ -346,7 +386,16 @@ function aldus_pick_accent( array $palette ): string {
 			$best_d = $d;
 		}
 	}
-	return sanitize_html_class( $best['slug'] ?? 'primary' );
+	$accent = sanitize_html_class( $best['slug'] ?? 'primary' );
+
+	// On minimal palettes the luminance search often picks the darkest entry,
+	// leaving accent === dark and no visible contrast in generated layouts.
+	// Fall back to the lightest available slug to guarantee differentiation.
+	if ( aldus_palette_is_minimal( $palette ) && $accent === aldus_pick_dark( $palette ) ) {
+		return aldus_pick_light( $palette );
+	}
+
+	return $accent;
 }
 
 /**

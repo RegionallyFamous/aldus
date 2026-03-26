@@ -116,7 +116,8 @@ async function inferTokens(
 	styleNote = '',
 	postContext = null,
 	items = [],
-	previousSequences = []
+	previousSequences = [],
+	temperatureOverride = null
 ) {
 	const prompt = buildPersonalityPrompt(
 		personality,
@@ -130,7 +131,10 @@ async function inferTokens(
 	// Strict personalities (creativity: 0) benefit from lower temperature — they
 	// have fixed anchor positions and should follow examples closely. Loose
 	// personalities (creativity: 1) get higher temperature for more surprise.
-	const temperature = personality.creativity === 1 ? 0.95 : 0.6;
+	// temperatureOverride lets the diversity pass request a higher temperature
+	// when two sequences are too similar to each other.
+	const temperature =
+		temperatureOverride ?? ( personality.creativity === 1 ? 0.95 : 0.6 );
 
 	const completion = await engine.chat.completions.create( {
 		messages: [ { role: 'user', content: prompt } ],

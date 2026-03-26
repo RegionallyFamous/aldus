@@ -17,7 +17,8 @@ function aldus_block_cover(
 	string $name = '',
 	int $variant = 0,
 	int $post_id = 0,
-	string $ia_attrs = ''
+	string $ia_attrs = '',
+	string $radius = ''
 ): string {
 	// Variant 2: pure backdrop — no inner content. Still needs at least an image to be meaningful.
 	if ( $variant === 2 ) {
@@ -37,6 +38,9 @@ function aldus_block_cover(
 			'url'           => esc_url_raw( $image['url'] ),
 			'hasParallax'   => false,
 		);
+		if ( $radius !== '' ) {
+			$attrs['style']['border']['radius'] = $radius;
+		}
 		if ( $name ) {
 			$attrs['metadata'] = array( 'name' => $name . ' (Backdrop)' );
 		}
@@ -110,6 +114,9 @@ function aldus_block_cover(
 		'minHeightUnit'   => 'px',
 		'layout'          => array( 'type' => 'constrained' ),
 	);
+	if ( $radius !== '' ) {
+		$attrs['style']['border']['radius'] = $radius;
+	}
 	if ( $name ) {
 		$attrs['metadata'] = array( 'name' => $name );
 	}
