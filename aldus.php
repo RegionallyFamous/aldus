@@ -68,7 +68,12 @@ function aldus_init(): void {
 
 	// Tier 2 — REST API or admin: the full renderer stack and assembly endpoint.
 	// Front-end page loads that don't contain an Aldus block skip this tier entirely.
-	if ( wp_is_serving_rest_request() || is_admin() ) {
+	// wp_is_serving_rest_request() was added in WP 6.6; fall back to the
+	// REST_REQUEST constant for WP 6.4–6.5 compatibility.
+	$is_rest = ( function_exists( 'wp_is_serving_rest_request' ) && wp_is_serving_rest_request() )
+		|| ( defined( 'REST_REQUEST' ) && REST_REQUEST );
+
+	if ( $is_rest || is_admin() ) {
 		require_once ALDUS_PATH . 'includes/class-content-distributor.php';
 		require_once ALDUS_PATH . 'includes/renderers/cover.php';
 		require_once ALDUS_PATH . 'includes/renderers/columns.php';
@@ -84,6 +89,9 @@ function aldus_init(): void {
 		require_once ALDUS_PATH . 'includes/class-rest-controller.php';
 		require_once ALDUS_PATH . 'includes/api.php';
 		require_once ALDUS_PATH . 'includes/ai-client.php';
+
+		// Warn about deprecated filter usage (defined in api.php).
+		aldus_check_deprecated_filters();
 	}
 
 	// Tier 3 — admin only: block patterns and the admin welcome/settings page.
@@ -139,9 +147,6 @@ function aldus_init(): void {
 
 	// Add a "How to use" link to the plugin row on the Plugins admin page.
 	add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), 'aldus_plugin_action_links' );
-
-	// Warn about deprecated filter usage.
-	aldus_check_deprecated_filters();
 
 	// Redirect to welcome page on first activation.
 	add_action( 'admin_init', 'aldus_maybe_redirect_to_welcome' );

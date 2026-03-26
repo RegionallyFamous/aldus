@@ -676,4 +676,3 @@ function aldus_inject_theme_json( mixed $theme_json ): mixed {
 	// origin-keyed format, so the aldus spacingSizes survive intact.
 	return new WP_Theme_JSON_Data( $data, 'theme' );
 }
-
