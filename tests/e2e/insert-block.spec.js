@@ -10,39 +10,7 @@
  */
 
 const { test, expect } = require( '@playwright/test' );
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Logs in to the WordPress admin panel.
- *
- * @param {import('@playwright/test').Page} page
- */
-async function wpLogin( page ) {
-	await page.goto( '/wp-login.php' );
-	await page.fill( '#user_login', process.env.WP_USERNAME ?? 'admin' );
-	await page.fill( '#user_pass', process.env.WP_PASSWORD ?? 'password' );
-	await page.click( '#wp-submit' );
-	await page.waitForURL( '**/wp-admin/**' );
-}
-
-/**
- * Creates a new post and navigates to its block editor.
- *
- * @param {import('@playwright/test').Page} page
- */
-async function openNewPost( page ) {
-	await page.goto( '/wp-admin/post-new.php' );
-	// Dismiss the Welcome Guide modal if it appears.
-	const welcomeClose = page.locator( 'button[aria-label="Close"]' ).first();
-	if (
-		await welcomeClose.isVisible( { timeout: 3000 } ).catch( () => false )
-	) {
-		await welcomeClose.click();
-	}
-}
+const { wpLogin, openNewPost } = require( './helpers.js' );
 
 // ---------------------------------------------------------------------------
 // Tests

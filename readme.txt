@@ -1,35 +1,36 @@
-=== Aldus — Block Compositor ===
+=== Aldus — Layout Explorer ===
 Contributors: regionallyfamous
 Tags: blocks, gutenberg, layout, design, composer
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 1.15.0
+Stable tag: 1.16.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Turn your content into a professionally designed layout. Add what you've got — Aldus shows you how it could look.
+You write it. Aldus shows you every way it could look — then you pick. Same words, different energy. No page builder, no design skills, no lock-in.
 
 == Description ==
 
-You wrote the content. Now it needs to look like a real website — not a stack of paragraphs in a default template. Aldus takes what you've written and shows you different ways to lay it out — editorial spreads, cinematic hero sections, newspaper columns, minimal typography, and more. Pick the one that fits. It becomes real WordPress blocks. Edit them, rearrange them, or just publish. No page builder. No design skills. No subscription.
+You wrote a headline, three paragraphs, and a call to action. Right now they're sitting in a column, looking like every other WordPress page. Aldus takes those same words and shows you how they'd look as a magazine spread, a dark cinematic landing page, a dense newspaper layout, a minimal essay — and a dozen more, all at once. Same words, different energy. Pick the one that fits and publish. It becomes real WordPress blocks you can edit, rearrange, or build on.
 
-You know what you want to say. Aldus figures out how it should look.
+You bring the words. Aldus brings the options. You pick.
 
-**Here's how it works:**
+**Bring your words. See every option. Pick.**
 
-1. Add your content pieces — a headline, a paragraph, a quote, an image, a call to action, whatever you've got.
-2. Hit **Make it happen**.
-3. Aldus tries your content in **every layout style** — each with its own visual character, mood, and structure.
-4. Pick the one that fits. It's replaced in-place with real, fully-editable core WordPress blocks.
+Add what the page needs — a headline, some paragraphs, an image, a quote, a button. Don't worry about order or arrangement.
+
+Hit **Make it happen** and Aldus arranges your content in every layout style at once — editorial columns, cinematic heroes, dense newspaper grids, minimal typography. Each one has its own structure and mood.
+
+Click the one that fits. It becomes real WordPress blocks — fully editable, rearrangeable, no plugin dependency. Aldus stays available if you want to try a different look later.
 
 The same content in **Dispatch** feels like breaking news. In **Nocturne** it's cinematic and dark. In **Folio** it reads like a magazine spread. Every style, one set of words — one of them will click.
 
-No settings. No external services. No subscriptions. The model downloads once (~200 MB) and lives in your browser cache forever after.
+No settings. No external services. No subscriptions. The model downloads once (~200 MB) and lives in your browser cache forever after. Nothing you write ever leaves your computer — the AI runs entirely in your browser.
 
-**It never touches your words.** The layout engine only sees what *types* of content you have (e.g., "2 paragraphs, 1 image") — never the actual text. Your words go in verbatim, exactly as you typed them.
+**Your words stay yours.** The layout model never reads what you wrote — it only knows you have "2 paragraphs, 1 image, 1 quote." It decides which blocks go where. Your actual text goes in verbatim, untouched, exactly as you typed it. No rewrites, no suggestions, no "AI-improved" copy.
 
-**Content types:**
+**What you can add:**
 
 * Headline
 * Subheading
@@ -42,7 +43,7 @@ No settings. No external services. No subscriptions. The model downloads once (~
 * Table (CSV-style — first row becomes the header)
 * Gallery (multi-image grid from your media library)
 
-**Layout personalities:**
+**Layout styles:**
 
 1. **Dispatch** — breaking-news urgency: dark full-bleed opener, bold pullquote, action
 2. **Folio** — label left, body right — every section reads like a magazine spread
@@ -83,7 +84,7 @@ Aldus is named after Aldus Manutius — the 15th-century Venetian printer who in
 2. Activate the plugin in **Plugins → Installed Plugins**.
 3. Open a post or page in the block editor.
 4. Insert the **Aldus** block from the block inserter.
-5. Add your content pieces and click **Make it happen**.
+5. Add what the page needs and click **Make it happen**.
 
 The first time you generate layouts, the browser downloads the layout model (~200 MB). This is a one-time download — it's cached and reused on every subsequent generation. To skip the download and explore layouts instantly, use a themed Pack Preview instead.
 
@@ -99,7 +100,7 @@ Only for the first-time model download. After that, generation works fully offli
 
 = Does Aldus rewrite my content? =
 
-No. The layout engine only sees the count and type of your content pieces (e.g., "2 paragraphs, 1 image"). It picks a block arrangement. Your actual words are never touched.
+Never. The layout model only sees what types of content you have — "2 paragraphs, 1 image" — not what you wrote. It decides which blocks go where, not what goes in them. Your actual text is inserted verbatim. No AI rewrites, no suggestions, no edits.
 
 = Which browsers are supported? =
 
@@ -107,15 +108,15 @@ Any browser with WebGPU support: Chrome 113+, Edge 113+, Safari 18+. Firefox doe
 
 = What happens after I pick a layout? =
 
-The Aldus block removes itself and is replaced in-place with the chosen layout — made entirely from standard core WordPress blocks. Edit them however you like.
+The layout becomes real WordPress blocks inside an Aldus wrapper. Edit your content freely — text, images, links, anything. Click "Redesign" in the toolbar anytime to try a different style. If you want to remove the Aldus wrapper entirely, click "Detach from Aldus" — the blocks stay, fully editable, with no plugin dependency.
 
 = Can I have multiple Aldus blocks on one page? =
 
 No — one at a time (`"multiple": false`). Aldus is a composition tool, not a repeatable widget.
 
-= Where are my content pieces saved? =
+= Where is my content saved? =
 
-Your content pieces are saved inside the block itself, so they survive page reloads and editor sessions. You can also snapshot a set using **Saved sets** and reload it later from the same menu.
+Your content is saved in the block's attributes and in post meta, so it survives page reloads and editor sessions. When you pick a layout, the content items are also stored in post meta — this is what powers the "Redesign" feature, letting you regenerate layouts without re-entering your content.
 
 = What are Pack Previews? =
 
@@ -126,6 +127,15 @@ Nine themed content packs (Roast — specialty coffee; Meridian — B2B SaaS; He
 An optional free-text field on the building screen that steers the layout model — for example "lead with the image", "keep it minimal", or "bold CTA up top". It's passed directly into the model prompt.
 
 == Changelog ==
+
+= 1.16.0 =
+* When the AI model is ready and you've added content, Aldus now suggests a style direction (e.g. "bold editorial", "minimal text-first") based on what you've written — one click applies it, another dismisses it.
+* Layout cards now show a "✦ Recommended" badge for the styles that best match your content mix, so the most relevant options are obvious at a glance.
+* A Compare button appears on each card when your page already has content — click it to see the new layout alongside your current page in a side-by-side modal.
+* Every layout you apply is now saved to a history list in the block sidebar — scroll back, preview the details, and restore any previous version with one click.
+* 17 new block patterns registered across five categories (hero, content, media, typography, structural), all theme-aware and available in the block inserter under Patterns → Aldus.
+* Rewrote all user-facing copy to reflect what Aldus actually does: show you every way your words could look, so you can pick. "Layout Explorer" replaces "Block Compositor" everywhere.
+* Fixed a critical error in the privacy policy statement — the previous text incorrectly described sending data to OpenAI. Aldus runs entirely in your browser; nothing is ever sent to an external AI service.
 
 = 1.15.0 =
 * The mixing screen has been redesigned as a three-zone layout editor: a vertical section timeline with personality colour coding, an alternatives grid with wireframe previews, and a live composite preview that updates as you make changes. A shuffle button randomly reassigns personalities across all sections with a staggered animation.
@@ -178,7 +188,7 @@ An optional free-text field on the building screen that steers the layout model 
 
 = 1.4.0 =
 * After you update, a one-time notice tells you what changed in this release — dismiss it with the ✕ button.
-* Your site's privacy policy guide (Tools > Privacy) now lists what Aldus sends to the AI API, so you can include it in your site's privacy statement.
+* Your site's privacy policy guide (Tools > Privacy) now includes a statement confirming that Aldus runs entirely in the browser and sends no content to external services.
 
 = 1.3.0 =
 * No changes to the editor or generated layouts. This release adds automated testing and static analysis so bugs are caught before they reach you.
@@ -195,9 +205,12 @@ An optional free-text field on the building screen that steers the layout model 
 * Fixes block validation errors that appeared in WordPress 6.9.
 
 = 1.0.0 =
-* Initial release. Describe your content, pick a personality, and Aldus generates a complete block layout — no external services, no API keys, nothing leaves your browser until you hit generate.
+* Initial release. Add your content, see every layout style at once, pick the one that fits — no external services, no API keys, nothing leaves your browser.
 
 == Upgrade Notice ==
+
+= 1.16.0 =
+Five new features — style suggestions, recommendation badges, before/after compare, layout history, and 17 new block patterns. Complete copy rewrite. Critical privacy policy correction. Safe to update.
 
 = 1.15.0 =
 The mixing screen has been redesigned. Safe to update — no block data or settings change.

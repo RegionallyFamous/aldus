@@ -49,12 +49,12 @@ function aldus_register_block_patterns(): void {
 		),
 		array(
 			'id'      => 'hearth',
-			'title'   => 'Hearth — Home Goods',
-			'tagline' => 'Made to Last. Designed to Live With.',
-			'body'    => 'Every piece in the Hearth collection is made by craftspeople who still believe'
-				. ' a well-made object is worth the wait. No shortcuts, no compromises, no planned obsolescence.',
-			'cta'     => 'Explore the collection',
-			'color'   => '#2C1A0E',
+			'title'   => 'Hearth — Nonprofit & Community',
+			'tagline' => 'Nobody Builds a Neighborhood Alone.',
+			'body'    => 'Hearth has been in the same six neighborhoods since 2009. We didn\'t parachute in'
+				. ' with a press release and leave when the grant cycle ended. We stayed. We hired locally.',
+			'cta'     => 'Donate to Hearth',
+			'color'   => '#1A2E1A',
 		),
 		array(
 			'id'      => 'plume',
@@ -67,12 +67,12 @@ function aldus_register_block_patterns(): void {
 		),
 		array(
 			'id'      => 'grove',
-			'title'   => 'Grove — Organic Skincare',
-			'tagline' => 'Your Skin Has Been Trying to Tell You Something.',
-			'body'    => 'Grove started in a kitchen with twelve ingredients, a notebook, and a firm belief'
-				. ' that your skin doesn\'t need a 14-step routine — it needs the right three things, consistently.',
-			'cta'     => 'Find your routine',
-			'color'   => '#1A2E1A',
+			'title'   => 'Grove — Farm-to-Table Produce',
+			'tagline' => 'Your Tomato Flew Here from Chile. Ours Walked.',
+			'body'    => 'Grove connects 34 small farms within 150 miles to people who want to eat what\'s'
+				. ' actually growing right now — not what\'s available year-round because it was picked green in another hemisphere.',
+			'cta'     => 'Start your first delivery',
+			'color'   => '#1B2A0E',
 		),
 		array(
 			'id'      => 'loot',
@@ -91,6 +91,15 @@ function aldus_register_block_patterns(): void {
 				. ' encrypted, private, and completely uninterested in what you\'re writing. Your messages are yours. That\'s the whole product.',
 			'cta'     => 'Try it free for 30 days',
 			'color'   => '#0C0C0C',
+		),
+		array(
+			'id'      => 'forge',
+			'title'   => 'Forge — Industrial Craft',
+			'tagline' => 'We Make Things That Outlast the People Who Buy Them.',
+			'body'    => "We don't use computer-controlled presses. We use hammers. The reason isn't nostalgia"
+				. " — it's that hammers leave a mark the metal remembers, and the metal is honest about it in ways that machines are not.",
+			'cta'     => 'Commission a Piece',
+			'color'   => '#1C1C1C',
 		),
 		array(
 			'id'      => 'slim',

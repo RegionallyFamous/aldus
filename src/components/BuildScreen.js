@@ -69,6 +69,9 @@ export function BuildingScreen( {
 	onOnboardingNext,
 	contentHints = [],
 	onDismissHint,
+	inferredStyle = null,
+	onApplyInferredStyle,
+	onDismissInferredStyle,
 } ) {
 	const dragIdRef = useRef( null );
 	const removeTimerRef = useRef( null );
@@ -449,6 +452,11 @@ export function BuildingScreen( {
 							<StyleNoteField
 								value={ styleNote }
 								onChange={ onStyleNoteChange }
+								inferredStyle={ inferredStyle }
+								onApplyInferredStyle={ onApplyInferredStyle }
+								onDismissInferredStyle={
+									onDismissInferredStyle
+								}
 							/>
 						</OnboardingTooltip>
 					) }

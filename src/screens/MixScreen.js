@@ -18,7 +18,7 @@ import {
 	useCallback,
 } from '@wordpress/element';
 import { Button, Flex } from '@wordpress/components';
-import { __, sprintf } from '@wordpress/i18n';
+import { __, _n, sprintf } from '@wordpress/i18n';
 import { shuffle as shuffleIcon } from '@wordpress/icons';
 
 import { LayoutWireframe } from '../components/LayoutWireframe.js';
@@ -289,11 +289,26 @@ export function MixingScreen( { layouts, onInsert, onBack } ) {
 					</span>
 					<span className="aldus-results-count">
 						{ sprintf(
-							/* translators: 1: number of sections, 2: number of layouts */
-							__( '%1$d sections from %2$d layouts', 'aldus' ),
-							mixSlots.length,
-							uniquePersonalities
-						) }
+							/* translators: %d: number of sections selected in mix mode */
+							_n(
+								'%d section',
+								'%d sections',
+								mixSlots.length,
+								'aldus'
+							),
+							mixSlots.length
+						) +
+							' ' +
+							sprintf(
+								/* translators: %d: number of unique layout styles the sections came from */
+								_n(
+									'from %d layout',
+									'from %d layouts',
+									uniquePersonalities,
+									'aldus'
+								),
+								uniquePersonalities
+							) }
 					</span>
 				</div>
 				<Flex gap={ 2 }>

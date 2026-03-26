@@ -30,7 +30,11 @@ import {
 	starFilled,
 	layout as layoutIcon,
 } from '@wordpress/icons';
-import { computeBestMatches, tokenShortLabel } from '../data/tokens.js';
+import {
+	computeBestMatches,
+	tokenShortLabel,
+	scorePersonalityFit,
+} from '../data/tokens.js';
 import { ACTIVE_PERSONALITIES } from '../data/personalities.js';
 import { LAYOUT_TAGLINES } from '../data/ui-strings.js';
 import { LayoutWireframe } from './LayoutWireframe.js';
@@ -52,6 +56,7 @@ export function ResultsScreen( {
 	activePreviewPack = null,
 	onSwitchPack,
 	autoStyle = '',
+	beforeBlocks = [],
 } ) {
 	const hasSections = layouts.some( ( l ) => l.sections?.length > 0 );
 	const [ isCompact, setIsCompact ] = useState( layouts.length >= 8 );
@@ -124,6 +129,50 @@ export function ResultsScreen( {
 		[ items, isPreview ]
 	);
 
+	// Feature 2: Score personality fit and surface top-3 as recommendation badges.
+	const manifest = useMemo( () => {
+		const m = {};
+		for ( const item of items ) {
+			if ( item.type ) {
+				m[ item.type ] = ( m[ item.type ] ?? 0 ) + 1;
+			}
+		}
+		return m;
+	}, [ items ] );
+
+	const recommendedSet = useMemo( () => {
+		if ( isPreview || layouts.length === 0 ) {
+			return new Set();
+		}
+		const scores = scorePersonalityFit(
+			layouts,
+			manifest,
+			ACTIVE_PERSONALITIES
+		);
+		const ranked = [ ...scores.entries() ]
+			.filter( ( [ , score ] ) => score >= 0.8 )
+			.sort( ( a, b ) => b[ 1 ] - a[ 1 ] )
+			.slice( 0, 3 )
+			.map( ( [ label ] ) => label );
+		return new Set( ranked );
+	}, [ layouts, manifest, isPreview ] );
+
+	// Feature 3: Before/after compare state.
+	const [ compareLayout, setCompareLayout ] = useState( null );
+	const [ showBefore, setShowBefore ] = useState( false );
+	const compareBlocks = useMemo( () => {
+		if ( ! compareLayout?.blocks ) {
+			return [];
+		}
+		try {
+			return parseBlocks( compareLayout.blocks ).filter(
+				( b ) => b?.name
+			);
+		} catch {
+			return [];
+		}
+	}, [ compareLayout ] );
+
 	// Track re-roll completion to flash the updated card.
 	const [ justRerolledLabel, setJustRerolledLabel ] = useState( null );
 	const prevRerollingLabelRef = useRef( null );
@@ -160,231 +209,318 @@ export function ResultsScreen( {
 	}, [ layouts, filterText, favorites ] );
 
 	return (
-		<div className="aldus-results">
-			<div className="aldus-results-sticky">
-				<Flex
-					align="center"
-					justify="space-between"
-					className="aldus-results-header"
-				>
-					<div>
-						<span className="aldus-results-title">
-							{ isPreview
-								? __(
-										'See what Aldus does with real content. Switch themes to try all styles.',
-										'aldus'
-								  )
-								: __(
-										'Your content, every which way. Pick the one that fits.',
-										'aldus'
-								  ) }
-						</span>
-						{ autoStyle && ! isPreview && (
-							<p className="aldus-style-hint">
+		<>
+			<div className="aldus-results">
+				<div className="aldus-results-sticky">
+					<Flex
+						align="center"
+						justify="space-between"
+						className="aldus-results-header"
+					>
+						<div>
+							<span className="aldus-results-title">
+								{ isPreview
+									? __(
+											'See what Aldus does with real content. Switch themes to try all styles.',
+											'aldus'
+									  )
+									: __(
+											'Your content, every which way. Pick the one that fits.',
+											'aldus'
+									  ) }
+							</span>
+							{ autoStyle && ! isPreview && (
+								<p className="aldus-style-hint">
+									{ sprintf(
+										/* translators: %s: detected content style direction */
+										__( 'Detected style: %s', 'aldus' ),
+										autoStyle
+									) }
+								</p>
+							) }
+							<span className="aldus-results-count">
 								{ sprintf(
-									/* translators: %s: detected content style direction */
-									__( 'Detected style: %s', 'aldus' ),
-									autoStyle
+									/* translators: %d is the number of layouts generated */
+									_n(
+										'%d layout',
+										'%d layouts',
+										layouts.length,
+										'aldus'
+									),
+									layouts.length
+								) }
+							</span>
+						</div>
+						<Flex gap={ 2 }>
+							{ layouts.length >= 8 && (
+								<Button
+									variant="tertiary"
+									size="small"
+									onClick={ () =>
+										setIsCompact( ( v ) => ! v )
+									}
+								>
+									{ isCompact
+										? __( 'Detailed', 'aldus' )
+										: __( 'Compact', 'aldus' ) }
+								</Button>
+							) }
+							{ hasSections && (
+								<Button
+									variant="secondary"
+									size="small"
+									icon={ safeIcon( layoutIcon ) }
+									onClick={ onMix }
+								>
+									{ __( 'Mix sections', 'aldus' ) }
+								</Button>
+							) }
+							{ ! isPreview && (
+								<Button
+									variant="secondary"
+									size="small"
+									onClick={ regenerate }
+								>
+									{ __( 'Regenerate', 'aldus' ) }
+									<kbd className="aldus-kbd">⇧⌘R</kbd>
+								</Button>
+							) }
+							<Button
+								variant="secondary"
+								size="small"
+								onClick={ startOver }
+							>
+								{ isPreview
+									? __( 'Back to building', 'aldus' )
+									: __( 'Start fresh', 'aldus' ) }
+							</Button>
+						</Flex>
+					</Flex>
+					{ isPreview && packs.length > 0 && (
+						<div
+							className="aldus-pack-pills"
+							role="group"
+							aria-label={ __( 'Switch pack', 'aldus' ) }
+						>
+							{ packs.map( ( p ) => (
+								<button
+									key={ p.id }
+									className={ `aldus-pack-pill${
+										p.id === activePreviewPack?.id
+											? ' is-active'
+											: ''
+									}` }
+									onClick={ () => onSwitchPack( p ) }
+									aria-pressed={
+										p.id === activePreviewPack?.id
+									}
+									style={
+										p.id === activePreviewPack?.id
+											? {
+													background:
+														p.palette.accent,
+													borderColor:
+														p.palette.accent,
+											  }
+											: {}
+									}
+									title={ p.description }
+								>
+									{ p.emoji && (
+										<span
+											className="aldus-pack-pill-emoji"
+											aria-hidden="true"
+										>
+											{ p.emoji }
+										</span>
+									) }
+									{ p.label }
+								</button>
+							) ) }
+						</div>
+					) }
+					<p className="aldus-results-hint">
+						{ hasSections
+							? __(
+									'Pick a layout below, or use Mix sections to combine parts from different personalities.',
+									'aldus'
+							  )
+							: __(
+									'Pick a layout below — click "Use this one" on any card.',
+									'aldus'
+							  ) }
+					</p>
+					{ layouts.length >= 8 && (
+						<div className="aldus-results-filter">
+							<TextControl
+								label={ __( 'Filter layouts', 'aldus' ) }
+								hideLabelFromVision
+								value={ filterText }
+								placeholder={ __(
+									'Filter by personality…',
+									'aldus'
+								) }
+								onChange={ setFilterText }
+								__next40pxDefaultSize
+								__nextHasNoMarginBottom
+							/>
+							{ filterText && (
+								<Button
+									icon={ safeIcon( close ) }
+									label={ __( 'Clear filter', 'aldus' ) }
+									size="small"
+									className="aldus-results-filter-clear"
+									onClick={ () => setFilterText( '' ) }
+								/>
+							) }
+						</div>
+					) }
+					{ favorites.length >= 2 && (
+						<p className="aldus-favorites-hint">
+							{ sprintf(
+								/* translators: %d: number of favorited layouts */
+								__(
+									'You have %d favorites — mix their sections?',
+									'aldus'
+								),
+								favorites.length
+							) }{ ' ' }
+							{ hasSections && (
+								<button
+									className="aldus-favorites-mix-link"
+									onClick={ onMix }
+								>
+									{ __( 'Compare favorites →', 'aldus' ) }
+								</button>
+							) }
+						</p>
+					) }
+				</div>
+				{ /* end aldus-results-sticky */ }
+				<div
+					ref={ gridRef }
+					className={ `aldus-grid${
+						isCompact ? ' is-compact' : ''
+					}` }
+					role="grid"
+					tabIndex={ -1 }
+					aria-label={ __( 'Layout options', 'aldus' ) }
+					onKeyDown={ handleGridKeyDown }
+				>
+					{ visibleLayouts.length > 0 ? (
+						visibleLayouts.map( ( layout, index ) => (
+							<LayoutCard
+								key={ layout.label }
+								layout={ layout }
+								index={ index }
+								isCompact={ isCompact }
+								onChoose={ () => chooseLayout( layout.label ) }
+								onReroll={
+									onReroll
+										? () => onReroll( layout.label )
+										: null
+								}
+								isRerolling={ rerollingLabel === layout.label }
+								hasRerollError={
+									!! rerollErrors?.[ layout.label ]
+								}
+								justRerolled={
+									justRerolledLabel === layout.label
+								}
+								isBestMatch={ bestMatchSet.has( layout.label ) }
+								isRecommended={ recommendedSet.has(
+									layout.label
+								) }
+								isFavorited={ favorites.includes(
+									layout.label
+								) }
+								onToggleFavorite={ () =>
+									toggleFavorite( layout.label )
+								}
+								onTryWithContent={
+									onTryWithContent
+										? () => onTryWithContent( layout.label )
+										: null
+								}
+								onCompare={
+									beforeBlocks.length > 0
+										? () => {
+												setCompareLayout( layout );
+												setShowBefore( false );
+										  }
+										: null
+								}
+								items={ items }
+								tabIndex={ index === focusedCardIndex ? 0 : -1 }
+								onFocus={ () => setFocusedCardIndex( index ) }
+							/>
+						) )
+					) : (
+						<p className="aldus-results-filter-empty">
+							{ __(
+								'No personalities match that name.',
+								'aldus'
+							) }
+						</p>
+					) }
+				</div>
+			</div>
+
+			{ /* Feature 3: Before/after compare modal */ }
+			{ compareLayout && (
+				<Modal
+					title={ sprintf(
+						/* translators: %s is the personality/layout name */
+						__( 'Compare: %s vs. current page', 'aldus' ),
+						compareLayout.label
+					) }
+					onRequestClose={ () => setCompareLayout( null ) }
+					size="large"
+					className="aldus-compare-modal"
+				>
+					<div className="aldus-compare-toggle">
+						<button
+							className={ `aldus-compare-tab${
+								! showBefore ? ' is-active' : ''
+							}` }
+							onClick={ () => setShowBefore( false ) }
+						>
+							{ compareLayout.label }
+						</button>
+						<button
+							className={ `aldus-compare-tab${
+								showBefore ? ' is-active' : ''
+							}` }
+							onClick={ () => setShowBefore( true ) }
+						>
+							{ __( 'Current page', 'aldus' ) }
+						</button>
+					</div>
+					<div className="aldus-compare-preview">
+						{ ! showBefore && (
+							<BlockPreview
+								blocks={ compareBlocks }
+								viewportWidth={ 1200 }
+							/>
+						) }
+						{ showBefore && beforeBlocks.length > 0 && (
+							<BlockPreview
+								blocks={ beforeBlocks }
+								viewportWidth={ 1200 }
+							/>
+						) }
+						{ showBefore && beforeBlocks.length === 0 && (
+							<p className="aldus-compare-empty">
+								{ __(
+									'No existing page content to compare.',
+									'aldus'
 								) }
 							</p>
 						) }
-						<span className="aldus-results-count">
-							{ sprintf(
-								/* translators: %d is the number of layouts generated */
-								_n(
-									'%d layout',
-									'%d layouts',
-									layouts.length,
-									'aldus'
-								),
-								layouts.length
-							) }
-						</span>
 					</div>
-					<Flex gap={ 2 }>
-						{ layouts.length >= 8 && (
-							<Button
-								variant="tertiary"
-								size="small"
-								onClick={ () => setIsCompact( ( v ) => ! v ) }
-							>
-								{ isCompact
-									? __( 'Detailed', 'aldus' )
-									: __( 'Compact', 'aldus' ) }
-							</Button>
-						) }
-						{ hasSections && (
-							<Button
-								variant="secondary"
-								size="small"
-								icon={ safeIcon( layoutIcon ) }
-								onClick={ onMix }
-							>
-								{ __( 'Mix sections', 'aldus' ) }
-							</Button>
-						) }
-						{ ! isPreview && (
-							<Button
-								variant="secondary"
-								size="small"
-								onClick={ regenerate }
-							>
-								{ __( 'Regenerate', 'aldus' ) }
-								<kbd className="aldus-kbd">⇧⌘R</kbd>
-							</Button>
-						) }
-						<Button
-							variant="secondary"
-							size="small"
-							onClick={ startOver }
-						>
-							{ isPreview
-								? __( 'Back to building', 'aldus' )
-								: __( 'Start fresh', 'aldus' ) }
-						</Button>
-					</Flex>
-				</Flex>
-				{ isPreview && packs.length > 0 && (
-					<div
-						className="aldus-pack-pills"
-						role="group"
-						aria-label={ __( 'Switch pack', 'aldus' ) }
-					>
-						{ packs.map( ( p ) => (
-							<button
-								key={ p.id }
-								className={ `aldus-pack-pill${
-									p.id === activePreviewPack?.id
-										? ' is-active'
-										: ''
-								}` }
-								onClick={ () => onSwitchPack( p ) }
-								aria-pressed={ p.id === activePreviewPack?.id }
-								style={
-									p.id === activePreviewPack?.id
-										? {
-												background: p.palette.accent,
-												borderColor: p.palette.accent,
-										  }
-										: {}
-								}
-								title={ p.description }
-							>
-								{ p.emoji && (
-									<span
-										className="aldus-pack-pill-emoji"
-										aria-hidden="true"
-									>
-										{ p.emoji }
-									</span>
-								) }
-								{ p.label }
-							</button>
-						) ) }
-					</div>
-				) }
-				<p className="aldus-results-hint">
-					{ hasSections
-						? __(
-								'Pick a layout below, or use Mix sections to combine parts from different personalities.',
-								'aldus'
-						  )
-						: __(
-								'Pick a layout below — click "Use this one" on any card.',
-								'aldus'
-						  ) }
-				</p>
-				{ layouts.length >= 8 && (
-					<div className="aldus-results-filter">
-						<TextControl
-							label={ __( 'Filter layouts', 'aldus' ) }
-							hideLabelFromVision
-							value={ filterText }
-							placeholder={ __(
-								'Filter by personality…',
-								'aldus'
-							) }
-							onChange={ setFilterText }
-							__next40pxDefaultSize
-							__nextHasNoMarginBottom
-						/>
-						{ filterText && (
-							<Button
-								icon={ safeIcon( close ) }
-								label={ __( 'Clear filter', 'aldus' ) }
-								size="small"
-								className="aldus-results-filter-clear"
-								onClick={ () => setFilterText( '' ) }
-							/>
-						) }
-					</div>
-				) }
-				{ favorites.length >= 2 && (
-					<p className="aldus-favorites-hint">
-						{ sprintf(
-							/* translators: %d: number of favorited layouts */
-							__(
-								'You have %d favorites — mix their sections?',
-								'aldus'
-							),
-							favorites.length
-						) }{ ' ' }
-						{ hasSections && (
-							<button
-								className="aldus-favorites-mix-link"
-								onClick={ onMix }
-							>
-								{ __( 'Compare favorites →', 'aldus' ) }
-							</button>
-						) }
-					</p>
-				) }
-			</div>
-			{ /* end aldus-results-sticky */ }
-			<div
-				ref={ gridRef }
-				className={ `aldus-grid${ isCompact ? ' is-compact' : '' }` }
-				role="grid"
-				tabIndex={ -1 }
-				aria-label={ __( 'Layout options', 'aldus' ) }
-				onKeyDown={ handleGridKeyDown }
-			>
-				{ visibleLayouts.length > 0 ? (
-					visibleLayouts.map( ( layout, index ) => (
-						<LayoutCard
-							key={ layout.label }
-							layout={ layout }
-							index={ index }
-							isCompact={ isCompact }
-							onChoose={ () => chooseLayout( layout.label ) }
-							onReroll={
-								onReroll ? () => onReroll( layout.label ) : null
-							}
-							isRerolling={ rerollingLabel === layout.label }
-							hasRerollError={ !! rerollErrors?.[ layout.label ] }
-							justRerolled={ justRerolledLabel === layout.label }
-							isBestMatch={ bestMatchSet.has( layout.label ) }
-							isFavorited={ favorites.includes( layout.label ) }
-							onToggleFavorite={ () =>
-								toggleFavorite( layout.label )
-							}
-							onTryWithContent={
-								onTryWithContent
-									? () => onTryWithContent( layout.label )
-									: null
-							}
-							items={ items }
-							tabIndex={ index === focusedCardIndex ? 0 : -1 }
-							onFocus={ () => setFocusedCardIndex( index ) }
-						/>
-					) )
-				) : (
-					<p className="aldus-results-filter-empty">
-						{ __( 'No personalities match that name.', 'aldus' ) }
-					</p>
-				) }
-			</div>
-		</div>
+				</Modal>
+			) }
+		</>
 	);
 }
 
@@ -399,8 +535,10 @@ export function LayoutCard( {
 	justRerolled,
 	onTryWithContent,
 	isBestMatch = false,
+	isRecommended = false,
 	isFavorited = false,
 	onToggleFavorite,
+	onCompare,
 	items = [],
 	tabIndex = -1,
 	onFocus,
@@ -495,6 +633,17 @@ export function LayoutCard( {
 							{ layout.label }
 						</strong>
 						<div className="aldus-card-footer-actions">
+							{ isRecommended && ! isBestMatch && (
+								<span
+									className="aldus-card-badge"
+									title={ __(
+										'Recommended for your content mix.',
+										'aldus'
+									) }
+								>
+									{ __( '✦ Recommended', 'aldus' ) }
+								</span>
+							) }
 							{ isBestMatch && (
 								<span
 									className="aldus-best-match-badge"
@@ -578,6 +727,18 @@ export function LayoutCard( {
 									size="small"
 									className="aldus-card-try-btn"
 									onClick={ onTryWithContent }
+								/>
+							) }
+							{ onCompare && (
+								<Button
+									icon={ safeIcon( layoutIcon ) }
+									label={ __(
+										'Compare with current page',
+										'aldus'
+									) }
+									size="small"
+									className="aldus-card-compare-btn"
+									onClick={ onCompare }
 								/>
 							) }
 						</div>

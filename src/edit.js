@@ -13,7 +13,6 @@
 import { useState, useEffect, useRef, useCallback } from '@wordpress/element';
 import {
 	inferStyleDirection,
-	scoreCoverage,
 	inferLayoutDescription,
 	recommendPersonalities,
 	analyzeContentHints,
@@ -50,6 +49,7 @@ import { doAction } from '@wordpress/hooks';
 import apiFetch from '@wordpress/api-fetch';
 import { parse as parseBlocks } from '@wordpress/blocks';
 import { __, sprintf, _n } from '@wordpress/i18n';
+import { dateI18n } from '@wordpress/date';
 import { speak } from '@wordpress/a11y';
 import {
 	useShortcut,
@@ -78,6 +78,10 @@ import { ErrorScreen } from './screens/ErrorScreen.js';
 import { MixingScreen } from './screens/MixScreen.js';
 import { VALID_TOKENS_SET } from './data/tokens.js';
 import { PERSONALITIES, ACTIVE_PERSONALITIES } from './data/personalities.js';
+import {
+	inferStyleFromContent,
+	matchChipToPhrase,
+} from './utils/infer-style.js';
 import { PRESETS } from './data/presets.js';
 import { LOADING_MESSAGES } from './data/ui-strings.js';
 import { buildPersonalityPrompt, enforceAnchors } from './lib/prompts.js';
@@ -152,10 +156,52 @@ async function inferTokens(
 		.map( ( t ) => t.trim().toLowerCase() )
 		.filter( ( t ) => VALID_TOKENS_SET.has( t ) );
 
-	// If the LLM produced no usable tokens, fall back to the personality's
-	// first example sequence so the user always gets a fully-styled layout
-	// rather than bare anchor-only markup.
+	// If the LLM produced no usable tokens, attempt one low-temperature retry
+	// with a shorter, more constrained prompt before using the static fallback.
+	// Happy-path latency is unchanged — this branch only fires on failure.
 	if ( clean.length === 0 ) {
+		const shortList = (
+			personality.relevantTokens ??
+			personality.anchors ??
+			[]
+		)
+			.slice( 0, 20 )
+			.join( ', ' );
+		try {
+			const retryCompletion = await engine.chat.completions.create( {
+				messages: [
+					{
+						role: 'user',
+						content:
+							`Pick 5-7 tokens for a ${ personality.name } layout.\n` +
+							`Allowed tokens: ${ shortList }\n` +
+							`Respond with a JSON array only: ["token1", "token2", ...]`,
+					},
+				],
+				temperature: 0.3,
+				max_tokens: 64,
+				stream: false,
+			} );
+			const retryRaw =
+				retryCompletion.choices?.[ 0 ]?.message?.content ?? '';
+			const retryParsed = robustParse( retryRaw );
+			let retryArr = [];
+			if ( Array.isArray( retryParsed?.tokens ) ) {
+				retryArr = retryParsed.tokens;
+			} else if ( Array.isArray( retryParsed ) ) {
+				retryArr = retryParsed;
+			}
+			const retryClean = retryArr
+				.filter( ( t ) => typeof t === 'string' )
+				.map( ( t ) => t.trim().toLowerCase() )
+				.filter( ( t ) => VALID_TOKENS_SET.has( t ) );
+			if ( retryClean.length > 0 ) {
+				return enforceAnchors( personality, retryClean );
+			}
+		} catch {
+			// Retry failed — fall through to static example-sequence fallback.
+		}
+
 		const fallback =
 			personality.exampleSequences?.[ 0 ] ?? personality.anchors ?? [];
 		return enforceAnchors( personality, fallback );
@@ -290,6 +336,15 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		[]
 	);
 	const [ contentHints, setContentHints ] = useState( [] );
+
+	// Feature 1: Auto-inferred style suggestion shown in StyleNoteField.
+	const [ inferredStyle, setInferredStyle ] = useState( null );
+
+	// Feature 3: Snapshot of editor blocks before generation for before/after compare.
+	const [ beforeBlocks, setBeforeBlocks ] = useState( [] );
+
+	// Feature 4: Layout history stored in post meta (_aldus_layout_history).
+	const [ layoutHistory, setLayoutHistory ] = useState( [] );
 
 	// Onboarding: show three sequential tooltips for first-time users.
 	// null = already onboarded; 0/1/2 = active step index.
@@ -504,6 +559,47 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		setScreen( SCREEN.ERROR );
 	}, [] );
 
+	// Feature 1: Debounced auto-infer style from content manifest (800 ms).
+	// Only fires when the engine is ready and items have changed.
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	useEffect( () => {
+		if ( ! isEngineReady || items.length === 0 ) {
+			return;
+		}
+		const manifest = {};
+		for ( const item of items ) {
+			if ( item.type ) {
+				manifest[ item.type ] = ( manifest[ item.type ] ?? 0 ) + 1;
+			}
+		}
+		const timer = setTimeout( async () => {
+			const phrase = await inferStyleFromContent(
+				engineRef.current,
+				manifest
+			);
+			if ( phrase ) {
+				setInferredStyle( phrase );
+				// Auto-match a chip so the user sees the visual affordance.
+				const chip = matchChipToPhrase( phrase );
+				if ( chip && ! styleNote ) {
+					setAttributes( { styleNote: chip } );
+				}
+			}
+		}, 800 );
+		return () => clearTimeout( timer );
+	}, [ items, isEngineReady ] ); // eslint-disable-line react-hooks/exhaustive-deps
+
+	const onApplyInferredStyle = useCallback( () => {
+		if ( inferredStyle ) {
+			setAttributes( { styleNote: inferredStyle } );
+			setInferredStyle( null );
+		}
+	}, [ inferredStyle, setAttributes ] );
+
+	const onDismissInferredStyle = useCallback( () => {
+		setInferredStyle( null );
+	}, [] );
+
 	// Wrap destroyEngine so any caller (abort, generation hook) also resets
 	// the reactive isEngineReady flag that drives re-renders.
 	const destroyEngineAndReset = useCallback( async () => {
@@ -518,7 +614,6 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 			inferTokens,
 			enforceAnchors,
 			inferStyleDirection,
-			scoreCoverage,
 			inferLayoutDescription,
 			inferSectionLabel,
 			recommendPersonalities,
@@ -625,6 +720,33 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 					}
 				};
 				lockContainers( newBlocks );
+
+				// Feature 4: Append to layout history (capped at 20 entries).
+				try {
+					const historyEntry = {
+						personality: chosen.label,
+						tokens: chosen.tokens ?? [],
+						timestamp: Date.now(),
+						sectionCount: newBlocks.length,
+					};
+					setLayoutHistory( ( prev ) => {
+						const updated = [ historyEntry, ...prev ].slice(
+							0,
+							20
+						);
+						try {
+							setMeta( {
+								_aldus_layout_history:
+									JSON.stringify( updated ),
+							} );
+						} catch {
+							// Non-fatal — history display degrades gracefully.
+						}
+						return updated;
+					} );
+				} catch {
+					// Non-fatal.
+				}
 
 				setScreen( SCREEN.INSERTED );
 
@@ -901,6 +1023,20 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		}
 		resetRetry(); // restore the one-retry allowance for each user-triggered generation
 		setLayouts( [] );
+
+		// Feature 3: Snapshot current editor blocks for before/after comparison.
+		try {
+			const currentBlocks = wp.data
+				.select( blockEditorStore )
+				.getBlocks();
+			setBeforeBlocks(
+				currentBlocks.filter(
+					( b ) => b.name !== 'aldus/layout-generator'
+				)
+			);
+		} catch {
+			setBeforeBlocks( [] );
+		}
 		setMsgIndex( 0 );
 		setMsgVisible( true );
 		const siteName = window.__aldusSite?.name ?? '';
@@ -1020,6 +1156,61 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		setRecommendedPersonalities( [] );
 		setContentHints( [] );
 	}, [] );
+
+	// Feature 4: Restore a previous layout from history.
+	const handleRestoreVersion = useCallback(
+		async ( entry ) => {
+			if ( ! entry?.personality || ! entry?.tokens?.length ) {
+				return;
+			}
+			try {
+				const manifest = {};
+				for ( const item of items ) {
+					if ( item.type ) {
+						manifest[ item.type ] =
+							( manifest[ item.type ] ?? 0 ) + 1;
+					}
+				}
+				const result = await apiFetch( {
+					path: '/aldus/v1/assemble',
+					method: 'POST',
+					data: {
+						items,
+						personality: entry.personality,
+						tokens: entry.tokens,
+						reroll_count: 0,
+						use_bindings: true,
+						custom_styles: customBlockStyles,
+						post_id: postId || 0,
+					},
+				} );
+				if ( result?.success && result?.blocks ) {
+					const restored = parseBlocks( result.blocks ).filter(
+						( b ) => b?.name
+					);
+					if ( restored.length > 0 ) {
+						replaceInnerBlocks( clientId, restored, false );
+						setAttributes( {
+							insertedPersonality: entry.personality,
+						} );
+					}
+				}
+			} catch ( err ) {
+				if ( window?.aldusDebug ) {
+					// eslint-disable-next-line no-console
+					console.error( '[Aldus] restoreVersion failed:', err );
+				}
+			}
+		},
+		[
+			items,
+			customBlockStyles,
+			postId,
+			clientId,
+			replaceInnerBlocks,
+			setAttributes,
+		]
+	);
 
 	// "Try with my content" — called from a pack preview LayoutCard.
 	// Pins the personality and sends the user to the content tab.
@@ -1411,6 +1602,9 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 									prev.filter( ( h ) => h !== hint )
 								)
 							}
+							inferredStyle={ inferredStyle }
+							onApplyInferredStyle={ onApplyInferredStyle }
+							onDismissInferredStyle={ onDismissInferredStyle }
 						/>
 					</div>
 				) }
@@ -1469,6 +1663,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							activePreviewPack={ activePreviewPack }
 							onSwitchPack={ runPreview }
 							autoStyle={ autoStyle }
+							beforeBlocks={ beforeBlocks }
 						/>
 					</div>
 				) }
@@ -1501,6 +1696,8 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							replaceBlocks( clientId, innerBlocks );
 						} }
 						insertedPersonality={ attributes.insertedPersonality }
+						layoutHistory={ layoutHistory }
+						onRestoreVersion={ handleRestoreVersion }
 					/>
 				) }
 				{ screen === SCREEN.ERROR && (
@@ -1575,11 +1772,14 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 								<span className="aldus-help-step-num">2</span>
 								<div>
 									<strong>
-										{ __( 'Aldus designs it', 'aldus' ) }
+										{ __(
+											'Aldus shows you every option',
+											'aldus'
+										) }
 									</strong>
 									<p>
 										{ __(
-											'Each with its own structure and mood — editorial, cinematic, minimal, bold.',
+											'Your words arranged as a magazine spread, a cinematic landing page, a newspaper layout, a minimal essay, and more. Same words, different energy.',
 											'aldus'
 										) }
 									</p>
@@ -1702,8 +1902,16 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
  * @param {Function} props.onRedesign          Callback to go back to the results screen.
  * @param {Function} props.onDetach            Callback to unwrap inner blocks and remove Aldus.
  * @param {string}   props.insertedPersonality Name of the personality that was inserted.
+ * @param {Array}    props.layoutHistory       Array of past layout entries for this post.
+ * @param {Function} props.onRestoreVersion    Callback to restore a previous layout.
  */
-function InsertedScreen( { onRedesign, onDetach, insertedPersonality } ) {
+function InsertedScreen( {
+	onRedesign,
+	onDetach,
+	insertedPersonality,
+	layoutHistory = [],
+	onRestoreVersion,
+} ) {
 	const innerBlocksProps = useInnerBlocksProps(
 		{ className: 'aldus-wrapper-inner' },
 		{ templateLock: 'contentOnly' }
@@ -1726,6 +1934,7 @@ function InsertedScreen( { onRedesign, onDetach, insertedPersonality } ) {
 						) }
 					</p>
 					<Button
+						__next40pxDefaultSize
 						variant="secondary"
 						onClick={ onRedesign }
 						style={ {
@@ -1737,6 +1946,7 @@ function InsertedScreen( { onRedesign, onDetach, insertedPersonality } ) {
 						{ __( 'Redesign', 'aldus' ) }
 					</Button>
 					<Button
+						__next40pxDefaultSize
 						variant="tertiary"
 						isDestructive
 						onClick={ onDetach }
@@ -1745,6 +1955,55 @@ function InsertedScreen( { onRedesign, onDetach, insertedPersonality } ) {
 						{ __( 'Detach from Aldus', 'aldus' ) }
 					</Button>
 				</PanelBody>
+				{ layoutHistory.length > 0 && (
+					<PanelBody
+						title={ __( 'Layout history', 'aldus' ) }
+						initialOpen={ false }
+					>
+						<ul className="aldus-history-list">
+							{ layoutHistory.map( ( entry, i ) => (
+								<li
+									key={ entry.timestamp }
+									className={ `aldus-history-item${
+										i === 0 ? ' is-current' : ''
+									}` }
+								>
+									<span className="aldus-history-name">
+										{ entry.personality }
+									</span>
+									<span className="aldus-history-meta">
+										{ entry.sectionCount
+											? sprintf(
+													/* translators: %d: number of sections */
+													__(
+														'%d sections',
+														'aldus'
+													),
+													entry.sectionCount
+											  )
+											: '' }
+										{ ' · ' }
+										{ dateI18n(
+											'M j',
+											new Date( entry.timestamp )
+										) }
+									</span>
+									{ i !== 0 && onRestoreVersion && (
+										<Button
+											variant="link"
+											className="aldus-history-restore"
+											onClick={ () =>
+												onRestoreVersion( entry )
+											}
+										>
+											{ __( 'Restore', 'aldus' ) }
+										</Button>
+									) }
+								</li>
+							) ) }
+						</ul>
+					</PanelBody>
+				) }
 			</InspectorControls>
 			<BlockControls>
 				<ToolbarGroup>

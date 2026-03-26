@@ -68,7 +68,7 @@ function aldus_render_admin_page(): void {
 		<p style="font-size:16px;color:#3c434a;max-width:620px;line-height:1.6;">
 			<?php
 			// phpcs:ignore Generic.Files.LineLength.MaxExceeded
-			esc_html_e( 'You write it. Aldus designs it. Add your content pieces — a headline, a paragraph, an image — then hit "Make it happen". Aldus tries your content in every layout personality and shows you all of them at once. Pick the one that fits. It becomes real, fully-editable WordPress blocks.', 'aldus' );
+			esc_html_e( 'You bring the words. Aldus shows you every way they could look — editorial spreads, cinematic heroes, newspaper columns, minimal typography, and more. Pick the one that fits. It becomes real WordPress blocks, fully editable, no lock-in.', 'aldus' );
 			?>
 		</p>
 
@@ -80,13 +80,18 @@ function aldus_render_admin_page(): void {
 
 		<h2 style="font-size:18px;"><?php esc_html_e( 'How it works', 'aldus' ); ?></h2>
 		<ol style="font-size:15px;line-height:2;color:#3c434a;max-width:580px;">
-			<li><?php esc_html_e( 'Open any post or page in the block editor.', 'aldus' ); ?></li>
-			<li><?php esc_html_e( 'Find the Aldus block in the block inserter (search for "Aldus").', 'aldus' ); ?></li>
-			<li><?php esc_html_e( 'Add your content pieces — headline, paragraphs, images, quotes, buttons.', 'aldus' ); ?></li>
-			<li><?php esc_html_e( 'Click "Make it happen". The model downloads once (~200 MB) and is cached in your browser forever.', 'aldus' ); ?></li>
-			<li><?php esc_html_e( 'Browse the layout previews. Click "Use this one" on the layout you like.', 'aldus' ); ?></li>
-			<li><?php esc_html_e( 'Aldus replaces itself with standard, fully-editable WordPress blocks. Done.', 'aldus' ); ?></li>
+			<li><?php esc_html_e( 'Open any post or page and insert the Aldus block.', 'aldus' ); ?></li>
+			<li><?php esc_html_e( 'Add what the page needs — headline, paragraphs, images, quotes, a button.', 'aldus' ); ?></li>
+			<li><?php esc_html_e( 'Click "Make it happen."', 'aldus' ); ?></li>
+			<li><?php esc_html_e( 'Browse every layout style. Click the one that fits.', 'aldus' ); ?></li>
+			<li><?php esc_html_e( 'Done — real WordPress blocks, ready to edit or publish.', 'aldus' ); ?></li>
 		</ol>
+		<p style="font-size:13px;color:#787c82;max-width:560px;margin-top:4px;">
+			<?php
+			// phpcs:ignore Generic.Files.LineLength.MaxExceeded
+			esc_html_e( 'The first time, the browser downloads a small AI model (~200 MB). After that, everything works instantly — even offline.', 'aldus' );
+			?>
+		</p>
 
 		<hr style="margin:36px 0;">
 
@@ -109,7 +114,7 @@ function aldus_render_admin_page(): void {
 			<?php
 			printf(
 				/* translators: %s = privacy policy guide link */
-				esc_html__( 'For details on what data Aldus sends to third-party services, see your site\'s %s.', 'aldus' ),
+				esc_html__( 'Nothing you write ever leaves your computer — the AI runs entirely in your browser. For the full privacy statement, see your site\'s %s.', 'aldus' ),
 				'<a href="' . esc_url( admin_url( 'privacy.php' ) ) . '">' . esc_html__( 'Privacy Policy Guide', 'aldus' ) . '</a>'
 			);
 			?>
@@ -138,90 +143,29 @@ function aldus_maybe_redirect_to_welcome(): void {
 }
 
 /**
- * Displays a one-time "What's New" admin notice after each version upgrade.
- *
- * The notice is shown once per user until they dismiss it or upgrade again.
- * Dismissal is handled via wp_ajax_aldus_dismiss_notice.
- */
-function aldus_whats_new_notice(): void {
-	$user_id     = get_current_user_id();
-	$dismissed_v = get_user_meta( $user_id, 'aldus_dismissed_notice_version', true );
-
-	if ( $dismissed_v === ALDUS_VERSION ) {
-		return;
-	}
-
-	if ( ! current_user_can( 'edit_posts' ) ) {
-		return;
-	}
-
-	$nonce   = wp_create_nonce( 'aldus_dismiss_notice' );
-	$version = esc_html( ALDUS_VERSION );
-	$label   = sprintf(
-		/* translators: plugin name + version number */
-		__( 'Aldus %s is installed.', 'aldus' ),
-		$version
-	);
-	$label = esc_html( $label );
-	$see   = esc_html__( 'See what improved in this release:', 'aldus' );
-	// phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- arrow character is intentional.
-	$notes = esc_html__( 'Release notes &rarr;', 'aldus' );
-	$url   = 'https://github.com/RegionallyFamous/aldus/wiki';
-	$js    = esc_js( $nonce );
-
-	// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- all variables escaped above.
-	echo '<div class="notice notice-info is-dismissible" id="aldus-whats-new">';
-	echo '<p><strong>' . $label . '</strong> ' . $see . ' ';
-	echo '<a href="' . esc_url( $url ) . '" target="_blank" rel="noopener noreferrer">' . $notes . '</a></p></div>';
-	echo '<script>document.querySelector("#aldus-whats-new .notice-dismiss")?.addEventListener("click",function(){';
-	echo 'fetch(ajaxurl,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},';
-	echo 'body:"action=aldus_dismiss_notice&nonce=' . $js . '"});});</script>';
-	// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
-}
-
-/**
- * AJAX handler: marks the current version's notice as dismissed for the current user.
- */
-function aldus_dismiss_notice(): void {
-	check_ajax_referer( 'aldus_dismiss_notice', 'nonce' );
-	if ( ! current_user_can( 'edit_posts' ) ) {
-		wp_die( '-1', '', array( 'response' => 403 ) );
-	}
-	update_user_meta( get_current_user_id(), 'aldus_dismissed_notice_version', ALDUS_VERSION );
-	wp_die();
-}
-
-/**
  * Registers Aldus privacy policy content in the Tools > Privacy Policy Guide.
  *
- * Informs site administrators that content items entered in the Aldus editor
- * are sent to a third-party AI API (OpenAI) for layout generation.
+ * Aldus runs its layout model entirely in the browser using WebGPU — no content
+ * is ever sent to an external AI service. This statement reflects that accurately.
  */
 function aldus_add_privacy_policy_content(): void {
 	if ( ! function_exists( 'wp_add_privacy_policy_content' ) ) {
 		return;
 	}
 
-	/* translators: Do not translate the product/company names in these strings. */
 	// phpcs:ignore Generic.Files.LineLength.MaxExceeded
-	$para1 = esc_html__( 'When you use the Aldus block to generate a layout, the content items you enter (headlines, paragraphs, image URLs, button labels, quotes) along with your site title and tagline are sent to a third-party AI API (OpenAI) for layout generation. No personally identifiable information about your site visitors is collected or transmitted.', 'aldus' );
-	/* translators: "api.openai.com" is a domain name and should not be translated. */
+	$para1 = esc_html__( 'Aldus runs its layout model entirely within your browser using WebGPU. No content is transmitted to any external AI service. Your content items (headlines, paragraphs, image URLs, button labels) are sent to your own WordPress site\'s REST API for block assembly — the data never leaves your server.', 'aldus' );
 	// phpcs:ignore Generic.Files.LineLength.MaxExceeded
-	$para2 = esc_html__( 'The OpenAI API key you supply in the Aldus settings is stored in your WordPress database and is only transmitted to api.openai.com over an encrypted (HTTPS) connection.', 'aldus' );
-	$para3 = sprintf(
-		/* translators: %s = linked text "OpenAI Privacy Policy" */
-		esc_html__( 'For details on how OpenAI handles your data, see the %s.', 'aldus' ),
-		'<a href="https://openai.com/policies/privacy-policy" target="_blank" rel="noopener noreferrer">'
-		. esc_html__( 'OpenAI Privacy Policy', 'aldus' )
-		. '</a>'
-	);
+	$para2 = esc_html__( 'The AI model file (~200 MB) is downloaded once from a public CDN (huggingface.co) and cached in your browser\'s storage. No account or API key is required.', 'aldus' );
+	// phpcs:ignore Generic.Files.LineLength.MaxExceeded
+	$para3 = esc_html__( 'Your site name and tagline are read locally to inform layout decisions. No personally identifiable information about your site visitors is collected or transmitted.', 'aldus' );
 
-	$content = '<h2>' . esc_html__( 'Aldus — Block Compositor', 'aldus' ) . '</h2>'
+	$content = '<h2>' . esc_html__( 'Aldus — Layout Explorer', 'aldus' ) . '</h2>'
 		. '<p>' . $para1 . '</p>'
 		. '<p>' . $para2 . '</p>'
 		. '<p>' . $para3 . '</p>';
 
-	wp_add_privacy_policy_content( 'Aldus — Block Compositor', $content );
+	wp_add_privacy_policy_content( 'Aldus — Layout Explorer', $content );
 }
 
 /**
@@ -253,7 +197,7 @@ function aldus_render_posts_column( mixed $column, mixed $post_id ): void {
 		return;
 	}
 	if ( has_block( 'aldus/layout-generator', $post ) ) {
-		echo '<span style="color:#0073aa;font-size:16px;" aria-label="' . esc_attr__( 'Uses Aldus', 'aldus' ) . '" title="' . esc_attr__( 'This post uses the Aldus block.', 'aldus' ) . '">✦</span>';
+		echo '<span style="color:#0073aa;font-size:16px;" aria-label="' . esc_attr__( 'Uses Aldus', 'aldus' ) . '" title="' . esc_attr__( 'This post was designed with Aldus.', 'aldus' ) . '">✦</span>';
 	} else {
 		echo '<span style="color:#ccc;" aria-hidden="true">—</span>';
 	}

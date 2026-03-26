@@ -64,9 +64,9 @@ const ERROR_MESSAGES = {
 		detail: __( 'Wait a moment, then try again.', 'aldus' ),
 	},
 	no_layouts: {
-		headline: __( 'None of the personalities clicked.', 'aldus' ),
+		headline: __( 'Not enough to work with.', 'aldus' ),
 		detail: __(
-			'Try adding a headline and at least one paragraph — that gives every style something to work with.',
+			'Add a headline and at least one paragraph — that gives every layout style enough content to arrange.',
 			'aldus'
 		),
 	},

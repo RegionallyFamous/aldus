@@ -63,16 +63,16 @@ export const LAYOUT_TAGLINES = {
 };
 
 export const LOADING_MESSAGES = [
-	__( 'Trying on every personality…', 'aldus' ),
-	__( 'Dispatch is being dramatic. Nocturne is being moody…', 'aldus' ),
+	__( 'Trying on every style…', 'aldus' ),
 	__( 'Your words, every which way…', 'aldus' ),
-	__( 'Almost ready to show you who it wants to be…', 'aldus' ),
+	__( 'Same content. Different energy. Almost there…', 'aldus' ),
+	__( 'Dispatch is being dramatic. Nocturne is being moody…', 'aldus' ),
 	__( 'Folio is arranging everything very carefully…', 'aldus' ),
 	__(
 		'Broadsheet wants more columns. Broadsheet always wants more columns.',
 		'aldus'
 	),
-	__( "Solstice is removing things. That's its whole personality.", 'aldus' ),
+	__( "Solstice is removing things. That's its whole thing.", 'aldus' ),
 	__( 'Stratum is stacking. Dark, light, accent. In that order.', 'aldus' ),
 	__( 'Tribune thinks this is front-page material.', 'aldus' ),
 	__( "Codex is choosing fonts and judging everyone else's.", 'aldus' ),

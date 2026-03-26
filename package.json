@@ -1,9 +1,9 @@
 {
 	"name": "aldus",
-	"version": "1.15.0",
+	"version": "1.16.0",
 	"description": "AI Block Compositor for WordPress",
 	"scripts": {
-		"build": "wp-scripts build",
+		"build": "wp-scripts build && npm run i18n:json",
 		"start": "wp-scripts start",
 		"lint": "npm run lint:js && npm run lint:css && npm run lint:php && npm run analyze:php",
 		"lint:js": "wp-scripts lint-js src/",

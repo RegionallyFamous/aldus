@@ -42,6 +42,7 @@ import { dispatch as wpDispatch } from '@wordpress/data';
 import { batchAssemble } from '../lib/batchAssemble.js';
 import { isValidAssembleResponse } from '../lib/api-utils.js';
 import { SCREEN } from '../constants.js';
+import { computeCoverage } from '../data/tokens.js';
 
 export function useAldusGeneration( {
 	initEngine,
@@ -49,7 +50,6 @@ export function useAldusGeneration( {
 	inferTokens,
 	enforceAnchors,
 	inferStyleDirection,
-	scoreCoverage,
 	inferLayoutDescription,
 	inferSectionLabel,
 	recommendPersonalities,
@@ -146,24 +146,34 @@ export function useAldusGeneration( {
 				engineWasReady = true;
 				onScreenChange( SCREEN.LOADING );
 
-				// Step 2: pre-generation intelligence — runs in parallel.
-				// Non-critical: failures produce safe empty defaults.
-				const [ styleResult, recommendResult, hintsResult ] =
+				// Step 2: pre-generation intelligence.
+				// Phase 2a — style + tone (single call, tone feeds recommendation).
+				// Non-critical: failure produces safe empty defaults.
+				const styleResult = await Promise.allSettled( [
+					inferStyleDirection( engine, manifest, items ),
+				] );
+				const autoStyle =
+					styleResult[ 0 ].status === 'fulfilled'
+						? styleResult[ 0 ].value?.style ?? ''
+						: '';
+				const autoTone =
+					styleResult[ 0 ].status === 'fulfilled'
+						? styleResult[ 0 ].value?.tone ?? ''
+						: '';
+				onStyleDetected( autoStyle );
+
+				// Phase 2b — recommendation (uses tone) + hints in parallel.
+				const [ recommendResult, hintsResult ] =
 					await Promise.allSettled( [
-						inferStyleDirection( engine, manifest, items ),
 						recommendPersonalities(
 							engine,
 							manifest,
-							personalities
+							personalities,
+							autoTone
 						),
 						analyzeContentHints( engine, manifest, items ),
 					] );
 
-				const autoStyle =
-					styleResult.status === 'fulfilled'
-						? styleResult.value?.style ?? ''
-						: '';
-				onStyleDetected( autoStyle );
 				onRecommendationsReady(
 					recommendResult.status === 'fulfilled'
 						? recommendResult.value?.recommended ?? []
@@ -219,13 +229,13 @@ export function useAldusGeneration( {
 				// Step 4: post-generation intelligence — coverage, descriptions, and
 				// the columns:28-72 section label (Folio's narrow label column).
 				// All run in parallel; results are indexed by personality.
-				const [ coverageSettled, descriptionSettled, labelSettled ] =
-					await Promise.all( [
-						Promise.allSettled(
-							tokenResults.map( ( tokens ) =>
-								scoreCoverage( engine, manifest, tokens )
-							)
-						),
+				// Coverage is computed deterministically — no LLM call needed.
+				const coverageResults = tokenResults.map( ( tokens ) =>
+					computeCoverage( manifest, tokens )
+				);
+
+				const [ descriptionSettled, labelSettled ] = await Promise.all(
+					[
 						Promise.allSettled(
 							tokenResults.map( ( tokens, i ) =>
 								inferLayoutDescription(
@@ -259,7 +269,8 @@ export function useAldusGeneration( {
 								return inferSectionLabel( engine, preview );
 							} )
 						),
-					] );
+					]
+				);
 
 				// Step 5: assemble block markup for each token sequence.
 				onProgress( {
@@ -307,10 +318,8 @@ export function useAldusGeneration( {
 							tokens: r.tokens ?? [],
 							sections: r.sections ?? [],
 							unusedTypes:
-								personalityIdx >= 0 &&
-								coverageSettled[ personalityIdx ]?.status ===
-									'fulfilled'
-									? coverageSettled[ personalityIdx ].value
+								personalityIdx >= 0
+									? coverageResults[ personalityIdx ]
 											?.unused ?? []
 									: [],
 							description:
@@ -447,7 +456,6 @@ export function useAldusGeneration( {
 			inferTokens,
 			enforceAnchors,
 			inferStyleDirection,
-			scoreCoverage,
 			inferLayoutDescription,
 			inferSectionLabel,
 			recommendPersonalities,

@@ -31,7 +31,13 @@ const STYLE_CHIPS = [
 	{ label: __( 'Magazine', 'aldus' ), value: 'magazine' },
 ];
 
-export function StyleNoteField( { value, onChange } ) {
+export function StyleNoteField( {
+	value,
+	onChange,
+	inferredStyle = null,
+	onApplyInferredStyle,
+	onDismissInferredStyle,
+} ) {
 	const [ expanded, setExpanded ] = useState( false );
 
 	const appendChip = ( chipValue ) => {
@@ -39,6 +45,27 @@ export function StyleNoteField( { value, onChange } ) {
 		onChange( current ? current + ', ' + chipValue : chipValue );
 		setExpanded( true );
 	};
+
+	const suggestionBanner = inferredStyle ? (
+		<div className="aldus-style-suggestion">
+			<span className="aldus-style-suggestion-label">
+				{ __( 'Suggested:', 'aldus' ) }
+			</span>
+			<button
+				className="aldus-style-suggestion-apply"
+				onClick={ onApplyInferredStyle }
+			>
+				{ inferredStyle }
+			</button>
+			<button
+				className="aldus-style-suggestion-dismiss"
+				aria-label={ __( 'Dismiss suggestion', 'aldus' ) }
+				onClick={ onDismissInferredStyle }
+			>
+				{ '✕' }
+			</button>
+		</div>
+	) : null;
 
 	if ( ! expanded && ! value ) {
 		return (
@@ -60,6 +87,7 @@ export function StyleNoteField( { value, onChange } ) {
 						</button>
 					) ) }
 				</div>
+				{ suggestionBanner }
 			</div>
 		);
 	}
@@ -89,6 +117,7 @@ export function StyleNoteField( { value, onChange } ) {
 				rows={ 2 }
 				__nextHasNoMarginBottom
 			/>
+			{ suggestionBanner }
 		</div>
 	);
 }

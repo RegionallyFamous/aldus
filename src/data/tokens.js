@@ -124,6 +124,31 @@ export const TOKEN_CONTENT_TYPES = {
 };
 
 /**
+ * Deterministically identifies manifest content types not covered by any
+ * token in the sequence.
+ *
+ * Replaces the LLM-based scoreCoverage call.  Uses TOKEN_CONTENT_TYPES to
+ * find which content types each token serves, then returns any manifest types
+ * that no token in the sequence covers.  Unused types are shown as a small
+ * badge on the layout card so the user knows what content is skipped.
+ *
+ * @param {Object}   manifest Map of content type → count (e.g. { image: 1, paragraph: 2 }).
+ * @param {string[]} tokens   Token sequence produced by inferTokens.
+ * @return {{ unused: string[] }} Object with unused content type array.
+ */
+export function computeCoverage( manifest, tokens ) {
+	const used = new Set();
+	for ( const token of tokens ) {
+		for ( const type of TOKEN_CONTENT_TYPES[ token ] ?? [] ) {
+			used.add( type );
+		}
+	}
+	return {
+		unused: Object.keys( manifest ).filter( ( t ) => ! used.has( t ) ),
+	};
+}
+
+/**
  * Returns a Set of personality names that are "best matches" for the given
  * items — i.e. every anchor token's required content type is present.
  * Returns at most 3 names, sorted by number of satisfied anchors (descending).
@@ -287,6 +312,48 @@ export const TOKEN_CONTENT_REQUIREMENTS = {
 	'gallery:2-col': 'gallery',
 	'gallery:3-col': 'gallery',
 };
+
+/**
+ * Scores how well each personality in `layouts` fits the given content manifest.
+ *
+ * For each layout personality, checks what fraction of anchor content types
+ * are satisfied by the items manifest. Returns a Map<label, score> where
+ * score is in [0, 1].
+ *
+ * @param {Array<{label: string, tokens?: string[]}>} layouts       Generated layouts.
+ * @param {Object}                                    manifest      Map of {[type]: count}.
+ * @param {Array<{name: string, anchors: string[]}>}  personalities ACTIVE_PERSONALITIES list.
+ * @return {Map<string, number>} Map from personality label to fit score.
+ */
+export function scorePersonalityFit( layouts, manifest, personalities ) {
+	const presentTypes = new Set( Object.keys( manifest ) );
+	const scores = new Map();
+
+	for ( const layout of layouts ) {
+		const personality = personalities.find(
+			( p ) => p.name === layout.label
+		);
+		if ( ! personality || ! personality.anchors?.length ) {
+			scores.set( layout.label, 0 );
+			continue;
+		}
+
+		let satisfied = 0;
+		for ( const anchor of personality.anchors ) {
+			const needed = TOKEN_CONTENT_TYPES[ anchor ] ?? [];
+			if (
+				needed.length === 0 ||
+				needed.every( ( t ) => presentTypes.has( t ) )
+			) {
+				satisfied++;
+			}
+		}
+
+		scores.set( layout.label, satisfied / personality.anchors.length );
+	}
+
+	return scores;
+}
 
 // Short display labels for token recipe strip on layout cards.
 export function tokenShortLabel( token ) {

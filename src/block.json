@@ -2,11 +2,11 @@
 	"$schema": "https://schemas.wp.org/trunk/block.json",
 	"apiVersion": 3,
 	"name": "aldus/layout-generator",
-	"version": "1.15.0",
+	"version": "1.16.0",
 	"title": "Aldus",
 	"category": "aldus",
 	"icon": "table-col-after",
-	"description": "Turn your content into a professionally designed layout. Add what you've got — Aldus shows you how it could look.",
+	"description": "You write it. Aldus shows you every way it could look — editorial, cinematic, minimal, and more. Pick the one that fits.",
 	"keywords": [
 		"layout",
 		"personality",

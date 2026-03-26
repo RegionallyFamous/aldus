@@ -78,6 +78,21 @@ function aldus_register_meta_and_bindings(): void {
 				},
 			)
 		);
+
+		// Stores a JSON array of the last 20 layout history entries for the UX history panel.
+		register_post_meta(
+			$post_type,
+			'_aldus_layout_history',
+			array(
+				'type'              => 'string',
+				'description'       => 'JSON-encoded array of Aldus layout history entries for this post.',
+				'single'            => true,
+				'default'           => '[]',
+				'show_in_rest'      => true,
+				'auth_callback'     => fn() => current_user_can( 'edit_posts' ),
+				'sanitize_callback' => 'sanitize_text_field',
+			)
+		);
 	}
 
 	// Block Bindings API requires WP 6.5+.

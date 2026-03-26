@@ -14,6 +14,7 @@
  */
 
 import { robustParse } from './robustParse.js';
+import { TOKEN_CONTENT_TYPES } from '../data/tokens.js';
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -73,16 +74,18 @@ function formatManifest( manifest ) {
 // ---------------------------------------------------------------------------
 
 /**
- * Infers a style direction phrase from the content manifest and items.
+ * Infers a style direction phrase and overall content tone from the manifest
+ * and items.
  *
- * The model picks from a closed vocabulary so hallucinated directions are
- * impossible. The result is prepended to the user's styleNote when running
- * token generation.
+ * Both fields use closed vocabularies so hallucinated values are impossible.
+ * The style is prepended to the user's styleNote when running token generation.
+ * The tone is passed to recommendPersonalities so personality ranking can
+ * factor in the emotional register of the content.
  *
  * @param {Object} engine   WebLLM engine instance.
  * @param {Object} manifest Map of content type → count.
  * @param {Array}  items    Content item objects (used for word-count previews).
- * @return {Promise<{style: string}>}  style is '' on failure.
+ * @return {Promise<{style: string, tone: string}>}  Both fields are '' on failure.
  */
 export async function inferStyleDirection( engine, manifest, items ) {
 	const STYLE_OPTIONS = [
@@ -91,10 +94,24 @@ export async function inferStyleDirection( engine, manifest, items ) {
 		'minimal product',
 		'cta-focused landing',
 		'dark atmospheric',
+		'data-driven structured',
+		'story-driven narrative',
+		'gallery portfolio',
+		'tutorial walkthrough',
+		'comparison showcase',
 		'mixed',
 	];
 
-	// Build short content preview: first 8 words of each paragraph / quote.
+	const TONE_OPTIONS = [
+		'professional',
+		'passionate',
+		'narrative',
+		'technical',
+		'playful',
+		'urgent',
+	];
+
+	// Build content preview: first 15 words of each paragraph / quote (up to 3).
 	const previews = items
 		.filter( ( i ) => i.type === 'paragraph' || i.type === 'quote' )
 		.slice( 0, 3 )
@@ -102,7 +119,7 @@ export async function inferStyleDirection( engine, manifest, items ) {
 			const words = ( i.content ?? '' )
 				.trim()
 				.split( /\s+/ )
-				.slice( 0, 8 );
+				.slice( 0, 15 );
 			return words.join( ' ' );
 		} )
 		.filter( Boolean );
@@ -112,18 +129,24 @@ export async function inferStyleDirection( engine, manifest, items ) {
 			? `\nContent preview: ${ previews.join( ' / ' ) }`
 			: '';
 
-	const prompt = `Given this content manifest, pick the single best style direction.
+	const prompt = `Given this content manifest, pick the best style direction and overall tone.
 Manifest: ${ formatManifest( manifest ) }${ previewSection }
 Style options: ${ STYLE_OPTIONS.join( ' | ' ) }
-Respond with valid JSON only: {"style": "..."}`;
+Tone options: ${ TONE_OPTIONS.join( ' | ' ) }
+Respond with valid JSON only: {"style": "...", "tone": "..."}`;
 
-	const result = await runInference( engine, prompt, 0.4, 32 );
+	// max_tokens: 48 (up from 32 to accommodate the second field)
+	const result = await runInference( engine, prompt, 0.4, 48 );
 	const style =
 		typeof result.style === 'string' &&
 		STYLE_OPTIONS.includes( result.style )
 			? result.style
 			: '';
-	return { style };
+	const tone =
+		typeof result.tone === 'string' && TONE_OPTIONS.includes( result.tone )
+			? result.tone
+			: '';
+	return { style, tone };
 }
 
 // ---------------------------------------------------------------------------
@@ -167,6 +190,12 @@ Respond with valid JSON only: {"unused": []}`;
 // 3. inferLayoutDescription
 // ---------------------------------------------------------------------------
 
+// Module-level cache keyed on personality name + token sequence.
+// Prevents duplicate inference calls when the same personality regenerates
+// with an identical token sequence (re-rolls, Mix screen revisits, etc.).
+// Clears on page reload — no explicit eviction needed.
+const layoutDescriptionCache = new Map();
+
 /**
  * Generates a short, dynamic description of how a layout arranges the user's
  * content, based on the actual token sequence produced for a personality.
@@ -180,6 +209,11 @@ Respond with valid JSON only: {"unused": []}`;
  * @return {Promise<{description: string}>}  description is '' on failure.
  */
 export async function inferLayoutDescription( engine, personality, tokens ) {
+	const cacheKey = personality.name + '|' + tokens.join( ',' );
+	if ( layoutDescriptionCache.has( cacheKey ) ) {
+		return layoutDescriptionCache.get( cacheKey );
+	}
+
 	const prompt = `Personality: "${ personality.name }" — ${
 		personality.description
 	}
@@ -193,7 +227,11 @@ Respond with valid JSON only: {"description": "..."}`;
 		result.description.trim().length >= 10
 			? result.description.trim()
 			: '';
-	return { description };
+	const cached = { description };
+	if ( description ) {
+		layoutDescriptionCache.set( cacheKey, cached );
+	}
+	return cached;
 }
 
 // ---------------------------------------------------------------------------
@@ -201,32 +239,73 @@ Respond with valid JSON only: {"description": "..."}`;
 // ---------------------------------------------------------------------------
 
 /**
+ * Scores each personality by how many of its anchor tokens have their
+ * required content type satisfied by the current manifest.
+ * Returns personalities sorted descending by score.
+ *
+ * @param {Object} manifest      Map of content type → count.
+ * @param {Array}  personalities Full personality objects (name, anchors).
+ * @return {Array<{personality: Object, score: number}>} Sorted scored personalities.
+ */
+function scorePersonalitiesByAnchors( manifest, personalities ) {
+	return personalities
+		.map( ( p ) => {
+			const score = ( p.anchors ?? [] ).filter( ( token ) => {
+				const required = TOKEN_CONTENT_TYPES[ token ] ?? [];
+				return required.every( ( type ) => !! manifest[ type ] );
+			} ).length;
+			return { personality: p, score };
+		} )
+		.sort( ( a, b ) => b.score - a.score );
+}
+
+/**
  * Picks 3 personalities whose anchor tokens best match the available content.
  *
- * The prompt lists only personality name + anchor tokens (no prose descriptions)
- * to keep the context short enough for reliable 360M output. The model acts
- * as a ranker: which personalities are most satisfiable given the manifest?
+ * Uses deterministic anchor-satisfaction scoring first.  Only invokes the
+ * LLM for a tiebreaker when 4+ personalities share the same score at the
+ * rank-3/4 boundary — the typical case (clear top-3) skips the LLM entirely.
  *
  * @param {Object} engine        WebLLM engine instance.
  * @param {Object} manifest      Map of content type → count.
  * @param {Array}  personalities Full personality objects (name, anchors).
+ * @param {string} [tone]        Optional tone string from inferStyleDirection.
  * @return {Promise<{recommended: string[]}>}  recommended is [] on failure.
  */
 export async function recommendPersonalities(
 	engine,
 	manifest,
-	personalities
+	personalities,
+	tone = ''
 ) {
-	const personalityLines = personalities
-		.map( ( p ) => `${ p.name }: ${ ( p.anchors ?? [] ).join( ', ' ) }` )
-		.join( '\n' );
+	const scored = scorePersonalitiesByAnchors( manifest, personalities );
 
-	const prompt = `Content manifest: ${ formatManifest( manifest ) }
-Personalities and their required layout tokens:
-${ personalityLines }
-Pick exactly 3 personality names that best match the available content types.
-Return only names from the list above.
-Respond with valid JSON only: {"recommended": ["Name1", "Name2", "Name3"]}`;
+	// Clear top-3 with no tie at the rank-3/4 boundary — skip the LLM entirely.
+	if ( scored.length < 4 || scored[ 2 ].score > scored[ 3 ].score ) {
+		return {
+			recommended: scored
+				.slice( 0, 3 )
+				.map( ( s ) => s.personality.name ),
+		};
+	}
+
+	// Tie at rank 3–4: pass only the tied candidates to the model so the
+	// prompt is short enough for reliable 360M output.
+	const tied = scored.filter( ( s ) => s.score === scored[ 3 ].score );
+	const candidates = [ ...scored.slice( 0, 3 ), ...tied ].slice( 0, 8 );
+	const candidateLines = candidates
+		.map(
+			( { personality: p } ) =>
+				`${ p.name }: ${ ( p.anchors ?? [] ).join( ', ' ) }`
+		)
+		.join( '\n' );
+	const toneHint = tone ? `\nContent tone: ${ tone }` : '';
+	const prompt = `Content manifest: ${ formatManifest(
+		manifest
+	) }${ toneHint }
+Candidates:
+${ candidateLines }
+Pick exactly 3 that best fit. Respond: {"recommended": ["Name1","Name2","Name3"]}`;
 
 	const result = await runInference( engine, prompt, 0.4, 48 );
 	const validNames = new Set( personalities.map( ( p ) => p.name ) );
@@ -235,7 +314,14 @@ Respond with valid JSON only: {"recommended": ["Name1", "Name2", "Name3"]}`;
 				.filter( ( n ) => typeof n === 'string' && validNames.has( n ) )
 				.slice( 0, 3 )
 		: [];
-	return { recommended };
+
+	// Fall back to top-3 deterministic scores if the LLM produced nothing.
+	return {
+		recommended:
+			recommended.length > 0
+				? recommended
+				: scored.slice( 0, 3 ).map( ( s ) => s.personality.name ),
+	};
 }
 
 // ---------------------------------------------------------------------------
