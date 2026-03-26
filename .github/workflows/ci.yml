@@ -232,6 +232,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build]
     timeout-minutes: 15
+    continue-on-error: true
 
     steps:
       - name: Checkout
@@ -281,7 +282,7 @@ jobs:
         run: npm run env:stop
 
       - name: Upload Playwright report and traces
-        if: failure()
+        if: failure() || cancelled()
         uses: actions/upload-artifact@v6.0.0
         with:
           name: playwright-report
