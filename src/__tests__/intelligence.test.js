@@ -112,7 +112,10 @@ describe( 'inferStyleDirection()', () => {
 			'{"style": "cta-focused landing", "tone": "urgent"}'
 		);
 		const result = await inferStyleDirection( engine, MANIFEST, ITEMS );
-		expect( result ).toEqual( { style: 'cta-focused landing', tone: 'urgent' } );
+		expect( result ).toEqual( {
+			style: 'cta-focused landing',
+			tone: 'urgent',
+		} );
 	} );
 
 	it( 'ignores an unknown tone value', async () => {
@@ -208,21 +211,20 @@ describe( 'inferLayoutDescription()', () => {
 
 	it( 'returns { description: "" } on parse failure', async () => {
 		const engine = makeEngine( 'I cannot help with that.' );
-		const result = await inferLayoutDescription(
-			engine,
-			PERSONALITY_FAIL,
-			[ 'cover:dark', 'heading:h2', 'separator' ]
-		);
+		const result = await inferLayoutDescription( engine, PERSONALITY_FAIL, [
+			'cover:dark',
+			'heading:h2',
+			'separator',
+		] );
 		expect( result ).toEqual( { description: '' } );
 	} );
 
 	it( 'returns { description: "" } when the engine rejects', async () => {
 		const engine = makeRejectedEngine();
-		const result = await inferLayoutDescription(
-			engine,
-			PERSONALITY_FAIL,
-			[ 'cover:dark', 'heading:h2' ]
-		);
+		const result = await inferLayoutDescription( engine, PERSONALITY_FAIL, [
+			'cover:dark',
+			'heading:h2',
+		] );
 		expect( result ).toEqual( { description: '' } );
 	} );
 } );

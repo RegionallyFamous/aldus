@@ -11,7 +11,14 @@ import {
 	useMemo,
 	useEffect,
 } from '@wordpress/element';
-import { Button, Notice, Popover, Spinner, Icon, TabPanel } from '@wordpress/components';
+import {
+	Button,
+	Notice,
+	Popover,
+	Spinner,
+	Icon,
+	TabPanel,
+} from '@wordpress/components';
 import { BlockPreview } from '@wordpress/block-editor';
 import { useSelect } from '@wordpress/data';
 import apiFetch from '@wordpress/api-fetch';
@@ -317,18 +324,24 @@ export function BuildingScreen( {
 					</div>
 				</div>
 
-			{ /* Mode tabs — uses core TabPanel for built-in ARIA roles and keyboard nav */ }
-			<TabPanel
-				className="aldus-mode-tabs"
-				tabs={ [
-					{ name: 'content', title: __( 'Your content', 'aldus' ) },
-					{ name: 'preview', title: __( 'Browse styles', 'aldus' ) },
-				] }
-				onSelect={ setBuildingMode }
-				initialTabName={ buildingMode }
-			>
-				{ () => null }
-			</TabPanel>
+				{ /* Mode tabs — uses core TabPanel for built-in ARIA roles and keyboard nav */ }
+				<TabPanel
+					className="aldus-mode-tabs"
+					tabs={ [
+						{
+							name: 'content',
+							title: __( 'Your content', 'aldus' ),
+						},
+						{
+							name: 'preview',
+							title: __( 'Browse styles', 'aldus' ),
+						},
+					] }
+					onSelect={ setBuildingMode }
+					initialTabName={ buildingMode }
+				>
+					{ () => null }
+				</TabPanel>
 			</header>
 
 			{ buildingMode === 'content' && (

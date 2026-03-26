@@ -52,7 +52,11 @@ export async function batchAssemble(
 					data,
 					signal: controller.signal,
 				} );
-				if ( window?.aldusDebug && response?.timing_ms != null ) {
+				if (
+					window?.aldusDebug &&
+					response?.timing_ms !== null &&
+					response?.timing_ms !== undefined
+				) {
 					// eslint-disable-next-line no-console
 					console.debug(
 						`[Aldus] ${ label } assembled in ${ response.timing_ms }ms`
