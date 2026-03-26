@@ -193,12 +193,20 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 	}
 
 	if ( '' === trim( $markup ) ) {
-		aldus_record_assembly_error( $personality );
-		return new WP_Error(
-			'empty_layout',
-			__( 'This style couldn\'t arrange your content well. Try a different style or add more content.', 'aldus' ),
-			array( 'status' => 422 )
-		);
+		// The token sequence produced no output for the given items (e.g. a
+		// 'gallery' token with no image items, or a 'paragraph' token with
+		// only 'details' items).  Rather than failing immediately, fall back
+		// to a simple block-per-item rendering so the caller always gets
+		// usable markup.  Only return 422 if even the fallback is empty.
+		$markup = aldus_render_fallback_markup( $items );
+		if ( '' === trim( $markup ) ) {
+			aldus_record_assembly_error( $personality );
+			return new WP_Error(
+				'empty_layout',
+				__( 'This style couldn\'t arrange your content well. Try a different style or add more content.', 'aldus' ),
+				array( 'status' => 422 )
+			);
+		}
 	}
 
 	/**
