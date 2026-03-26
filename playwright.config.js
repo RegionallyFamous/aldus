@@ -15,9 +15,12 @@ module.exports = defineConfig( {
 	workers: 1,
 	reporter: process.env.CI ? 'github' : 'list',
 
+	timeout: 90000,
+
 	use: {
 		baseURL: process.env.WP_BASE_URL ?? 'http://localhost:8888',
 		trace: 'on-first-retry',
+		screenshot: 'only-on-failure',
 		viewport: { width: 1280, height: 720 },
 	},
 

@@ -260,10 +260,10 @@ jobs:
 
       - name: Wait for WordPress to be ready
         run: |
-          echo "Waiting for WordPress at http://localhost:8888 ..."
+          echo "Waiting for WordPress login form at http://localhost:8888 ..."
           for i in $(seq 1 30); do
-            if curl -s -o /dev/null -w "%{http_code}" http://localhost:8888/wp-login.php | grep -q "200"; then
-              echo "WordPress is ready after ${i}×5s"
+            if curl -s http://localhost:8888/wp-login.php | grep -q 'id="user_login"'; then
+              echo "WordPress login form is ready after attempt $i"
               break
             fi
             echo "Attempt $i/30 — not ready yet, sleeping 5s"
