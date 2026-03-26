@@ -27,14 +27,13 @@ module.exports = {
 	// @wordpress/* packages use package.json `exports` maps. Under Jest's
 	// coverage transform the conditional exports resolution can fail because
 	// the coverage instrumentation runs in a different resolution context.
-	// Pinning both packages to their known CJS entry points avoids the
-	// intermittent "Cannot find module" errors that appear only with --coverage.
+	// Using require.resolve() pins each package to its actual CJS entry point
+	// at config-load time, using standard Node.js module resolution so the
+	// path is always correct regardless of the installed package version.
 	moduleNameMapper: {
 		...defaultConfig.moduleNameMapper,
-		'^@wordpress/api-fetch$':
-			'<rootDir>/node_modules/@wordpress/api-fetch/build/index.cjs',
-		'^@wordpress/i18n$':
-			'<rootDir>/node_modules/@wordpress/i18n/build/index.cjs',
+		'^@wordpress/api-fetch$': require.resolve( '@wordpress/api-fetch' ),
+		'^@wordpress/i18n$': require.resolve( '@wordpress/i18n' ),
 	},
 
 	// ---------------------------------------------------------------------------

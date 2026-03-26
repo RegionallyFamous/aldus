@@ -3,7 +3,7 @@
 	"version": "1.17.0",
 	"description": "AI Block Compositor for WordPress",
 	"scripts": {
-		"build": "wp-scripts build --blocks-manifest && npm run i18n:json",
+		"build": "wp-scripts build --blocks-manifest",
 		"start": "wp-scripts start",
 		"lint": "npm run lint:js && npm run lint:css && npm run lint:php && npm run analyze:php",
 		"lint:js": "wp-scripts lint-js src/",
@@ -35,7 +35,7 @@
 		"release:major": "node scripts/release.js --bump major",
 		"release:zip": "bash bin/release-zip.sh",
 		"i18n:pot": "wp i18n make-pot . languages/aldus.pot --exclude=node_modules,build,vendor,tests",
-		"i18n:json": "wp-scripts i18n-make-json languages --no-purge"
+		"i18n:json": "wp i18n make-json languages/aldus.pot languages/ --no-purge"
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.58.2",
