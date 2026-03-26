@@ -90,13 +90,16 @@ function aldus_init(): void {
 		require_once ALDUS_PATH . 'includes/admin-page.php';
 	}
 
-	add_action( 'init', 'aldus_register_block' );
+	// Load text domain at priority 1 so it is available before register_block_type()
+	// (priority 10) translates block.json title/description via __() in WP 6.7+.
 	add_action(
 		'init',
 		static function (): void {
 			load_plugin_textdomain( 'aldus', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
-		}
+		},
+		1
 	);
+	add_action( 'init', 'aldus_register_block' );
 	add_action( 'rest_api_init', 'aldus_register_rest_routes' );
 
 	// Flush cached theme data whenever the active theme or Customizer settings change.
