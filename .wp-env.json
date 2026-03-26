@@ -1,7 +1,7 @@
 {
   "core": "WordPress/WordPress",
   "plugins": [ "." ],
-  "themes": [ "twentytwentyfour" ],
+  "themes": [ "https://downloads.wordpress.org/theme/twentytwentyfour.latest-stable.zip" ],
   "env": {
     "development": {
       "port": 8888,

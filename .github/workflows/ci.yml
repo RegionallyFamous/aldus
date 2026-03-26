@@ -331,4 +331,5 @@ jobs:
             hidden_files
             github_directory
             unexpected_markdown_file
+            missing_direct_file_access_protection
             application_detected
