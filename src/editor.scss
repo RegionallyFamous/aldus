@@ -1408,13 +1408,13 @@
 		line-height: 1.4;
 		box-shadow: none;
 
-		& + & {
-			border-inline-start: 1px solid var(--wp-admin-border-color, #e0e0e0);
-		}
-
 		&:hover {
 			background: var(--wp-components-color-background, #fff);
 			color: var(--wp-components-color-foreground, #1e1e1e);
+		}
+
+		& + & {
+			border-inline-start: 1px solid var(--wp-admin-border-color, #e0e0e0);
 		}
 
 		&.is-active {

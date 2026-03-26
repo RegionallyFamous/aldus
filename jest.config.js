@@ -24,16 +24,14 @@ module.exports = {
 	// Module resolution
 	// ---------------------------------------------------------------------------
 
-	// @wordpress/* packages use package.json `exports` maps. Under Jest's
-	// coverage transform the conditional exports resolution can fail because
-	// the coverage instrumentation runs in a different resolution context.
-	// Using require.resolve() pins each package to its actual CJS entry point
-	// at config-load time, using standard Node.js module resolution so the
-	// path is always correct regardless of the installed package version.
+	// @wordpress/* packages that are not direct dependencies are mapped to
+	// manual mocks in __mocks__/@wordpress/. This avoids require.resolve()
+	// calls at config-load time that fail when the package is only a
+	// transitive dependency and may not be hoisted into node_modules.
 	moduleNameMapper: {
 		...defaultConfig.moduleNameMapper,
-		'^@wordpress/api-fetch$': require.resolve( '@wordpress/api-fetch' ),
-		'^@wordpress/i18n$': require.resolve( '@wordpress/i18n' ),
+		'^@wordpress/api-fetch$': '<rootDir>/__mocks__/@wordpress/api-fetch.js',
+		'^@wordpress/i18n$': '<rootDir>/__mocks__/@wordpress/i18n.js',
 	},
 
 	// ---------------------------------------------------------------------------
