@@ -67,4 +67,5 @@ jobs:
           gh release create "${{ github.ref_name }}" \
             --title "Aldus ${{ steps.version.outputs.value }}" \
             --notes-file /tmp/release-notes.md \
+            --clobber \
             releases/aldus-${{ steps.version.outputs.value }}.zip
