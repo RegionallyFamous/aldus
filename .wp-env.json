@@ -2,13 +2,10 @@
   "core": "WordPress/WordPress",
   "plugins": [ "." ],
   "themes": [ "https://downloads.wordpress.org/theme/twentytwentyfour.latest-stable.zip" ],
+  "testsEnvironment": false,
   "env": {
     "development": {
       "port": 8888,
-      "phpVersion": "8.1"
-    },
-    "tests": {
-      "port": 8889,
       "phpVersion": "8.1"
     }
   }
