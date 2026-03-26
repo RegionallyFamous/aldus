@@ -24,10 +24,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Returns the class string for the root <div> of a core/columns block.
  *
+ * WordPress adds is-layout-flex and wp-block-columns-is-layout-flex at
+ * render time via wp_render_layout_support_flag() — they must not appear
+ * in saved innerContent markup.
+ *
  * @param bool $stacked_on_mobile When false the "is-not-stacked-on-mobile" class is appended.
  */
 function aldus_columns_classes( bool $stacked_on_mobile ): string {
-	$base = 'wp-block-columns is-layout-flex wp-block-columns-is-layout-flex';
+	$base = 'wp-block-columns';
 	return $stacked_on_mobile ? $base : $base . ' is-not-stacked-on-mobile';
 }
 
@@ -38,11 +42,14 @@ function aldus_columns_classes( bool $stacked_on_mobile ): string {
 /**
  * Returns the class string for the inner <div> of a core/column block.
  *
+ * WordPress adds is-layout-flow and wp-block-column-is-layout-flow at
+ * render time — they must not appear in saved innerContent markup.
+ *
  * @param string $bg_slug Optional background color slug.
  *                        When provided, has-background classes are appended.
  */
 function aldus_column_classes( string $bg_slug = '' ): string {
-	$base = 'wp-block-column is-layout-flow wp-block-column-is-layout-flow';
+	$base = 'wp-block-column';
 	if ( $bg_slug !== '' ) {
 		$safe  = sanitize_html_class( $bg_slug );
 		$base .= " has-{$safe}-background-color has-background";
@@ -108,7 +115,13 @@ function aldus_cover_inner_classes(): string {
 /**
  * Returns the class string for the root <div> of a core/group block.
  *
- * @param string $layout_type    'constrained' or 'flow'.
+ * The $layout_type parameter is kept for backward compatibility with all
+ * callers but is no longer interpolated into the class string. WordPress
+ * adds is-layout-{type} and wp-block-group-is-layout-{type} at render
+ * time via wp_render_layout_support_flag(). The layout type must still be
+ * included in the block's attrs array (e.g. 'layout' => ['type' => 'constrained']).
+ *
+ * @param string $layout_type    'constrained' or 'flow' — stored in block attrs only.
  * @param string $align          'full', 'wide', or '' for no alignment class.
  * @param string $bg_slug        Theme background color slug, or ''.
  * @param string $text_slug      Theme text color slug, or ''.
@@ -121,7 +134,7 @@ function aldus_group_classes(
 	string $text_slug = '',
 	string $gradient_slug = ''
 ): string {
-	$classes = "wp-block-group is-layout-{$layout_type} wp-block-group-is-layout-{$layout_type}";
+	$classes = 'wp-block-group';
 	if ( $align !== '' ) {
 		$classes .= " align{$align}";
 	}
@@ -146,9 +159,13 @@ function aldus_group_classes(
 
 /**
  * Returns the class string for the root <div> of a core/buttons block.
+ *
+ * WordPress adds is-layout-flex and wp-block-buttons-is-layout-flex at
+ * render time — they must not appear in saved innerContent markup. The
+ * layout config belongs in the block's attrs array only.
  */
 function aldus_buttons_classes(): string {
-	return 'wp-block-buttons is-layout-flex wp-block-buttons-is-layout-flex';
+	return 'wp-block-buttons';
 }
 
 // ---------------------------------------------------------------------------

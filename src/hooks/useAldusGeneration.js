@@ -41,6 +41,7 @@ import { speak } from '@wordpress/a11y';
 import { dispatch as wpDispatch } from '@wordpress/data';
 import { batchAssemble } from '../lib/batchAssemble.js';
 import { isValidAssembleResponse } from '../lib/api-utils.js';
+import { SCREEN } from '../constants.js';
 
 export function useAldusGeneration( {
 	initEngine,
@@ -143,7 +144,7 @@ export function useAldusGeneration( {
 				// Step 1: initialise/download the engine.
 				const engine = await initEngine();
 				engineWasReady = true;
-				onScreenChange( 'loading' );
+				onScreenChange( SCREEN.LOADING );
 
 				// Step 2: pre-generation intelligence — runs in parallel.
 				// Non-critical: failures produce safe empty defaults.
@@ -335,7 +336,7 @@ export function useAldusGeneration( {
 				}
 
 				onLayoutsReady( assembled );
-				onScreenChange( 'results' );
+				onScreenChange( SCREEN.RESULTS );
 				speak(
 					sprintf(
 						/* translators: %d: number of generated layouts */

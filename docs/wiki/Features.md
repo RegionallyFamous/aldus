@@ -109,12 +109,13 @@ Instead of building your content list from scratch, you can load a preset that f
 
 | Preset | What it includes |
 |---|---|
-| Blog post | Headline, 2 Paragraphs, Image |
-| Landing page | Headline, Subheading, Button |
-| Feature story | Headline, Quote, 2 Paragraphs, Image |
-| Product pitch | Headline, List, Button |
-| Visual portfolio | Headline, Gallery |
-| Product comparison | Headline, Table, Button |
+| Blog post | Headline · 2 Paragraphs · Image |
+| Landing page | Headline · Subheading · Paragraph · Image · Button |
+| Feature story | Headline · Quote · 2 Paragraphs · Image |
+| Product pitch | Headline · Paragraph · List · Button |
+| Portfolio | Headline · Paragraph · Gallery · Button |
+| Tutorial | Headline · Intro · Code · Explanation · Image |
+| Comparison | Headline · Table · Paragraph · Button |
 
 Presets are shown as text links directly on the empty state screen — no need to open a sidebar panel. Click a preset name to instantly populate the content list with the appropriate content types, then fill in your actual text, images, and links.
 
@@ -122,12 +123,12 @@ Presets are shown as text links directly on the empty state screen — no need t
 
 ## Pack Previews
 
-Pack Previews let you see all sixteen personalities with themed sample content — no model download required.
+Pack Previews let you see all layout styles with themed sample content — no model download required.
 
 **How to use it:**
 1. Open the **Pack Previews** panel in the block sidebar (or click **Try a sample** in the empty block state)
-2. Choose one of the seven themed packs
-3. Aldus instantly generates all sixteen layouts using the pack's content
+2. Choose one of the nine themed packs
+3. Aldus instantly generates all layouts using the pack's content
 
 You can browse the results, expand cards, and get a feel for each personality before using your own content.
 
@@ -198,7 +199,7 @@ If you already have blocks on your page — a heading, a paragraph, an image —
 
 Aldus extracts what it can from each block: text from headings and paragraphs becomes Headline, Subheading, or Paragraph items; image URLs become Image items; list content becomes a List item; quote text becomes a Quote item; and so on.
 
-After the transform, generation starts automatically after a 300 ms delay — you go straight from "I have blocks" to seeing sixteen layouts without any extra clicks.
+After the transform, generation starts automatically after a 300 ms delay — you go straight from "I have blocks" to seeing all layouts without any extra clicks.
 
 ---
 

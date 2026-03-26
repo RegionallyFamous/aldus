@@ -50,8 +50,17 @@ export function useAldusEngine( {
 	 * @throws {Error} If the download is aborted or initialisation fails.
 	 */
 	const initEngine = useCallback( async () => {
+		// Verify the cached engine is still healthy before reusing it.
+		// An engine that previously errored may be set to a non-null but
+		// non-functional value; check for the presence of a known method.
 		if ( engineRef.current ) {
-			return engineRef.current;
+			const engine = engineRef.current;
+			if ( typeof engine.chat?.completions?.create === 'function' ) {
+				return engine;
+			}
+			// Engine is corrupt — clear it and re-init.
+			engineRef.current = null;
+			initPromiseRef.current = null;
 		}
 
 		// Deduplicate concurrent calls: return the in-flight promise so every
@@ -180,10 +189,26 @@ export function useAldusEngine( {
 	] );
 
 	/**
-	 * Destroys the engine reference (does not unload from browser cache).
+	 * Disposes the WebLLM engine, releasing GPU/VRAM, then clears the ref.
+	 * Safe to call when no engine has been initialised.
 	 */
-	const destroyEngine = useCallback( () => {
+	const destroyEngine = useCallback( async () => {
+		const engine = engineRef.current;
 		engineRef.current = null;
+		initPromiseRef.current = null;
+		if ( engine ) {
+			try {
+				// WebLLM exposes unload() to release model weights from VRAM.
+				// Use it if available; fall back to destroy() for older versions.
+				if ( typeof engine.unload === 'function' ) {
+					await engine.unload();
+				} else if ( typeof engine.destroy === 'function' ) {
+					await engine.destroy();
+				}
+			} catch {
+				// Disposal errors are non-fatal — the ref is already cleared.
+			}
+		}
 	}, [] );
 
 	return { engineRef, abortRef, initEngine, destroyEngine };

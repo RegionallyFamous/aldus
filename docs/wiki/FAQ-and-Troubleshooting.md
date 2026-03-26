@@ -6,7 +6,7 @@
 
 ### What is Aldus?
 
-Aldus is a single WordPress block that composes your content into a fully-laid-out page. You add content pieces (headlines, paragraphs, images, quotes, buttons, etc.), and Aldus generates sixteen different layout proposals — one per named personality — using a small AI model that runs entirely in your browser.
+Aldus is a single WordPress block that composes your content into a fully-laid-out page. You add content pieces (headlines, paragraphs, images, quotes, buttons, etc.), and Aldus generates layout proposals — one per named personality — using a small AI model that runs entirely in your browser.
 
 You pick the layout you like, click **Use this one**, and Aldus replaces itself with standard WordPress blocks.
 
@@ -98,9 +98,9 @@ Only for the initial download. Once cached, the model runs entirely offline. You
 
 ## Layout generation
 
-### Why do all sixteen personalities run at the same time?
+### Why do all personalities run at the same time?
 
-Because it's faster and more useful. Running them in parallel means you see all sixteen layout proposals simultaneously rather than waiting for each one sequentially. It also makes comparison easy — the same content, sixteen different visual interpretations, side by side.
+Because it's faster and more useful. Running them in parallel means you see all layout proposals simultaneously rather than waiting for each one sequentially. It also makes comparison easy — the same content, many different visual interpretations, side by side.
 
 ### Can I run just one personality?
 
@@ -122,7 +122,7 @@ Yes. Click **Regenerate** (or press `⇧⌘R`) to re-run all personalities with 
 
 ### What version of WordPress does Aldus require?
 
-WordPress 6.2 or later. Aldus uses the block editor (Gutenberg) exclusively and requires block editor APIs introduced in WP 6.x.
+WordPress 6.4 or later. Aldus uses the block editor (Gutenberg) exclusively and requires block editor APIs introduced in WP 6.x.
 
 ### Does Aldus work with classic themes?
 
@@ -150,7 +150,7 @@ In **Persistent Wrapper mode** you never lose access — the Aldus block stays i
 
 ### Can I use Aldus multiple times on the same page?
 
-Yes. Each Aldus block is independent — you can have multiple Aldus blocks on a single page, each with different content and generating different layout proposals. After insertion, each becomes a group of standard blocks.
+No — one Aldus block per page (`"multiple": false`). Aldus is a composition tool rather than a repeatable widget. Once you insert a layout it becomes standard blocks, so the Aldus block is freed up for use elsewhere. If you need to redesign part of a page, add Aldus to that section and generate layouts for just that content.
 
 ---
 

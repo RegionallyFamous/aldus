@@ -494,7 +494,7 @@ export function BuildingScreen( {
 						<OnboardingTooltip
 							show={ onboardingStep === 2 }
 							text={ __(
-								'Hit "Make it happen" to see sixteen layout options for your content. The AI model downloads once (~200 MB) and is cached in your browser forever.',
+								'Hit "Make it happen" to see all layout options for your content. The AI model downloads once (~200 MB) and is cached in your browser forever.',
 								'aldus'
 							) }
 							onDismiss={ onOnboardingNext }
@@ -654,7 +654,7 @@ function EmptyState( {
 			</p>
 			<p className="aldus-empty-sub">
 				{ __(
-					'Add your content, then Aldus shows you sixteen ways to arrange it.',
+					'Add your content, then Aldus shows you how to arrange it.',
 					'aldus'
 				) }
 			</p>

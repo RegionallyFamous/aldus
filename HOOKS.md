@@ -10,7 +10,7 @@ All documented action and filter hooks provided by the Aldus plugin. Use these t
 
 Modify the built-in personality map. Add custom personalities, remove built-ins, or change the anchor tokens required for existing ones.
 
-**File:** `includes/api.php`
+**File:** `includes/tokens.php`
 
 ```php
 apply_filters( 'aldus_personalities', array<string, string[]> $personalities )
@@ -35,7 +35,7 @@ add_filter( 'aldus_personalities', function( $personalities ) {
 
 Add custom token strings to the allowed list. Tokens not in this list are stripped before rendering.
 
-**File:** `includes/api.php`
+**File:** `includes/tokens.php`
 
 ```php
 apply_filters( 'aldus_valid_tokens', string[] $tokens )
@@ -85,7 +85,7 @@ apply_filters( 'aldus_assembled_blocks', string $markup, string $personality, ar
 
 Override or extend the CSS/style rules injected for a given personality. Runs inside `aldus_get_personality_style_rules()`.
 
-**File:** `includes/templates.php`
+**File:** `includes/personality.php`
 
 ```php
 apply_filters( 'aldus_personality_style_rules', array $rules )
@@ -181,7 +181,7 @@ Returns the current Aldus configuration: registered personalities, plugin versio
 
 ```json
 {
-  "version": "1.6.0",
+  "version": "1.14.0",
   "personalities": [
     { "slug": "dispatch", "label": "Dispatch", "source": "builtin" },
     { "slug": "my-magazine", "label": "My Magazine", "source": "registered" }

@@ -2,15 +2,15 @@
 
 **You write the words. Aldus figures out the page.**
 
-Drop in a headline, some paragraphs, an image, a quote, a button. Click **Make it happen**. In seconds, sixteen completely different layouts appear — each one a fully-composed, edit-ready WordPress page built from your actual content. Pick the one that feels right. Done.
+Drop in a headline, some paragraphs, an image, a quote, a button. Click **Make it happen**. In seconds, your layouts appear — each one a fully-composed, edit-ready WordPress page built from your actual content. Pick the one that feels right. Done.
 
 No templates. No drag-and-drop. No theme builder subscription. No AI account. The model runs in your browser and your content never leaves your site.
 
 ---
 
-## Sixteen ways to be interesting
+## Every way to be interesting
 
-Every layout proposal comes from a named personality — a distinct visual voice with its own opinion about how your content should be arranged. Same content, sixteen different results.
+Every layout proposal comes from a named personality — a distinct visual voice with its own opinion about how your content should be arranged. Same content, different results.
 
 | Personality | Vibe |
 |---|---|
@@ -38,11 +38,11 @@ Every layout proposal comes from a named personality — a distinct visual voice
 **1. Tell Aldus what you have.**
 Click a content type — Headline, Paragraph, Image, Quote, Button, and more. The type buttons are the first thing you see. Once you've added at least one piece of content, style chips and the generate button appear below. You can also import your post title or existing page copy as a starting point.
 
-**2. Aldus proposes sixteen layouts.**
+**2. Aldus proposes layouts.**
 A small AI model downloads once to your browser — about 200 MB, cached forever after that. It looks at the *shape* of your content (how many paragraphs, whether you have an image, etc.) and proposes a different layout sequence for each personality. Your actual words never leave your site.
 
 **3. You pick one and it becomes real blocks.**
-Browse the sixteen layout cards. Each shows a wireframe so you can scan the rhythm at a glance. Hover a card to reveal the **Use this one** button at the bottom — or click the eye icon in the top-right corner to expand a full preview first. Hit **Use this one** and Aldus replaces itself with standard, editable WordPress blocks — no lock-in, no custom markup, nothing you can't move or delete.
+Browse the layout cards. Each shows a wireframe so you can scan the rhythm at a glance. Hover a card to reveal the **Use this one** button at the bottom — or click the eye icon in the top-right corner to expand a full preview first. Hit **Use this one** and Aldus replaces itself with standard, editable WordPress blocks — no lock-in, no custom markup, nothing you can't move or delete.
 
 ---
 
@@ -54,14 +54,14 @@ Browse the sixteen layout cards. Each shows a wireframe so you can scan the rhyt
 - **Mix & Match** — combine the best sections from different personalities into a single custom layout
 - **Saved Sessions** — snapshot your content and results, come back to them later
 - **Quick Start presets** — jump in with a sensible content structure for a blog post, landing page, feature story, product pitch, visual portfolio, or product comparison — accessible right from the empty state
-- **Seven sample packs** — try all sixteen personalities instantly with themed content: Roast, Meridian, Hearth, Plume, Grove, Loot, and Signal — no model download needed
+- **Nine sample packs** — try every personality style instantly with themed content: Roast, Meridian, Hearth, Plume, Grove, Loot, Signal, Forge, and Slim — no model download needed
 - **Completeness hints** — colored prompts that tell you which content type would unlock more layout options
 
 ---
 
 ## Requirements
 
-- WordPress 6.2 or later
+- WordPress 6.4 or later
 - Chrome 113+, Edge 113+, or Safari 18+ (Firefox doesn't support WebGPU yet)
 - No API key. No account. No subscription.
 

@@ -459,9 +459,15 @@ function aldus_pick_gradient( array $gradients ): string {
  * font sizes, and gradient entries are re-read after any theme change.
  */
 function aldus_flush_theme_cache(): void {
-	wp_cache_delete( 'aldus_palette_' . ALDUS_VERSION, 'aldus' );
-	wp_cache_delete( 'aldus_font_sizes_' . ALDUS_VERSION, 'aldus' );
-	wp_cache_delete( 'aldus_gradients_' . ALDUS_VERSION, 'aldus' );
+	$v = ALDUS_VERSION;
+	wp_cache_delete( 'aldus_palette_' . $v, 'aldus' );
+	wp_cache_delete( 'aldus_font_sizes_' . $v, 'aldus' );
+	wp_cache_delete( 'aldus_gradients_' . $v, 'aldus' );
+	wp_cache_delete( 'aldus_content_size_' . $v, 'aldus' );
+	wp_cache_delete( 'aldus_wide_size_' . $v, 'aldus' );
+	wp_cache_delete( 'aldus_spacing_map_' . $v, 'aldus' );
+	wp_cache_delete( 'aldus_spacer_scale_' . $v, 'aldus' );
+	wp_cache_delete( 'aldus_appearance_tools_' . $v, 'aldus' );
 }
 
 /**

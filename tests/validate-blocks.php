@@ -131,23 +131,24 @@ function check_equals( string $label, mixed $actual, mixed $expected ): void {
 $stacked     = aldus_columns_classes( true );
 $not_stacked = aldus_columns_classes( false );
 
-check_contains( 'columns/stacked: base classes',     $stacked,     'wp-block-columns' );
-check_contains( 'columns/stacked: is-layout-flex',   $stacked,     'is-layout-flex' );
-check_contains( 'columns/stacked: is-layout-suffix', $stacked,     'wp-block-columns-is-layout-flex' );
-check_not_contains( 'columns/stacked: no not-stacked', $stacked,   'is-not-stacked-on-mobile' );
+check_contains( 'columns/stacked: base classes',        $stacked,     'wp-block-columns' );
+check_not_contains( 'columns/stacked: no is-layout-flex',   $stacked, 'is-layout-flex' );
+check_not_contains( 'columns/stacked: no is-layout-suffix', $stacked, 'wp-block-columns-is-layout-flex' );
+check_not_contains( 'columns/stacked: no not-stacked',      $stacked, 'is-not-stacked-on-mobile' );
 
-check_contains( 'columns/not-stacked: base classes',     $not_stacked, 'wp-block-columns' );
-check_contains( 'columns/not-stacked: not-stacked class', $not_stacked, 'is-not-stacked-on-mobile' );
+check_contains( 'columns/not-stacked: base classes',        $not_stacked, 'wp-block-columns' );
+check_contains( 'columns/not-stacked: not-stacked class',   $not_stacked, 'is-not-stacked-on-mobile' );
+check_not_contains( 'columns/not-stacked: no is-layout',    $not_stacked, 'is-layout-flex' );
 
 // ===========================================================================
 // GROUP 2: core/column helpers
 // ===========================================================================
 
 $col_plain = aldus_column_classes();
-check_contains( 'column/plain: base class',          $col_plain, 'wp-block-column' );
-check_contains( 'column/plain: is-layout-flow',      $col_plain, 'is-layout-flow' );
-check_contains( 'column/plain: layout suffix',       $col_plain, 'wp-block-column-is-layout-flow' );
-check_not_contains( 'column/plain: no bg',           $col_plain, 'has-background' );
+check_contains( 'column/plain: base class',              $col_plain, 'wp-block-column' );
+check_not_contains( 'column/plain: no is-layout-flow',   $col_plain, 'is-layout-flow' );
+check_not_contains( 'column/plain: no layout suffix',    $col_plain, 'wp-block-column-is-layout-flow' );
+check_not_contains( 'column/plain: no bg',               $col_plain, 'has-background' );
 
 $col_bg = aldus_column_classes( 'primary' );
 check_contains( 'column/bg: bg color class',         $col_bg, 'has-primary-background-color' );
@@ -200,14 +201,14 @@ check_not_contains( 'cover/inner: no suffix',    $cover_inner, 'wp-block-cover-i
 // ===========================================================================
 
 $group_c = aldus_group_classes();
-check_contains( 'group/constrained: base',     $group_c, 'wp-block-group' );
-check_contains( 'group/constrained: layout',   $group_c, 'is-layout-constrained' );
-check_contains( 'group/constrained: suffix',   $group_c, 'wp-block-group-is-layout-constrained' );
-check_not_contains( 'group/constrained: no align', $group_c, 'alignfull' );
+check_contains( 'group/constrained: base',             $group_c, 'wp-block-group' );
+check_not_contains( 'group/constrained: no layout',    $group_c, 'is-layout-constrained' );
+check_not_contains( 'group/constrained: no suffix',    $group_c, 'wp-block-group-is-layout-constrained' );
+check_not_contains( 'group/constrained: no align',     $group_c, 'alignfull' );
 
 $group_flow = aldus_group_classes( 'flow' );
-check_contains( 'group/flow: layout',          $group_flow, 'is-layout-flow' );
-check_contains( 'group/flow: suffix',          $group_flow, 'wp-block-group-is-layout-flow' );
+check_not_contains( 'group/flow: no layout',   $group_flow, 'is-layout-flow' );
+check_not_contains( 'group/flow: no suffix',   $group_flow, 'wp-block-group-is-layout-flow' );
 
 $group_full = aldus_group_classes( 'constrained', 'full' );
 check_contains( 'group/full: alignfull',       $group_full, 'alignfull' );
@@ -227,9 +228,9 @@ check_not_contains( 'group/gradient: no solid-bg', $group_gradient, 'has-vivid-s
 // ===========================================================================
 
 $buttons = aldus_buttons_classes();
-check_contains( 'buttons: base',    $buttons, 'wp-block-buttons' );
-check_contains( 'buttons: flex',    $buttons, 'is-layout-flex' );
-check_contains( 'buttons: suffix',  $buttons, 'wp-block-buttons-is-layout-flex' );
+check_contains( 'buttons: base',             $buttons, 'wp-block-buttons' );
+check_not_contains( 'buttons: no flex',      $buttons, 'is-layout-flex' );
+check_not_contains( 'buttons: no suffix',    $buttons, 'wp-block-buttons-is-layout-flex' );
 
 $btn_link = aldus_button_link_classes();
 check_contains( 'button-link: base',        $btn_link, 'wp-block-button__link' );
@@ -265,9 +266,13 @@ check_equals( 'media-text/style-38-right', aldus_media_text_style( 38, 'right' )
 // ===========================================================================
 
 // Build a sample columns div and verify the full class attr is correct.
+// Layout classes (is-layout-flex etc.) are injected by WordPress at render
+// time and must not appear in saved markup.
 $sample_cols_html = '<div class="' . aldus_columns_classes( false ) . '">';
-check_contains( 'integration/columns: full class attr', $sample_cols_html,
-	'class="wp-block-columns is-layout-flex wp-block-columns-is-layout-flex is-not-stacked-on-mobile"' );
+check_contains( 'integration/columns: base class', $sample_cols_html,
+	'class="wp-block-columns is-not-stacked-on-mobile"' );
+check_not_contains( 'integration/columns: no layout class', $sample_cols_html,
+	'is-layout-flex' );
 
 // Build a sample cover inner div and verify it.
 $sample_cover_inner = '<div class="' . aldus_cover_inner_classes() . '">';
@@ -276,8 +281,10 @@ check_contains( 'integration/cover-inner: full attr', $sample_cover_inner,
 
 // Build a sample buttons div.
 $sample_buttons = '<div class="' . aldus_buttons_classes() . '">';
-check_contains( 'integration/buttons: full attr', $sample_buttons,
-	'class="wp-block-buttons is-layout-flex wp-block-buttons-is-layout-flex"' );
+check_contains( 'integration/buttons: base class', $sample_buttons,
+	'class="wp-block-buttons"' );
+check_not_contains( 'integration/buttons: no layout class', $sample_buttons,
+	'is-layout-flex' );
 
 // Build a sample button link — WP 6.9 places wp-element-button at the end.
 $sample_btn_link = '<a class="' . aldus_button_link_classes() . '" href="#">Click</a>';

@@ -3,16 +3,16 @@ Contributors: regionallyfamous
 Tags: blocks, gutenberg, layout, design, composer
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 1.14.0
+Stable tag: 1.15.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Turn your content into a professionally designed layout. Add what you've got — Aldus shows you sixteen ways it could look.
+Turn your content into a professionally designed layout. Add what you've got — Aldus shows you how it could look.
 
 == Description ==
 
-You wrote the content. Now it needs to look like a real website — not a stack of paragraphs in a default template. Aldus takes what you've written and shows you sixteen different ways to lay it out: editorial spreads, cinematic hero sections, newspaper columns, minimal typography, and more. Pick the one that fits. It becomes real WordPress blocks. Edit them, rearrange them, or just publish. No page builder. No design skills. No subscription.
+You wrote the content. Now it needs to look like a real website — not a stack of paragraphs in a default template. Aldus takes what you've written and shows you different ways to lay it out — editorial spreads, cinematic hero sections, newspaper columns, minimal typography, and more. Pick the one that fits. It becomes real WordPress blocks. Edit them, rearrange them, or just publish. No page builder. No design skills. No subscription.
 
 You know what you want to say. Aldus figures out how it should look.
 
@@ -20,10 +20,10 @@ You know what you want to say. Aldus figures out how it should look.
 
 1. Add your content pieces — a headline, a paragraph, a quote, an image, a call to action, whatever you've got.
 2. Hit **Make it happen**.
-3. Aldus tries your content in **up to sixteen layout personalities** — each with its own visual character, mood, and structure.
+3. Aldus tries your content in **every layout style** — each with its own visual character, mood, and structure.
 4. Pick the one that fits. It's replaced in-place with real, fully-editable core WordPress blocks.
 
-The same content in **Dispatch** feels like breaking news. In **Nocturne** it's cinematic and dark. In **Folio** it reads like a magazine spread. Sixteen styles, one set of words — one of them will click.
+The same content in **Dispatch** feels like breaking news. In **Nocturne** it's cinematic and dark. In **Folio** it reads like a magazine spread. Every style, one set of words — one of them will click.
 
 No settings. No external services. No subscriptions. The model downloads once (~200 MB) and lives in your browser cache forever after.
 
@@ -42,7 +42,7 @@ No settings. No external services. No subscriptions. The model downloads once (~
 * Table (CSV-style — first row becomes the header)
 * Gallery (multi-image grid from your media library)
 
-**The sixteen layout personalities:**
+**Layout personalities:**
 
 1. **Dispatch** — breaking-news urgency: dark full-bleed opener, bold pullquote, action
 2. **Folio** — label left, body right — every section reads like a magazine spread
@@ -63,7 +63,7 @@ No settings. No external services. No subscriptions. The model downloads once (~
 
 All output is standard core WordPress blocks — Cover, Columns, Media & Text, Group, Pullquote, and more. No proprietary markup, no shortcodes, no plugin lock-in.
 
-**Try before you commit — Pack Previews.** Not ready to add your own content yet? Pick from seven themed packs (Roast, Meridian, Hearth, Plume, Grove, Loot, Signal) to see how all sixteen layout styles look with real copy. No model download required.
+**Try before you commit — Pack Previews.** Not ready to add your own content yet? Pick from nine themed packs (Roast, Meridian, Hearth, Plume, Grove, Loot, Signal, Forge, Slim) to see how every layout style looks with real copy. No model download required.
 
 **Style notes.** Add an optional free-text instruction — "lead with the image", "minimal", "bold CTA" — and the layout model steers toward it.
 
@@ -119,13 +119,16 @@ Your content pieces are saved inside the block itself, so they survive page relo
 
 = What are Pack Previews? =
 
-Five themed content packs (Roast — specialty coffee; Meridian — B2B SaaS; Hearth — nonprofit; Plume — travel; Grove — farm-to-table) that let you see all eight layouts with real copy instantly, no model download required. Switch the building screen to **Preview** mode and pick a pack.
+Nine themed content packs (Roast — specialty coffee; Meridian — B2B SaaS; Hearth — nonprofit; Plume — travel; Grove — farm-to-table; Loot — gaming/collectibles; Signal — tech/developer; Forge — manufacturing/industrial; Slim — minimalist fashion) that let you see every layout style with real copy instantly, no model download required. Switch the building screen to **Preview** mode and pick a pack.
 
 = What is a Style Note? =
 
 An optional free-text field on the building screen that steers the layout model — for example "lead with the image", "keep it minimal", or "bold CTA up top". It's passed directly into the model prompt.
 
 == Changelog ==
+
+= 1.15.0 =
+* The mixing screen has been redesigned as a three-zone layout editor: a vertical section timeline with personality colour coding, an alternatives grid with wireframe previews, and a live composite preview that updates as you make changes. A shuffle button randomly reassigns personalities across all sections with a staggered animation.
 
 = 1.14.0 =
 * The PHP backend has been split into focused modules — renderers, serialisers, theme helpers, and the REST controller each live in their own file. No user-facing changes; this makes the codebase easier to maintain and extend.
@@ -177,9 +180,6 @@ An optional free-text field on the building screen that steers the layout model 
 * After you update, a one-time notice tells you what changed in this release — dismiss it with the ✕ button.
 * Your site's privacy policy guide (Tools > Privacy) now lists what Aldus sends to the AI API, so you can include it in your site's privacy statement.
 
-= 1.13.0 =
-* The editor now loads faster. The block's internal code has been reorganised into focused modules — personalities, tokens, components, and screens each live in their own file. No user-facing changes; this lays the groundwork for easier feature additions going forward.
-
 = 1.3.0 =
 * No changes to the editor or generated layouts. This release adds automated testing and static analysis so bugs are caught before they reach you.
 
@@ -198,6 +198,9 @@ An optional free-text field on the building screen that steers the layout model 
 * Initial release. Describe your content, pick a personality, and Aldus generates a complete block layout — no external services, no API keys, nothing leaves your browser until you hit generate.
 
 == Upgrade Notice ==
+
+= 1.15.0 =
+The mixing screen has been redesigned. Safe to update — no block data or settings change.
 
 = 1.14.0 =
 Internal PHP refactor. No user-facing changes; safe to update.

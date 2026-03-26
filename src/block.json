@@ -2,11 +2,11 @@
 	"$schema": "https://schemas.wp.org/trunk/block.json",
 	"apiVersion": 3,
 	"name": "aldus/layout-generator",
-	"version": "1.12.0",
+	"version": "1.15.0",
 	"title": "Aldus",
 	"category": "aldus",
 	"icon": "table-col-after",
-	"description": "Turn your content into a professionally designed layout. Add what you've got — Aldus shows you sixteen ways it could look.",
+	"description": "Turn your content into a professionally designed layout. Add what you've got — Aldus shows you how it could look.",
 	"keywords": [
 		"layout",
 		"personality",
@@ -65,14 +65,6 @@
 		"styleNote": {
 			"type": "string",
 			"default": ""
-		},
-		"useMeta": {
-			"type": "boolean",
-			"default": false
-		},
-		"wrapperMode": {
-			"type": "boolean",
-			"default": false
 		},
 		"insertedPersonality": {
 			"type": "string",

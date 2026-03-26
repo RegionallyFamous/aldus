@@ -48,17 +48,23 @@ function aldus_block_separator( string $color_slug, string $style = 'wide' ): st
 			$align_class = ' alignwide';
 	}
 
-	$attrs = array( 'className' => ltrim( $style_class ) );
+	$attrs = array(
+		'backgroundColor' => $color_slug,
+		'className'       => ltrim( $style_class ),
+	);
 	if ( $align_attr ) {
 		$attrs['align'] = $align_attr;
 	}
 
+	// WordPress 6.8+ separators with a color require the full class set:
+	// has-text-color + has-{slug}-color + has-alpha-channel-opacity +
+	// has-{slug}-background-color + has-background.
 	return serialize_block(
 		array(
 			'blockName'    => 'core/separator',
 			'attrs'        => $attrs,
 			'innerBlocks'  => array(),
-			'innerContent' => array( "<hr class=\"wp-block-separator{$align_class} has-{$color_safe}-color has-text-color{$style_class}\"/>" ),
+			'innerContent' => array( "<hr class=\"wp-block-separator{$align_class} has-text-color has-{$color_safe}-color has-alpha-channel-opacity has-{$color_safe}-background-color has-background{$style_class}\"/>" ),
 		)
 	) . "\n\n";
 }
@@ -111,11 +117,11 @@ function aldus_block_cta(
 }
 
 /**
- * Renders a core/quote block.
+ * Renders a core/table block from CSV-like textarea content.
  *
  * @param Aldus_Content_Distributor $dist
+ * @return string
  */
-
 function aldus_block_table( Aldus_Content_Distributor $dist ): string {
 	$item = $dist->consume( 'table' );
 	if ( ! $item || empty( $item['content'] ) ) {

@@ -79,6 +79,26 @@ if ( ! function_exists( 'absint' ) ) {
 	}
 }
 
+if ( ! function_exists( 'is_wp_error' ) ) {
+	function is_wp_error( mixed $thing ): bool {
+		return $thing instanceof WP_Error;
+	}
+}
+
+// WordPress time constants (seconds).
+if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
+	define( 'MINUTE_IN_SECONDS', 60 );
+}
+if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
+	define( 'HOUR_IN_SECONDS', 3600 );
+}
+if ( ! defined( 'DAY_IN_SECONDS' ) ) {
+	define( 'DAY_IN_SECONDS', 86400 );
+}
+if ( ! defined( 'WEEK_IN_SECONDS' ) ) {
+	define( 'WEEK_IN_SECONDS', 604800 );
+}
+
 if ( ! function_exists( 'wp_cache_get' ) ) {
 	function wp_cache_get( string $key, string $group = '' ): mixed {
 		return false;
@@ -118,6 +138,36 @@ if ( ! function_exists( 'esc_url' ) ) {
 if ( ! function_exists( 'wp_json_encode' ) ) {
 	function wp_json_encode( mixed $data, int $options = 0, int $depth = 512 ): string|false {
 		return json_encode( $data, $options, $depth );
+	}
+}
+
+if ( ! function_exists( 'serialize_block' ) ) {
+	/**
+	 * Minimal serialize_block stub for unit tests.
+	 * Concatenates innerContent strings, substituting serialized inner blocks
+	 * for null placeholders (the same logic as the WP core function).
+	 *
+	 * @param array $block Parsed block array.
+	 * @return string Serialized block HTML.
+	 */
+	function serialize_block( array $block ): string {
+		$inner_block_index = 0;
+		$html              = '';
+		foreach ( $block['innerContent'] as $chunk ) {
+			if ( null === $chunk ) {
+				$html .= serialize_block( $block['innerBlocks'][ $inner_block_index++ ] );
+			} else {
+				$html .= $chunk;
+			}
+		}
+
+		if ( empty( $block['blockName'] ) ) {
+			return $html;
+		}
+
+		$attrs        = $block['attrs'] ?? [];
+		$attrs_string = empty( $attrs ) ? '' : ' ' . json_encode( $attrs, JSON_UNESCAPED_UNICODE );
+		return "<!-- wp:{$block['blockName']}{$attrs_string} -->{$html}<!-- /wp:{$block['blockName']} -->";
 	}
 }
 

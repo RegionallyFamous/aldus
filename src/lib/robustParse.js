@@ -26,25 +26,90 @@ export function robustParse( text ) {
 		return JSON.parse( s );
 	} catch {}
 
-	// 2. Extract first {...} block and repair trailing commas.
-	const objMatch = s.match( /\{[\s\S]*\}/ );
-	if ( objMatch ) {
-		try {
-			return JSON.parse( objMatch[ 0 ].replace( /,(\s*[}\]])/g, '$1' ) );
-		} catch {}
+	// 2. Extract first balanced {...} block and repair trailing commas.
+	// A greedy regex /{[\s\S]*}/ would match the *largest* span and grab too
+	// much when the string contains multiple objects.  Instead, walk the string
+	// character-by-character to find the matching closing brace.
+	const objStart = s.indexOf( '{' );
+	if ( objStart !== -1 ) {
+		let depth = 0;
+		let inString = false;
+		let escape = false;
+		for ( let i = objStart; i < s.length; i++ ) {
+			const ch = s[ i ];
+			if ( escape ) {
+				escape = false;
+				continue;
+			}
+			if ( ch === '\\' && inString ) {
+				escape = true;
+				continue;
+			}
+			if ( ch === '"' ) {
+				inString = ! inString;
+				continue;
+			}
+			if ( inString ) {
+				continue;
+			}
+			if ( ch === '{' ) {
+				depth++;
+			} else if ( ch === '}' ) {
+				depth--;
+				if ( depth === 0 ) {
+					const candidate = s.slice( objStart, i + 1 );
+					try {
+						return JSON.parse(
+							candidate.replace( /,(\s*[}\]])/g, '$1' )
+						);
+					} catch {}
+					break;
+				}
+			}
+		}
 	}
 
-	// 3. Extract first [...] block and repair trailing commas.
+	// 3. Extract first balanced [...] block and repair trailing commas.
 	// Wrap in { tokens: [...] } so callers can always read result.tokens.
-	const arrMatch = s.match( /\[[\s\S]*\]/ );
-	if ( arrMatch ) {
-		try {
-			return {
-				tokens: JSON.parse(
-					arrMatch[ 0 ].replace( /,(\s*\])/g, '$1' )
-				),
-			};
-		} catch {}
+	const arrStart = s.indexOf( '[' );
+	if ( arrStart !== -1 ) {
+		let depth = 0;
+		let inString = false;
+		let escape = false;
+		for ( let i = arrStart; i < s.length; i++ ) {
+			const ch = s[ i ];
+			if ( escape ) {
+				escape = false;
+				continue;
+			}
+			if ( ch === '\\' && inString ) {
+				escape = true;
+				continue;
+			}
+			if ( ch === '"' ) {
+				inString = ! inString;
+				continue;
+			}
+			if ( inString ) {
+				continue;
+			}
+			if ( ch === '[' ) {
+				depth++;
+			} else if ( ch === ']' ) {
+				depth--;
+				if ( depth === 0 ) {
+					const candidate = s.slice( arrStart, i + 1 );
+					try {
+						return {
+							tokens: JSON.parse(
+								candidate.replace( /,(\s*\])/g, '$1' )
+							),
+						};
+					} catch {}
+					break;
+				}
+			}
+		}
 	}
 
 	return {};

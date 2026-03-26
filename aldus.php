@@ -3,8 +3,8 @@ declare(strict_types=1);
 /**
  * Plugin Name:       Aldus — Block Compositor
  * Plugin URI:        https://github.com/RegionallyFamous/aldus
- * Description:       You write it. Aldus designs it. Sixteen layout styles for your content — pick the one that fits, and it becomes real WordPress blocks.
- * Version:           1.14.0
+ * Description:       You write it. Aldus designs it. Layout styles for your content — pick the one that fits, and it becomes real WordPress blocks.
+ * Version:           1.15.0
  * Requires at least: 6.4
  * Requires PHP:      8.0
  * Author:            Regionally Famous
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'ALDUS_VERSION', '1.14.0' );
+define( 'ALDUS_VERSION', '1.15.0' );
 define( 'ALDUS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ALDUS_URL', plugin_dir_url( __FILE__ ) );
 
@@ -88,7 +88,12 @@ function aldus_init(): void {
 	require_once ALDUS_PATH . 'includes/styles.php';
 
 	add_action( 'init', 'aldus_register_block' );
-	add_action( 'init', static function (): void { load_plugin_textdomain( 'aldus', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' ); } );
+	add_action(
+		'init',
+		static function (): void {
+			load_plugin_textdomain( 'aldus', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+		}
+	);
 	add_action( 'rest_api_init', 'aldus_register_rest_routes' );
 
 	// Flush cached theme data whenever the active theme or Customizer settings change.

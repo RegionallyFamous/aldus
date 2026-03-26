@@ -21,7 +21,9 @@ function aldus_block_image( Aldus_Content_Distributor $dist, string $align, stri
 		'align'    => $align,
 		'sizeSlug' => 'large',
 	);
-	if ( $media_id ) {
+	// Only embed the attachment ID if the attachment exists and is accessible
+	// to the current user, to prevent leaking IDs for private media.
+	if ( $media_id && 'attachment' === get_post_type( $media_id ) && current_user_can( 'read_post', $media_id ) ) {
 		$attrs['id'] = $media_id;
 	}
 
@@ -125,17 +127,17 @@ function aldus_block_video_section( Aldus_Content_Distributor $dist ): string {
 }
 
 // ---------------------------------------------------------------------------
-// Table renderer
+// Gallery renderer
 // ---------------------------------------------------------------------------
 
 /**
- * Renders a striped core/table block from CSV-like textarea content (table:data token).
- * Content format: comma- or tab-separated, one row per line, first row is the header.
+ * Renders a core/gallery block from a gallery content item.
  *
  * @param Aldus_Content_Distributor $dist
+ * @param int    $columns  Number of gallery columns.
+ * @param string $name     Accessible name passed to the gallery attrs.
  * @return string
  */
-
 function aldus_block_gallery( Aldus_Content_Distributor $dist, int $columns = 2, string $name = 'Gallery' ): string {
 	$item = $dist->consume( 'gallery' );
 	if ( ! $item ) {
@@ -163,7 +165,8 @@ function aldus_block_gallery( Aldus_Content_Distributor $dist, int $columns = 2,
 			'sizeSlug' => 'large',
 		);
 		$media_id  = (int) ( $media_ids[ $i ] ?? 0 );
-		if ( $media_id > 0 ) {
+		// Only embed the attachment ID if the attachment exists and is accessible.
+		if ( $media_id > 0 && 'attachment' === get_post_type( $media_id ) && current_user_can( 'read_post', $media_id ) ) {
 			$img_attrs['id'] = $media_id;
 		}
 		$inner .= serialize_block(

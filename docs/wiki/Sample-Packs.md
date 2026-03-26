@@ -1,8 +1,8 @@
 # Sample Packs
 
-Sample Packs are sets of professionally written content that Aldus uses to demonstrate all sixteen personalities without needing the AI model or your own content.
+Sample Packs are sets of professionally written content that Aldus uses to demonstrate all personalities without needing the AI model or your own content.
 
-Each pack is themed around a specific industry or content type. When you load a pack, Aldus instantly generates layouts for all sixteen personalities using that pack's copy, images, and structure.
+Each pack is themed around a specific industry or content type. When you load a pack, Aldus instantly generates layouts for all personalities using that pack's copy, images, and structure.
 
 ---
 
@@ -10,7 +10,7 @@ Each pack is themed around a specific industry or content type. When you load a 
 
 1. Open the **Pack Previews** panel in the block sidebar, or click **Try a sample** in the empty block state
 2. Choose a pack from the list
-3. Aldus generates all sixteen personality layouts using that pack's content — no model download needed
+3. Aldus generates all personality layouts using that pack's content — no model download needed
 4. Browse the results, expand cards, and explore how each personality handles the same content differently
 
 **Using a pack as a starting point:** If you find a personality layout you love in a pack preview, click **Try with my content** to switch to your own content with that personality pinned. You can also click **Use this one** directly from a pack preview to insert the pack's content as real blocks — useful for mockups or inspiration.
@@ -111,4 +111,4 @@ The multiple variants per type are important — when a personality uses two med
 
 - **Compare personalities side by side** using the same pack. The differences become clear when the content is held constant.
 - **Try Slim last.** It has the fewest items — just enough to see each personality's point of view. Which ones thrive on lean input? Which ones clearly want a table or a gallery? Slim makes that visible.
-- **Switch packs without regenerating.** Selecting a different pack immediately updates all sixteen preview cards with the new pack's content.
+- **Switch packs without regenerating.** Selecting a different pack immediately updates all preview cards with the new pack's content.

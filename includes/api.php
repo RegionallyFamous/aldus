@@ -73,9 +73,16 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 		)
 	);
 
+	// Read cheap request params early so they are available for the cache key.
+	$reroll_count  = (int) $request->get_param( 'reroll_count' );
+	$custom_styles = (array) $request->get_param( 'custom_styles' );
+	$section_label = sanitize_text_field( (string) $request->get_param( 'section_label' ) );
+	$post_id       = (int) $request->get_param( 'post_id' );
+
 	// Filter tokens based on which theme appearance tools are enabled.
 	// This prevents Aldus from generating blocks the user can't edit within
-	// their theme's declared constraints.
+	// their theme's declared constraints.  Done before the cache key so the
+	// filtered token list is what gets hashed.
 	$appearance = aldus_get_theme_appearance_tools();
 	if ( ! $appearance['border_width'] ) {
 		$tokens = array_values( array_diff( $tokens, array( 'group:border-box' ) ) );
@@ -85,7 +92,26 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 		$tokens       = array_values( array_diff( $tokens, $no_bg_tokens ) );
 	}
 
-	// Fetch theme data for block styling — computed once, shared across all tokens.
+	// Check assembly cache BEFORE any expensive theme work (palette, fonts, gradients,
+	// style rules). Cache hits skip all of that computation entirely.
+	// TTL: 5 minutes. Key includes every input that affects the output, including the
+	// active theme (get_stylesheet) and post_id so theme switches and per-post
+	// featured images never serve stale markup.
+	$active_theme = get_stylesheet();
+	$cache_key    = 'aldus_asm_' . substr(
+		md5(
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize
+			serialize( compact( 'tokens', 'items', 'personality', 'reroll_count', 'custom_styles', 'section_label', 'active_theme', 'post_id' ) )
+		),
+		0,
+		20
+	);
+	$cached_response = get_transient( $cache_key );
+	if ( false !== $cached_response && is_array( $cached_response ) ) {
+		return rest_ensure_response( $cached_response );
+	}
+
+	// Cache miss — compute all expensive theme values now.
 	$palette    = aldus_get_theme_palette();
 	$font_sizes = aldus_get_theme_font_sizes();
 	$gradients  = aldus_get_theme_gradients();
@@ -97,8 +123,7 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 
 	// Mix in reroll_count so that repeated re-rolls with the same token sequence
 	// still produce different block variant picks.
-	$reroll_count = (int) $request->get_param( 'reroll_count' );
-	$layout_seed  = $base_seed + $reroll_count * 37;
+	$layout_seed = $base_seed + $reroll_count * 37;
 
 	// Precompute shared theme values so each renderer call doesn't repeat this work.
 	$theme_ctx = array(
@@ -114,29 +139,10 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 	$style_ctx     = $style_rules[ $personality ] ?? array();
 	$token_weights = aldus_token_weights();
 
-	$use_bindings  = (bool) $request->get_param( 'use_bindings' );
-	$custom_styles = (array) $request->get_param( 'custom_styles' );
-	$section_label = sanitize_text_field( (string) $request->get_param( 'section_label' ) );
-
-	// Check assembly cache before doing any heavy rendering work.
-	// TTL: 5 minutes. Key includes all inputs that affect the output.
-	$cache_key = 'aldus_asm_' . substr(
-		md5(
-			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize
-			serialize( compact( 'tokens', 'items', 'personality', 'reroll_count', 'use_bindings', 'custom_styles', 'section_label' ) )
-		),
-		0,
-		20
-	);
-	$cached_response = get_transient( $cache_key );
-	if ( false !== $cached_response && is_array( $cached_response ) ) {
-		return rest_ensure_response( $cached_response );
-	}
+	$use_bindings = true;
 
 	$dist = new Aldus_Content_Distributor( $items );
 	$dist->prepare();
-
-	$post_id = (int) $request->get_param( 'post_id' );
 
 	// Build the static parts of context once; only rhythm changes per token.
 	$base_context = array(
@@ -245,6 +251,16 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 		'tokens'   => $tokens,
 		'sections' => $sections,
 	);
+
+	// In WP_DEBUG mode, validate the markup and log any issues before caching.
+	if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+		require_once ALDUS_PATH . 'includes/validate-blocks.php';
+		$validation_errors = aldus_validate_assembled_markup( $markup );
+		if ( ! empty( $validation_errors ) ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( 'Aldus block validation errors for ' . $personality . ":\n" . implode( "\n", $validation_errors ) );
+		}
+	}
 
 	// Cache the assembled response for 5 minutes to serve repeat requests instantly.
 	set_transient( $cache_key, $response_data, 5 * MINUTE_IN_SECONDS );
@@ -653,11 +669,12 @@ function aldus_check_deprecated_filters(): void {
 }
 
 /**
- * Redirects to the welcome admin page on the very first activation.
+ * Registers the Aldus block type, frontend style, and WebLLM assets.
  *
- * Checks and deletes the activation transient set by aldus_activate() so
- * the redirect fires exactly once (and not during bulk plugin activations).
-
+ * Reads block metadata from build/block.json (generated by @wordpress/scripts).
+ * Also hooks aldus_webllm_modulepreload onto admin_head so the model chunk
+ * starts downloading as soon as the editor opens.
+ */
 function aldus_register_block(): void {
 	$build_path = ALDUS_PATH . 'build';
 	if ( ! is_dir( $build_path ) || ! file_exists( $build_path . '/block.json' ) ) {
@@ -724,12 +741,12 @@ function aldus_register_block(): void {
 }
 
 /**
- * Injects site identity (name, description) for the editor LLM prompt.
+ * Emits <link rel="modulepreload"> and <link rel="prefetch"> hints for the
+ * WebLLM runtime chunk so the browser starts fetching the model as soon as
+ * the block editor opens — before the user clicks "Make it happen".
  *
- * Hooked onto enqueue_block_editor_assets so the variable is available
- * as soon as the editor script loads — before the user interacts.
+ * Hooked onto admin_head by aldus_register_block().
  */
-
 function aldus_webllm_modulepreload(): void {
 	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
 	if ( ! $screen || ! $screen->is_block_editor() ) {
@@ -743,14 +760,3 @@ function aldus_webllm_modulepreload(): void {
 		esc_url( $chunk_url )
 	);
 }
-
-/**
- * Merges Aldus-specific design tokens into the active theme's theme.json data.
- *
- * Injects custom spacing presets and CSS custom properties that generated
- * layouts depend on so they render consistently regardless of the active theme.
- * Uses the wp_theme_json_data_theme filter (WP 6.6+).
- *
- * @param mixed $theme_json Mutable theme.json data object (WP_Theme_JSON_Data expected).
- * @return mixed
- */

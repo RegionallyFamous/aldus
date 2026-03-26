@@ -68,7 +68,7 @@ function aldus_render_admin_page(): void {
 		<p style="font-size:16px;color:#3c434a;max-width:620px;line-height:1.6;">
 			<?php
 			// phpcs:ignore Generic.Files.LineLength.MaxExceeded
-			esc_html_e( 'You write it. Aldus designs it. Add your content pieces — a headline, a paragraph, an image — then hit "Make it happen". Aldus tries your content in sixteen layout personalities and shows you all of them at once. Pick the one that fits. It becomes real, fully-editable WordPress blocks.', 'aldus' );
+			esc_html_e( 'You write it. Aldus designs it. Add your content pieces — a headline, a paragraph, an image — then hit "Make it happen". Aldus tries your content in every layout personality and shows you all of them at once. Pick the one that fits. It becomes real, fully-editable WordPress blocks.', 'aldus' );
 			?>
 		</p>
 
@@ -84,7 +84,7 @@ function aldus_render_admin_page(): void {
 			<li><?php esc_html_e( 'Find the Aldus block in the block inserter (search for "Aldus").', 'aldus' ); ?></li>
 			<li><?php esc_html_e( 'Add your content pieces — headline, paragraphs, images, quotes, buttons.', 'aldus' ); ?></li>
 			<li><?php esc_html_e( 'Click "Make it happen". The model downloads once (~200 MB) and is cached in your browser forever.', 'aldus' ); ?></li>
-			<li><?php esc_html_e( 'Browse sixteen layout previews. Click "Use this one" on the layout you like.', 'aldus' ); ?></li>
+			<li><?php esc_html_e( 'Browse the layout previews. Click "Use this one" on the layout you like.', 'aldus' ); ?></li>
 			<li><?php esc_html_e( 'Aldus replaces itself with standard, fully-editable WordPress blocks. Done.', 'aldus' ); ?></li>
 		</ol>
 

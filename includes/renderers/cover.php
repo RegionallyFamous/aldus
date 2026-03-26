@@ -73,8 +73,16 @@ function aldus_block_cover(
 	// background — but only when the thumbnail actually exists.  Omitting the
 	// check would set useFeaturedImage=true even when the featured image slot
 	// is empty, which causes WordPress to render a blank white cover block.
+	// Guard against IDOR: only read the thumbnail of a post the current user
+	// can actually edit, to prevent confirming the existence of private post media.
 	$use_featured = false;
-	if ( ! $image_url && $post_id > 0 && has_post_thumbnail( $post_id ) ) {
+	if (
+		! $image_url &&
+		$post_id > 0 &&
+		get_post( $post_id ) &&
+		current_user_can( 'edit_post', $post_id ) &&
+		has_post_thumbnail( $post_id )
+	) {
 		$use_featured = true;
 	}
 

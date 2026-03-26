@@ -14,6 +14,10 @@
  * @param {Function} onProgress        Called with ( doneCount, total, lastLabel ).
  * @param {number}   [concurrency=4]   Max simultaneous in-flight requests.
  * @param {number}   [timeoutMs=15000] Per-call timeout in milliseconds.
+ * @param {Function} [onError]         Optional. Called with ( { label, status, error } )
+ *                                     for each failed job so callers can distinguish
+ *                                     rate-limit (429), auth (401/403), server error
+ *                                     (500), and timeout from genuine empty results.
  * @return {Promise<Array>} Resolved assemble response objects (failures omitted).
  */
 
@@ -23,7 +27,8 @@ export async function batchAssemble(
 	jobs,
 	onProgress,
 	concurrency = 4,
-	timeoutMs = 15_000
+	timeoutMs = 15_000,
+	onError = null
 ) {
 	const total = jobs.length;
 	let done = 0;
@@ -48,9 +53,22 @@ export async function batchAssemble(
 					signal: controller.signal,
 				} );
 				results[ idx ] = response;
-			} catch {
-				// Timeouts, network errors, and 4xx/5xx responses are silently
-				// dropped. The caller filters for non-null results.
+			} catch ( err ) {
+				// Failures are not blocking — the caller filters non-null results.
+				// Notify the optional error callback with enough context for the
+				// caller to distinguish rate-limiting, auth failures, server errors,
+				// and timeouts from genuine empty responses.
+				if ( onError ) {
+					const isAbort =
+						err?.name === 'AbortError' || controller.signal.aborted;
+					onError( {
+						label,
+						status:
+							err?.data?.status ??
+							( isAbort ? 'timeout' : 'unknown' ),
+						error: err,
+					} );
+				}
 			} finally {
 				clearTimeout( timeoutId );
 				done++;

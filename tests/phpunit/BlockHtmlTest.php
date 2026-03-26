@@ -21,7 +21,9 @@ class BlockHtmlTest extends TestCase {
 	public function columns_classes_stacked(): void {
 		$result = aldus_columns_classes( true );
 		$this->assertStringContainsString( 'wp-block-columns', $result );
-		$this->assertStringContainsString( 'is-layout-flex', $result );
+		// Render-time classes must not appear in saved markup.
+		$this->assertStringNotContainsString( 'is-layout-flex', $result );
+		$this->assertStringNotContainsString( 'wp-block-columns-is-layout-flex', $result );
 		$this->assertStringNotContainsString( 'is-not-stacked-on-mobile', $result );
 	}
 
@@ -29,6 +31,43 @@ class BlockHtmlTest extends TestCase {
 	public function columns_classes_not_stacked(): void {
 		$result = aldus_columns_classes( false );
 		$this->assertStringContainsString( 'is-not-stacked-on-mobile', $result );
+		// Render-time classes must not appear in saved markup.
+		$this->assertStringNotContainsString( 'is-layout-flex', $result );
+		$this->assertStringNotContainsString( 'wp-block-columns-is-layout-flex', $result );
+	}
+
+	// -----------------------------------------------------------------------
+	// aldus_column_classes()
+	// -----------------------------------------------------------------------
+
+	/** @test */
+	public function column_classes_base_class_only(): void {
+		$result = aldus_column_classes();
+		$this->assertStringContainsString( 'wp-block-column', $result );
+		// Render-time classes must not appear in saved markup.
+		$this->assertStringNotContainsString( 'is-layout-flow', $result );
+		$this->assertStringNotContainsString( 'wp-block-column-is-layout-flow', $result );
+	}
+
+	/** @test */
+	public function column_classes_with_background_slug(): void {
+		$result = aldus_column_classes( 'primary' );
+		$this->assertStringContainsString( 'has-primary-background-color', $result );
+		$this->assertStringContainsString( 'has-background', $result );
+		$this->assertStringNotContainsString( 'is-layout-flow', $result );
+	}
+
+	// -----------------------------------------------------------------------
+	// aldus_buttons_classes()
+	// -----------------------------------------------------------------------
+
+	/** @test */
+	public function buttons_classes_base_class_only(): void {
+		$result = aldus_buttons_classes();
+		$this->assertStringContainsString( 'wp-block-buttons', $result );
+		// Render-time classes must not appear in saved markup.
+		$this->assertStringNotContainsString( 'is-layout-flex', $result );
+		$this->assertStringNotContainsString( 'wp-block-buttons-is-layout-flex', $result );
 	}
 
 	// -----------------------------------------------------------------------
@@ -80,6 +119,17 @@ class BlockHtmlTest extends TestCase {
 	public function group_classes_contains_wp_block_group(): void {
 		$result = aldus_group_classes( 'constrained' );
 		$this->assertStringContainsString( 'wp-block-group', $result );
+		// Render-time classes must not appear in saved markup.
+		$this->assertStringNotContainsString( 'is-layout-constrained', $result );
+		$this->assertStringNotContainsString( 'wp-block-group-is-layout-constrained', $result );
+	}
+
+	/** @test */
+	public function group_classes_flow_layout_no_render_time_classes(): void {
+		$result = aldus_group_classes( 'flow' );
+		$this->assertStringContainsString( 'wp-block-group', $result );
+		$this->assertStringNotContainsString( 'is-layout-flow', $result );
+		$this->assertStringNotContainsString( 'wp-block-group-is-layout-flow', $result );
 	}
 
 	/** @test */

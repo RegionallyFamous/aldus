@@ -11,7 +11,7 @@ This document catalogues WordPress APIs and their integration status in Aldus. I
 
 ### What was implemented
 
-`src/frontend/interactivity.js` registers an `aldus` interactive store with four effects: `parallax` (cover background shift), `revealOnScroll` (fade-in-up on viewport entry), `countUp` (stat number animation), and `animateDetails` (smooth accordion open/close). PHP renderers in `templates.php` inject `data-wp-interactive`, `data-wp-on-window--scroll`, `data-wp-watch`, and `data-wp-context` attributes into cover blocks, full-width group sections, stat rows, and details blocks — each gated on `function_exists('wp_interactivity_data_wp_context')` for WP 6.4 compatibility. The module is declared via `viewScriptModule` in `block.json` and registered as `@aldus/interactivity` in `aldus_register_block()`. Each personality controls which effects are active via an `interactivity` key in `aldus_personality_style_rules()`.
+`src/frontend/interactivity.js` registers an `aldus` interactive store with four effects: `parallax` (cover background shift), `revealOnScroll` (fade-in-up on viewport entry), `countUp` (stat number animation), and `animateDetails` (smooth accordion open/close). PHP renderers in `includes/renderers/` inject `data-wp-interactive`, `data-wp-on-window--scroll`, `data-wp-watch`, and `data-wp-context` attributes into cover blocks, full-width group sections, stat rows, and details blocks — each gated on `function_exists('wp_interactivity_data_wp_context')` for WP 6.4 compatibility. The interactivity attribute injection is coordinated via `includes/render-router.php`, and personality style rules (including the `interactivity` key) are defined in `includes/personality.php`. The module is declared via `viewScriptModule` in `block.json` and registered as `@aldus/interactivity` in `aldus_register_block()`. Each personality controls which effects are active via an `interactivity` key in `aldus_personality_style_rules()`.
 
 ---
 
@@ -36,14 +36,18 @@ Partially implemented. `includes/bindings.php` registers an `aldus/item` binding
 
 ---
 
-## Item 7 — Block Hooks ✅ Shipped in 1.9.0
+## Item 7 — Block Hooks ⚠️ Shipped in 1.9.0, removed in 1.10.1
 
 **WordPress version:** 6.4+  
 **API surface:** `"blockHooks"` key in `block.json`.
 
-### What was implemented
+### What was implemented (1.9.0)
 
-`src/block.json` declares `"blockHooks": { "core/post-content": "firstChild" }`. On Full Site Editing pages, WordPress automatically inserts the Aldus block as the first child of `core/post-content` blocks in templates that include it. This surfaces Aldus as a contextual suggestion in FSE template editing without requiring the user to manually insert the block.
+`src/block.json` declared `"blockHooks": { "core/post-content": "firstChild" }`. On Full Site Editing pages, WordPress automatically inserted the Aldus block as the first child of `core/post-content` blocks in templates that included it.
+
+### Why it was removed (1.10.1)
+
+The auto-insertion behaviour proved too aggressive: Aldus was silently added to every post and every FSE template that included `core/post-content`, even when the user had never placed an Aldus block themselves. This produced a blank editor canvas (the block registered but had no content to display) and confused users who did not expect it. The `blockHooks` declaration was removed in 1.10.1. **Aldus now only appears where the user explicitly inserts it.**
 
 ---
 
@@ -64,7 +68,7 @@ Partially implemented. `includes/bindings.php` registers an `aldus/item` binding
 |------|-----|-----------|--------|
 | 5 | Interactivity API | 6.5 | ✅ Shipped 1.10.0 |
 | 6 | Block Bindings | 6.5 | 🔶 Partially implemented — bindings source registered, markup binding pending |
-| 7 | Block Hooks | 6.4 | ✅ Shipped 1.9.0 |
+| 7 | Block Hooks | 6.4 | ⚠️ Shipped 1.9.0, removed 1.10.1 (auto-insertion was too aggressive) |
 | 8 | wp_enqueue_block_style | 6.1 | ✅ Shipped 1.9.0 |
 
 Item 6 (Block Bindings) is the strongest remaining candidate: completing it would allow Aldus-generated content to stay live-synced with the original item values without re-running generation.

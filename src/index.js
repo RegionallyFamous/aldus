@@ -11,22 +11,7 @@ import metadata from './block.json';
 import Edit from './edit';
 import save from './save';
 import { AldusErrorBoundary } from './components/AldusErrorBoundary';
-
-/** Generate a unique ID with a fallback for non-secure contexts. */
-function generateId() {
-	if (
-		typeof crypto !== 'undefined' &&
-		typeof crypto.randomUUID === 'function'
-	) {
-		return crypto.randomUUID();
-	}
-	// Fallback: v4-like UUID via Math.random() (no bitwise operators).
-	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace( /[xy]/g, ( c ) => {
-		const r = Math.floor( Math.random() * 16 );
-		const v = c === 'x' ? r : ( r % 4 ) + 8;
-		return v.toString( 16 );
-	} );
-}
+import { uid as generateId } from './lib/uid.js';
 
 // ---------------------------------------------------------------------------
 // Block extraction helper — converts a single block into zero or more Aldus

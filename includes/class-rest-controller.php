@@ -203,12 +203,6 @@ class Aldus_REST_Controller extends WP_REST_Controller {
 				'description'       => 'Incremented on each re-roll so variant picks change even when the token sequence is identical.',
 				'sanitize_callback' => 'absint',
 			),
-			'use_bindings'  => array(
-				'required'    => false,
-				'type'        => 'boolean',
-				'default'     => false,
-				'description' => 'When true, generated blocks include Block Bindings attrs referencing _aldus_items post meta by item ID.',
-			),
 			'post_id'       => array(
 				'required'          => false,
 				'type'              => 'integer',

@@ -171,11 +171,11 @@ export function ResultsScreen( {
 						<span className="aldus-results-title">
 							{ isPreview
 								? __(
-										'See what Aldus does with real content. Switch themes to try all sixteen styles.',
+										'See what Aldus does with real content. Switch themes to try all styles.',
 										'aldus'
 								  )
 								: __(
-										'Sixteen ways your content could look. Pick the one that fits.',
+										'Your content, every which way. Pick the one that fits.',
 										'aldus'
 								  ) }
 						</span>
@@ -645,7 +645,29 @@ export function LayoutCard( {
 					className="aldus-preview-modal"
 				>
 					<div className="aldus-preview-modal-preview">
-						<BlockPreview blocks={ blocks } viewportWidth={ 800 } />
+						<BlockPreview
+							blocks={ blocks }
+							viewportWidth={ 1200 }
+							additionalStyles={ [
+								{
+									css: '.wp-block-cover { min-height: 300px !important; max-height: 500px !important; }',
+								},
+								{ css: 'body { padding: 0 !important; }' },
+								{
+									css: '.is-root-container { padding: 0 !important; }',
+								},
+								{
+									css: '.block-editor-block-list__layout { padding: 0 !important; }',
+								},
+								{
+									css: '.alignfull { margin-left: 0 !important; margin-right: 0 !important; }',
+								},
+								// Temporary: suppress validation warning UI while root cause (render-time layout classes) is fixed.
+								{
+									css: '.block-editor-warning { display: none !important; }',
+								},
+							] }
+						/>
 					</div>
 					<div className="aldus-preview-modal-footer">
 						<Button
