@@ -46,6 +46,7 @@ import { batchAssemble } from '../lib/batchAssemble.js';
 import { isValidAssembleResponse } from '../lib/api-utils.js';
 import { SCREEN } from '../constants.js';
 import { computeCoverage, TOKEN_CONTENT_TYPES } from '../data/tokens.js';
+import { jaccard } from '../lib/similarity.js';
 
 /**
  * Creates a server-side AI engine shim that delegates `chat.completions.create`
@@ -98,24 +99,7 @@ function createServerEngineShim() {
 	};
 }
 
-/**
- * Computes the Jaccard similarity between two token sequence arrays.
- *
- * Returns a value in [0, 1]: 1 means identical token sets, 0 means
- * completely disjoint. Used to detect when two personalities produce
- * layouts that are too visually similar.
- *
- * @param {string[]} a First token sequence.
- * @param {string[]} b Second token sequence.
- * @return {number} Similarity score.
- */
-function jaccard( a, b ) {
-	const setA = new Set( a );
-	const setB = new Set( b );
-	const intersection = [ ...setA ].filter( ( x ) => setB.has( x ) ).length;
-	const union = new Set( [ ...setA, ...setB ] ).size;
-	return union === 0 ? 0 : intersection / union;
-}
+// jaccard() imported above from '../lib/similarity.js'.
 
 export function useAldusGeneration( {
 	initEngine,

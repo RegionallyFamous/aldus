@@ -17,6 +17,7 @@ module.exports = {
 	// test failures so deprecated API usage is caught in CI automatically.
 	setupFilesAfterEnv: [
 		'<rootDir>/src/__tests__/setup/no-wp-deprecations.js',
+		'@testing-library/jest-dom',
 	],
 	// Transforms are inherited from @wordpress/scripts — no overrides needed.
 
@@ -32,6 +33,13 @@ module.exports = {
 		...defaultConfig.moduleNameMapper,
 		'^@wordpress/api-fetch$': '<rootDir>/__mocks__/@wordpress/api-fetch.js',
 		'^@wordpress/i18n$': '<rootDir>/__mocks__/@wordpress/i18n.js',
+		// Component-layer mocks to avoid ESM issues with deep WP package deps.
+		'^@wordpress/element$': '<rootDir>/__mocks__/@wordpress/element.js',
+		'^@wordpress/components$': '<rootDir>/__mocks__/@wordpress/components.js',
+		'^@wordpress/block-editor$': '<rootDir>/__mocks__/@wordpress/block-editor.js',
+		'^@wordpress/compose$': '<rootDir>/__mocks__/@wordpress/compose.js',
+		'^@wordpress/data$': '<rootDir>/__mocks__/@wordpress/data.js',
+		'^@wordpress/icons$': '<rootDir>/__mocks__/@wordpress/icons.js',
 	},
 
 	// ---------------------------------------------------------------------------
@@ -46,6 +54,10 @@ module.exports = {
 	// global metrics to near-zero and makes the threshold meaningless.
 	collectCoverageFrom: [
 		'src/lib/**/*.{js,ts}',
+		'src/data/**/*.{js,ts}',
+		'src/utils/**/*.{js,ts}',
+		'src/hooks/useAldusItems.js',
+		'src/components/AldusErrorBoundary.js',
 		'!src/__tests__/**',
 		'!src/frontend/**',
 	],
@@ -53,16 +65,42 @@ module.exports = {
 	// Emit lcov (for Codecov upload) and human-readable text summaries.
 	coverageReporters: [ 'lcov', 'text', 'text-summary' ],
 
-	// Coverage floor scoped to src/lib/** — ratchet upward as new lib tests
-	// are added.  Current baseline: api-utils 100 %, batchAssemble ~90 %,
-	// intelligence ~70 %, robustParse ~85 %, uid 100 %, prompts 0 % (logic
-	// inlined in promptBuilder.test.js pending export refactor).
+	// Coverage floors — raised to reflect the comprehensive test suite.
+	// Measured baseline (2026-03): statements 77%, branches 71%, functions 75%, lines 77%.
+	// Thresholds are set 5 percentage points below baseline so that adding new
+	// uncovered code files doesn't immediately break CI, while still enforcing
+	// that the covered-logic layer stays well-tested.
 	coverageThreshold: {
 		global: {
-			statements: 55,
-			branches: 45,
-			functions: 55,
-			lines: 55,
+			statements: 70,
+			branches: 65,
+			functions: 70,
+			lines: 70,
+		},
+		// Individual file floors for the most critical pure-logic modules.
+		'./src/lib/prompts.js': {
+			statements: 95,
+			branches: 85,
+			functions: 95,
+			lines: 95,
+		},
+		'./src/lib/similarity.js': {
+			statements: 100,
+			branches: 100,
+			functions: 100,
+			lines: 100,
+		},
+		'./src/lib/api-utils.js': {
+			statements: 95,
+			branches: 95,
+			functions: 95,
+			lines: 95,
+		},
+		'./src/components/AldusErrorBoundary.js': {
+			statements: 95,
+			branches: 95,
+			functions: 95,
+			lines: 95,
 		},
 	},
 };

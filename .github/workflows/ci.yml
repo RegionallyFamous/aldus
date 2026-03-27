@@ -80,7 +80,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Run Jest
+      - name: Run Jest with coverage (thresholds enforced in jest.config.js)
+        # Coverage thresholds in jest.config.js cause Jest to exit non-zero when
+        # any metric drops below the configured floor, blocking the build.
         run: npm run test:js -- --coverage
 
       - name: Upload JS coverage to Codecov
@@ -117,6 +119,38 @@ jobs:
 
       - name: Run PHPUnit (unit suite)
         run: vendor/bin/phpunit --testsuite unit
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Test — PHP unit tests with coverage (Xdebug, PHP 8.2 only)
+  # Separate from the matrix job so we don't slow down PHP 8.3 tests with Xdebug.
+  # ─────────────────────────────────────────────────────────────────────────────
+  test-php-coverage:
+    name: PHP Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5.0.1
+
+      - name: Set up PHP 8.2 with Xdebug
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          coverage: xdebug
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run PHPUnit with coverage
+        run: vendor/bin/phpunit --testsuite unit --coverage-text --coverage-clover coverage/php-clover.xml
+        continue-on-error: true  # Coverage reporting is best-effort; failures here do not block the build.
+
+      - name: Upload PHP coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage/php-clover.xml
+          flags: phpunit
+          fail_ci_if_error: false
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Test — PHP integration tests (requires WordPress test suite)
@@ -260,8 +294,8 @@ jobs:
       - name: Install JS dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+      - name: Install Playwright browsers (Chromium + Firefox + WebKit)
+        run: npx playwright install --with-deps chromium firefox webkit
 
       - name: Download build artifact
         uses: actions/download-artifact@v4

@@ -1,54 +1,16 @@
 /**
- * Tests for validateSavedItems() (the client-side item sanitizer) from edit.js.
+ * Tests for validateSavedItems() and VALID_ITEM_TYPES from
+ * src/hooks/useAldusItems.js.
  *
- * validateSavedItems is a module-level pure function. We inline the
- * implementation here to keep tests self-contained, pending the JS architecture
- * refactor that will export it as a named function.
+ * Previously these tests contained an inlined copy of the implementation
+ * (without the code/details types that were later added). They now import
+ * the real exports so any change to useAldusItems.js is caught immediately.
  */
 
-const VALID_ITEM_TYPES = new Set( [
-	'headline',
-	'subheading',
-	'paragraph',
-	'quote',
-	'image',
-	'cta',
-	'list',
-	'video',
-	'table',
-	'gallery',
-] );
-
-// Mirror of validateSavedItems from edit.js.
-function validateSavedItems( raw ) {
-	if ( ! Array.isArray( raw ) ) {
-		return [];
-	}
-	return raw
-		.filter(
-			( item ) =>
-				item !== null &&
-				typeof item === 'object' &&
-				VALID_ITEM_TYPES.has( item.type ) &&
-				typeof item.content === 'string' &&
-				typeof ( item.url ?? '' ) === 'string'
-		)
-		.map( ( item ) => {
-			const clean = {
-				id: typeof item.id === 'string' ? item.id : 'generated',
-				type: item.type,
-				content: item.content,
-				url: item.url ?? '',
-			};
-			if ( Number.isInteger( item.mediaId ) ) {
-				clean.mediaId = item.mediaId;
-			}
-			if ( Array.isArray( item.urls ) ) {
-				clean.urls = item.urls.filter( ( u ) => typeof u === 'string' );
-			}
-			return clean;
-		} );
-}
+import {
+	validateSavedItems,
+	VALID_ITEM_TYPES,
+} from '../hooks/useAldusItems.js';
 
 describe( 'validateSavedItems()', () => {
 	it( 'returns empty array for non-array input', () => {
@@ -96,6 +58,20 @@ describe( 'validateSavedItems()', () => {
 		expect( result[ 0 ].url ).toBe( '' );
 	} );
 
+	it( 'preserves a valid string id', () => {
+		const raw = [ { id: 'my-id', type: 'headline', content: 'Hi', url: '' } ];
+		const result = validateSavedItems( raw );
+		expect( result[ 0 ].id ).toBe( 'my-id' );
+	} );
+
+	it( 'generates a new id when id is empty string', () => {
+		const raw = [ { id: '', type: 'headline', content: 'Hi', url: '' } ];
+		const result = validateSavedItems( raw );
+		// uid() produces a non-empty string that is not the empty string.
+		expect( typeof result[ 0 ].id ).toBe( 'string' );
+		expect( result[ 0 ].id.length ).toBeGreaterThan( 0 );
+	} );
+
 	it( 'preserves mediaId when it is an integer', () => {
 		const raw = [
 			{ id: 'a', type: 'image', content: 'Alt', url: '', mediaId: 42 },
@@ -133,8 +109,41 @@ describe( 'validateSavedItems()', () => {
 		] );
 	} );
 
-	it( 'handles all valid content types', () => {
-		const types = [
+	it( 'accepts the code content type (added in later release)', () => {
+		const raw = [ { id: 'a', type: 'code', content: 'const x = 1;', url: '' } ];
+		const result = validateSavedItems( raw );
+		expect( result ).toHaveLength( 1 );
+		expect( result[ 0 ].type ).toBe( 'code' );
+	} );
+
+	it( 'accepts the details content type (added in later release)', () => {
+		const raw = [
+			{ id: 'a', type: 'details', content: 'FAQ answer', url: '' },
+		];
+		const result = validateSavedItems( raw );
+		expect( result ).toHaveLength( 1 );
+		expect( result[ 0 ].type ).toBe( 'details' );
+	} );
+
+	it( 'handles all valid content types defined in VALID_ITEM_TYPES', () => {
+		const raw = [ ...VALID_ITEM_TYPES ].map( ( type, i ) => ( {
+			id: String( i ),
+			type,
+			content: type,
+			url: '',
+		} ) );
+		const result = validateSavedItems( raw );
+		expect( result ).toHaveLength( VALID_ITEM_TYPES.size );
+	} );
+} );
+
+describe( 'VALID_ITEM_TYPES', () => {
+	it( 'is a Set', () => {
+		expect( VALID_ITEM_TYPES ).toBeInstanceOf( Set );
+	} );
+
+	it( 'includes the original content types', () => {
+		const expected = [
 			'headline',
 			'subheading',
 			'paragraph',
@@ -146,13 +155,13 @@ describe( 'validateSavedItems()', () => {
 			'table',
 			'gallery',
 		];
-		const raw = types.map( ( type, i ) => ( {
-			id: String( i ),
-			type,
-			content: type,
-			url: '',
-		} ) );
-		const result = validateSavedItems( raw );
-		expect( result ).toHaveLength( types.length );
+		expected.forEach( ( type ) => {
+			expect( VALID_ITEM_TYPES.has( type ) ).toBe( true );
+		} );
+	} );
+
+	it( 'includes code and details (added post-initial release)', () => {
+		expect( VALID_ITEM_TYPES.has( 'code' ) ).toBe( true );
+		expect( VALID_ITEM_TYPES.has( 'details' ) ).toBe( true );
 	} );
 } );

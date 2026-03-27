@@ -111,6 +111,64 @@ if ( ! function_exists( 'wp_cache_set' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_using_ext_object_cache' ) ) {
+	function wp_using_ext_object_cache(): bool {
+		return false;
+	}
+}
+
+if ( ! function_exists( 'get_post_type' ) ) {
+	function get_post_type( int|null $post = null ): string|false {
+		return 'post';
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Transient store — backed by an in-memory array for fast unit tests.
+// Tests can reset $GLOBALS['_aldus_test_transients'] in setUp() to start clean.
+// ---------------------------------------------------------------------------
+
+if ( ! function_exists( 'get_transient' ) ) {
+	function get_transient( string $transient ): mixed {
+		$store = $GLOBALS['_aldus_test_transients'] ?? array();
+		$entry = $store[ $transient ] ?? null;
+		if ( null === $entry ) {
+			return false;
+		}
+		if ( $entry['expiry'] > 0 && $entry['expiry'] < time() ) {
+			unset( $GLOBALS['_aldus_test_transients'][ $transient ] );
+			return false;
+		}
+		return $entry['value'];
+	}
+}
+
+if ( ! function_exists( 'set_transient' ) ) {
+	function set_transient( string $transient, mixed $value, int $expiration = 0 ): bool {
+		if ( ! isset( $GLOBALS['_aldus_test_transients'] ) ) {
+			$GLOBALS['_aldus_test_transients'] = array();
+		}
+		$GLOBALS['_aldus_test_transients'][ $transient ] = array(
+			'value'  => $value,
+			'expiry' => $expiration > 0 ? time() + $expiration : 0,
+		);
+		return true;
+	}
+}
+
+if ( ! function_exists( 'delete_transient' ) ) {
+	function delete_transient( string $transient ): bool {
+		unset( $GLOBALS['_aldus_test_transients'][ $transient ] );
+		return true;
+	}
+}
+
+if ( ! function_exists( 'get_current_user_id' ) ) {
+	function get_current_user_id(): int {
+		return $GLOBALS['_aldus_test_current_user_id'] ?? 1;
+	}
+}
+
 if ( ! function_exists( 'wp_get_global_settings' ) ) {
 	function wp_get_global_settings( array $path = [] ): array {
 		return [];
@@ -214,6 +272,50 @@ if ( ! function_exists( 'wp_parse_args' ) ) {
 if ( ! function_exists( '__' ) ) {
 	function __( string $text, string $domain = 'default' ): string {
 		return $text;
+	}
+}
+
+if ( ! function_exists( 'do_action' ) ) {
+	function do_action( string $hook, mixed ...$args ): void {}
+}
+
+if ( ! function_exists( 'get_option' ) ) {
+	function get_option( string $option, mixed $default = false ): mixed {
+		return $GLOBALS['_aldus_test_options'][ $option ] ?? $default;
+	}
+}
+
+if ( ! function_exists( 'update_option' ) ) {
+	function update_option( string $option, mixed $value, bool|string $autoload = true ): bool {
+		if ( ! isset( $GLOBALS['_aldus_test_options'] ) ) {
+			$GLOBALS['_aldus_test_options'] = array();
+		}
+		$GLOBALS['_aldus_test_options'][ $option ] = $value;
+		return true;
+	}
+}
+
+if ( ! function_exists( 'rest_ensure_response' ) ) {
+	function rest_ensure_response( mixed $data ): \WP_REST_Response {
+		return new \WP_REST_Response( $data, 200 );
+	}
+}
+
+if ( ! function_exists( 'rest_authorization_required_code' ) ) {
+	function rest_authorization_required_code(): int {
+		return 401;
+	}
+}
+
+if ( ! function_exists( 'current_user_can' ) ) {
+	function current_user_can( string $capability ): bool {
+		return $GLOBALS['_aldus_test_can'][ $capability ] ?? true;
+	}
+}
+
+if ( ! function_exists( 'wp_cache_incr' ) ) {
+	function wp_cache_incr( string $key, int $offset = 1, string $group = '' ): int|false {
+		return false; // Force transient path in tests.
 	}
 }
 

@@ -1,97 +1,12 @@
 /**
- * Tests for buildPersonalityPrompt() in edit.js.
+ * Tests for buildPersonalityPrompt() from src/lib/prompts.js.
  *
- * buildPersonalityPrompt is a module-level pure function. We inline a minimal
- * version of the implementation here to keep tests self-contained, pending the
- * JS architecture refactor that will export it as a named function.
- *
- * These tests verify the structural contracts the PHP assembly endpoint
- * depends on (the prompt must include required anchor tokens and a JSON
- * response instruction).
+ * Previously these tests contained an inlined copy of the implementation.
+ * They now import the real function so any change to prompts.js is caught
+ * immediately rather than silently diverging from this file.
  */
 
-// ---------------------------------------------------------------------------
-// Inline minimal implementation for testing — mirrors edit.js behaviour.
-// ---------------------------------------------------------------------------
-
-const VALID_TOKENS = [
-	'cover:dark',
-	'cover:light',
-	'cover:minimal',
-	'columns:2-equal',
-	'paragraph',
-	'heading:h1',
-	'heading:h2',
-	'separator',
-	'pullquote:wide',
-	'pullquote:full-solid',
-	'buttons:cta',
-	'image:wide',
-	'image:full',
-	'media-text:left',
-];
-
-function buildPersonalityPrompt(
-	personality,
-	manifest,
-	styleNote = '',
-	postContext = null,
-	// items parameter reserved for future prompt enrichment (word-count hints)
-	// eslint-disable-next-line no-unused-vars
-	_items = [],
-	previousSequences = []
-) {
-	const manifestText = Object.entries( manifest )
-		.map( ( [ type, count ] ) => `${ count } ${ type }` )
-		.join( ', ' );
-
-	const tokenPool = personality.relevantTokens ?? VALID_TOKENS;
-	const tokensText = tokenPool.join( ', ' );
-	const anchorsText = personality.anchors.join( ', ' );
-	const examples = personality.exampleSequences ?? [ personality.anchors ];
-	const examplesText = examples
-		.map( ( seq, i ) => `  ${ i + 1 }: ${ seq.join( ', ' ) }` )
-		.join( '\n' );
-
-	const isLoose = personality.creativity === 1;
-	const anchorRule = isLoose
-		? `Required anchor tokens (MUST appear somewhere in your sequence): ${ anchorsText }`
-		: `Required anchor tokens (MUST appear at the start of your sequence): ${ anchorsText }`;
-
-	const noteSection = styleNote.trim()
-		? `\nStyle note from the author: "${ styleNote.trim() }"`
-		: '';
-
-	const contextSection = postContext ? `\nContext: ${ postContext }` : '';
-
-	const diversitySection =
-		previousSequences.length > 0
-			? `\nPreviously generated sequences: ${ previousSequences
-					.slice( 0, 3 )
-					.map( ( s ) => s.join( ' → ' ) )
-					.join( ' | ' ) }. Generate something structurally distinct.`
-			: '';
-
-	return `You arrange content into a WordPress block layout sequence using tokens.
-
-Available tokens: ${ tokensText }
-
-Content to place: ${ manifestText }
-
-Layout personality: "${ personality.name }" — ${ personality.description }
-${ anchorRule }
-Example sequences:
-${ examplesText }${ contextSection }${ noteSection }${ diversitySection }
-
-Rules:
-- Use 6–12 tokens total
-- Anchor tokens must be present
-- Skip a token only if its required content type is not in the manifest
-- Only use tokens from the approved list above
-
-Respond with valid JSON only, no explanation:
-{"tokens": ["token1", "token2", "token3"]}`;
-}
+import { buildPersonalityPrompt } from '../lib/prompts.js';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -149,6 +64,22 @@ describe( 'buildPersonalityPrompt()', () => {
 		expect( prompt ).toContain( 'headline' );
 		expect( prompt ).toContain( 'paragraph' );
 		expect( prompt ).toContain( 'quote' );
+	} );
+
+	it( 'includes word-count hints for paragraph items', () => {
+		const items = [
+			{ type: 'paragraph', content: 'one two three four five' },
+			{ type: 'paragraph', content: 'a b c' },
+		];
+		const prompt = buildPersonalityPrompt(
+			DISPATCH,
+			{ paragraph: 2 },
+			'',
+			null,
+			items
+		);
+		// avg 4 words: (5+3)/2 = 4
+		expect( prompt ).toContain( 'avg 4w' );
 	} );
 
 	it( 'ends with the JSON response instruction', () => {
@@ -216,8 +147,34 @@ describe( 'buildPersonalityPrompt()', () => {
 
 	it( 'includes example sequences', () => {
 		const prompt = buildPersonalityPrompt( DISPATCH, {} );
-		// First example sequence tokens should appear in the prompt.
 		expect( prompt ).toContain( 'cover:dark' );
 		expect( prompt ).toContain( 'pullquote:full-solid' );
+	} );
+
+	it( 'uses grouped token format for the token pool', () => {
+		// formatTokenPool groups tokens by category (e.g. "Covers: cover:dark /
+		// Quotes: pullquote:wide").  A colon after a category name is the tell.
+		const prompt = buildPersonalityPrompt( DISPATCH, {} );
+		expect( prompt ).toMatch( /Covers:|Quotes:|Headings:/i );
+	} );
+
+	it( 'uses relevantTokens when defined on the personality', () => {
+		const limited = {
+			...DISPATCH,
+			relevantTokens: [ 'cover:dark', 'paragraph' ],
+		};
+		const prompt = buildPersonalityPrompt( limited, {} );
+		// The pool tokens appear in the output.
+		expect( prompt ).toContain( 'cover:dark' );
+		expect( prompt ).toContain( 'paragraph' );
+		// Extract the "Available tokens:" line and confirm it only lists the
+		// two tokens from relevantTokens, not the full vocabulary.
+		const availableLine = prompt
+			.split( '\n' )
+			.find( ( l ) => l.startsWith( 'Available tokens:' ) );
+		expect( availableLine ).toBeDefined();
+		// A token absent from relevantTokens should not appear in the available
+		// tokens line (it may still appear in anchor rule / examples).
+		expect( availableLine ).not.toContain( 'pullquote:full-solid' );
 	} );
 } );

@@ -355,6 +355,57 @@ export function scorePersonalityFit( layouts, manifest, personalities ) {
 	return scores;
 }
 
+// Human-readable labels shown in the MixScreen section list and tooltips.
+// Keep in sync with TOKEN_HUMAN_LABELS in screens/MixScreen.js.
+export const TOKEN_HUMAN_LABELS = {
+	'cover:dark': 'Dark hero',
+	'cover:light': 'Light hero',
+	'cover:minimal': 'Minimal hero',
+	'cover:split': 'Split hero',
+	'columns:2-equal': 'Two columns',
+	'columns:28-72': 'Sidebar columns',
+	'columns:3-equal': 'Three columns',
+	'columns:4-equal': 'Four columns',
+	'media-text:left': 'Image left',
+	'media-text:right': 'Image right',
+	'group:dark-full': 'Dark section',
+	'group:accent-full': 'Accent section',
+	'group:light-full': 'Light section',
+	'group:border-box': 'Bordered section',
+	'group:gradient-full': 'Gradient section',
+	'pullquote:wide': 'Pull quote',
+	'pullquote:full-solid': 'Bold pull quote',
+	'pullquote:centered': 'Centered quote',
+	'heading:h1': 'Heading 1',
+	'heading:h2': 'Heading 2',
+	'heading:h3': 'Heading 3',
+	'heading:display': 'Display heading',
+	'heading:kicker': 'Kicker heading',
+	paragraph: 'Paragraph',
+	'paragraph:dropcap': 'Drop cap paragraph',
+	'paragraph:lead': 'Lead paragraph',
+	'image:wide': 'Wide image',
+	'image:full': 'Full-width image',
+	quote: 'Quote',
+	'quote:attributed': 'Attributed quote',
+	'buttons:cta': 'Call to action',
+	'spacer:small': 'Small spacer',
+	'spacer:large': 'Spacer',
+	'spacer:xlarge': 'Large spacer',
+	separator: 'Separator',
+	list: 'List',
+	'video:hero': 'Video hero',
+	'video:section': 'Video section',
+	'table:data': 'Data table',
+	'gallery:2-col': '2-column gallery',
+	'gallery:3-col': '3-column gallery',
+	'fallback:generic': 'Fallback layout',
+};
+
+export function tokenHumanLabel( token ) {
+	return TOKEN_HUMAN_LABELS[ token ] ?? token;
+}
+
 // Short display labels for token recipe strip on layout cards.
 export function tokenShortLabel( token ) {
 	const labels = {

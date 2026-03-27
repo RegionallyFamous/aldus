@@ -1,21 +1,12 @@
 /**
- * Tests for enforceAnchors() defined in src/edit.js.
+ * Tests for enforceAnchors() from src/lib/prompts.js.
  *
- * enforceAnchors is a module-level pure function. We inline the implementation
- * here so the test doesn't depend on importing the entire monolithic edit.js.
- * When edit.js is refactored to export enforceAnchors as a named export this
- * test can switch to a direct import.
+ * Previously these tests contained an inlined copy of the implementation.
+ * They now import the real function so any change to prompts.js is caught
+ * immediately rather than silently diverging from this file.
  */
 
-// Mirror of the enforceAnchors function from edit.js.
-// Copied here to keep tests self-contained pending the JS architecture refactor.
-function enforceAnchors( personality, tokens ) {
-	const tokenSet = new Set( tokens );
-	const missing = personality.anchors.filter( ( a ) => ! tokenSet.has( a ) );
-	return personality.creativity === 0
-		? [ ...missing, ...tokens ]
-		: [ ...tokens, ...missing ];
-}
+import { enforceAnchors } from '../lib/prompts.js';
 
 const DISPATCH = {
 	name: 'Dispatch',
@@ -51,7 +42,6 @@ describe( 'enforceAnchors() — strict (creativity: 0)', () => {
 			'paragraph',
 		];
 		const result = enforceAnchors( DISPATCH, tokens );
-		// Anchors already present — no duplicates added.
 		expect( result.filter( ( t ) => t === 'cover:dark' ).length ).toBe( 1 );
 	} );
 
@@ -83,7 +73,6 @@ describe( 'enforceAnchors() — loose (creativity: 1)', () => {
 	it( 'does not move anchors that are already present', () => {
 		const tokens = [ 'cover:dark', 'paragraph', 'image:full' ];
 		const result = enforceAnchors( NOCTURNE, tokens );
-		// Both anchors already present — result equals input.
 		expect( result ).toEqual( tokens );
 	} );
 

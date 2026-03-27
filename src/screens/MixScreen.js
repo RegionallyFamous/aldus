@@ -22,6 +22,7 @@ import { __, _n, sprintf } from '@wordpress/i18n';
 import { shuffle as shuffleIcon } from '@wordpress/icons';
 
 import { LayoutWireframe } from '../components/LayoutWireframe.js';
+import { tokenHumanLabel } from '../data/tokens.js';
 
 // ---------------------------------------------------------------------------
 // Personality → accent colour map
@@ -49,52 +50,7 @@ function personalityColor( label ) {
 	return PERSONALITY_COLORS[ label ] ?? '#999';
 }
 
-// ---------------------------------------------------------------------------
-// Human-readable labels for token identifiers
-// ---------------------------------------------------------------------------
-const TOKEN_HUMAN_LABELS = {
-	'cover:dark': 'Dark hero',
-	'cover:light': 'Light hero',
-	'cover:minimal': 'Minimal hero',
-	'cover:split': 'Split hero',
-	'columns:2-equal': 'Two columns',
-	'columns:28-72': 'Sidebar columns',
-	'columns:3-equal': 'Three columns',
-	'columns:4-equal': 'Four columns',
-	'media-text:left': 'Image left',
-	'media-text:right': 'Image right',
-	'group:dark-full': 'Dark section',
-	'group:accent-full': 'Accent section',
-	'group:light-full': 'Light section',
-	'group:border-box': 'Bordered section',
-	'group:gradient-full': 'Gradient section',
-	'pullquote:wide': 'Pull quote',
-	'pullquote:full-solid': 'Bold pull quote',
-	'pullquote:centered': 'Centered quote',
-	'heading:h1': 'Heading 1',
-	'heading:h2': 'Heading 2',
-	'heading:h3': 'Heading 3',
-	'heading:display': 'Display heading',
-	'heading:kicker': 'Kicker heading',
-	paragraph: 'Paragraph',
-	'paragraph:dropcap': 'Drop cap paragraph',
-	'paragraph:lead': 'Lead paragraph',
-	'image:wide': 'Wide image',
-	'image:full': 'Full-width image',
-	quote: 'Quote',
-	'quote:attributed': 'Attributed quote',
-	'buttons:cta': 'Call to action',
-	'spacer:small': 'Small spacer',
-	'spacer:large': 'Spacer',
-	'spacer:xlarge': 'Large spacer',
-	separator: 'Separator',
-	list: 'List',
-	'fallback:generic': 'Fallback layout',
-};
-
-function tokenHumanLabel( token ) {
-	return TOKEN_HUMAN_LABELS[ token ] ?? token;
-}
+// tokenHumanLabel is imported from data/tokens.js above.
 
 // ---------------------------------------------------------------------------
 // SectionTile — one row in the left timeline

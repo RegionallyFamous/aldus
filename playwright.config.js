@@ -38,7 +38,7 @@ module.exports = defineConfig( {
 			testMatch: '**/auth.setup.js',
 		},
 
-		// ── Main test suite ───────────────────────────────────────────────────
+		// ── Desktop browsers ─────────────────────────────────────────────────
 		{
 			name: 'chromium',
 			use: {
@@ -46,6 +46,46 @@ module.exports = defineConfig( {
 				storageState: AUTH_FILE,
 			},
 			dependencies: [ 'setup' ],
+		},
+		{
+			name: 'firefox',
+			use: {
+				...devices[ 'Desktop Firefox' ],
+				storageState: AUTH_FILE,
+			},
+			dependencies: [ 'setup' ],
+			// Skip visual-regression (screenshot rendering differs by engine).
+			testIgnore: '**/visual-regression.spec.js',
+		},
+		{
+			name: 'webkit',
+			use: {
+				...devices[ 'Desktop Safari' ],
+				storageState: AUTH_FILE,
+			},
+			dependencies: [ 'setup' ],
+			testIgnore: '**/visual-regression.spec.js',
+		},
+
+		// ── Mobile viewports ─────────────────────────────────────────────────
+		{
+			name: 'mobile-chrome',
+			use: {
+				...devices[ 'Pixel 5' ],
+				storageState: AUTH_FILE,
+			},
+			dependencies: [ 'setup' ],
+			// Only run the dedicated mobile spec on this project.
+			testMatch: '**/mobile.spec.js',
+		},
+		{
+			name: 'mobile-safari',
+			use: {
+				...devices[ 'iPhone 13' ],
+				storageState: AUTH_FILE,
+			},
+			dependencies: [ 'setup' ],
+			testMatch: '**/mobile.spec.js',
 		},
 	],
 } );

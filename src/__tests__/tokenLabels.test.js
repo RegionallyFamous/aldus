@@ -1,102 +1,18 @@
 /**
- * Tests for tokenShortLabel() and tokenHumanLabel() from src/edit.js.
+ * Tests for tokenShortLabel() from src/data/tokens.js and
+ * tokenHumanLabel() from src/data/tokens.js.
  *
- * Functions are inlined here to keep tests self-contained, pending the
- * architecture refactor that will export them as named functions.
+ * Previously these tests contained inlined copies of both functions.
+ * They now import the real exports so any change to tokens.js or
+ * MixScreen.js label tables is caught immediately.
  */
 
-// ---------------------------------------------------------------------------
-// Inline mirrors of the functions under test
-// ---------------------------------------------------------------------------
-
-const SHORT_LABELS = {
-	'cover:dark': 'cover',
-	'cover:light': 'cover·lt',
-	'cover:minimal': 'cover·min',
-	'cover:split': 'cover·split',
-	'columns:2-equal': '2-col',
-	'columns:28-72': '28–72',
-	'columns:3-equal': '3-col',
-	'columns:4-equal': '4-col',
-	'media-text:left': 'media',
-	'media-text:right': 'media·r',
-	'group:dark-full': 'grp:dark',
-	'group:accent-full': 'grp:accent',
-	'group:light-full': 'grp:light',
-	'group:border-box': 'grp:border',
-	'group:gradient-full': 'grp:grad',
-	'pullquote:wide': 'pullquote',
-	'pullquote:full-solid': 'pull:full',
-	'pullquote:centered': 'pull:ctr',
-	'heading:h1': 'h1',
-	'heading:h2': 'h2',
-	'heading:h3': 'h3',
-	'heading:display': 'h·display',
-	'heading:kicker': 'kicker',
-	paragraph: 'p',
-	'paragraph:dropcap': 'dropcap',
-	'image:wide': 'img:wide',
-	'image:full': 'img:full',
-	quote: 'quote',
-	'quote:attributed': 'quote·attr',
-	'buttons:cta': 'cta',
-	'spacer:small': 'spacer·sm',
-	'spacer:large': 'spacer',
-	'spacer:xlarge': 'spacer·xl',
-	separator: '—',
-	list: 'list',
-	'video:hero': 'video',
-	'video:section': 'video·sec',
-	'table:data': 'table',
-	'gallery:2-col': 'gallery×2',
-	'gallery:3-col': 'gallery×3',
-};
-
-function tokenShortLabel( token ) {
-	return SHORT_LABELS[ token ] ?? token;
-}
-
-const HUMAN_LABELS = {
-	'cover:dark': 'Dark hero',
-	'cover:light': 'Light hero',
-	'cover:minimal': 'Minimal hero',
-	'cover:split': 'Split hero',
-	'columns:2-equal': 'Two columns',
-	'columns:28-72': 'Sidebar columns',
-	'columns:3-equal': 'Three columns',
-	'columns:4-equal': 'Four columns',
-	'media-text:left': 'Image left',
-	'media-text:right': 'Image right',
-	'group:dark-full': 'Dark section',
-	'group:accent-full': 'Accent section',
-	'group:light-full': 'Light section',
-	'group:border-box': 'Bordered section',
-	'group:gradient-full': 'Gradient section',
-	'pullquote:wide': 'Pull quote',
-	'pullquote:full-solid': 'Bold pull quote',
-	'pullquote:centered': 'Centered quote',
-	'heading:h1': 'Heading 1',
-	'heading:h2': 'Heading 2',
-	'heading:h3': 'Heading 3',
-	'heading:display': 'Display heading',
-	'heading:kicker': 'Kicker heading',
-	paragraph: 'Paragraph',
-	'paragraph:dropcap': 'Drop cap paragraph',
-	'image:wide': 'Wide image',
-	'image:full': 'Full-width image',
-	quote: 'Quote',
-	'quote:attributed': 'Attributed quote',
-	'buttons:cta': 'Call to action',
-	'spacer:small': 'Small spacer',
-	'spacer:large': 'Spacer',
-	'spacer:xlarge': 'Large spacer',
-	separator: 'Separator',
-	list: 'List',
-};
-
-function tokenHumanLabel( token ) {
-	return HUMAN_LABELS[ token ] ?? token;
-}
+import {
+	tokenShortLabel,
+	tokenHumanLabel,
+	VALID_TOKENS,
+	TOKEN_HUMAN_LABELS,
+} from '../data/tokens.js';
 
 // ---------------------------------------------------------------------------
 // tokenShortLabel()
@@ -138,6 +54,12 @@ describe( 'tokenShortLabel()', () => {
 		expect( tokenShortLabel( 'gallery:3-col' ) ).toBe( 'gallery×3' );
 	} );
 
+	it( 'returns short labels for video and table tokens', () => {
+		expect( tokenShortLabel( 'video:hero' ) ).toBe( 'video' );
+		expect( tokenShortLabel( 'video:section' ) ).toBe( 'video·sec' );
+		expect( tokenShortLabel( 'table:data' ) ).toBe( 'table' );
+	} );
+
 	it( 'falls back to the raw token for unknown inputs', () => {
 		expect( tokenShortLabel( 'unknown:token' ) ).toBe( 'unknown:token' );
 		expect( tokenShortLabel( 'paragraph:lead' ) ).toBe( 'paragraph:lead' );
@@ -147,15 +69,10 @@ describe( 'tokenShortLabel()', () => {
 		expect( tokenShortLabel( '' ) ).toBe( '' );
 	} );
 
-	it( 'covers every entry in SHORT_LABELS without duplicates', () => {
-		const values = Object.values( SHORT_LABELS );
-		const keys = Object.keys( SHORT_LABELS );
-		// Every defined token returns the exact mapped value.
-		keys.forEach( ( token ) => {
-			expect( tokenShortLabel( token ) ).toBe( SHORT_LABELS[ token ] );
-		} );
-		// Label map should not have empty-string values.
-		values.forEach( ( label ) => {
+	it( 'returns a non-empty label for every token in VALID_TOKENS', () => {
+		VALID_TOKENS.forEach( ( token ) => {
+			const label = tokenShortLabel( token );
+			expect( typeof label ).toBe( 'string' );
 			expect( label.length ).toBeGreaterThan( 0 );
 		} );
 	} );
@@ -190,21 +107,34 @@ describe( 'tokenHumanLabel()', () => {
 		expect( tokenHumanLabel( 'buttons:cta' ) ).toBe( 'Call to action' );
 	} );
 
+	it( 'returns readable labels for video and table tokens', () => {
+		expect( tokenHumanLabel( 'video:hero' ) ).toBe( 'Video hero' );
+		expect( tokenHumanLabel( 'video:section' ) ).toBe( 'Video section' );
+		expect( tokenHumanLabel( 'table:data' ) ).toBe( 'Data table' );
+	} );
+
 	it( 'falls back to the raw token for unknown inputs', () => {
 		expect( tokenHumanLabel( 'unknown:token' ) ).toBe( 'unknown:token' );
 		expect( tokenHumanLabel( '' ) ).toBe( '' );
 	} );
 
-	it( 'all defined labels are non-empty strings', () => {
-		Object.values( HUMAN_LABELS ).forEach( ( label ) => {
+	it( 'returns a non-empty label for every token in VALID_TOKENS', () => {
+		VALID_TOKENS.forEach( ( token ) => {
+			const label = tokenHumanLabel( token );
+			expect( typeof label ).toBe( 'string' );
+			expect( label.length ).toBeGreaterThan( 0 );
+		} );
+	} );
+
+	it( 'all defined labels in TOKEN_HUMAN_LABELS are non-empty strings', () => {
+		Object.values( TOKEN_HUMAN_LABELS ).forEach( ( label ) => {
 			expect( typeof label ).toBe( 'string' );
 			expect( label.length ).toBeGreaterThan( 0 );
 		} );
 	} );
 
 	it( 'all defined human labels are longer than one character', () => {
-		// Human labels should be descriptive words, not single glyphs.
-		Object.values( HUMAN_LABELS ).forEach( ( label ) => {
+		Object.values( TOKEN_HUMAN_LABELS ).forEach( ( label ) => {
 			expect( label.length ).toBeGreaterThan( 1 );
 		} );
 	} );
