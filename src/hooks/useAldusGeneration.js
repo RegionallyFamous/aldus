@@ -5,9 +5,9 @@
  *   1. Lazy-initialise the WebLLM engine (delegated to useAldusEngine)
  *   2. Pre-generation: style direction, personality recommendation, content hints
  *   3. Run token inference in parallel for all active personalities
- *   4. Post-generation: coverage scoring + section labels (descriptions deferred)
+ *   4. Post-generation: coverage scoring + section labels
  *   5. POST each token sequence to /aldus/v1/assemble, streaming cards as they arrive
- *   6. Fill in layout descriptions in the background after first card is shown
+ *   Layout descriptions are not inferred here — see ResultsScreen LayoutCard (hover/expand).
  *
  * Extracted from the monolithic Edit component so the generation flow can be
  * reasoned about and eventually integration-tested with mocked API responses.
@@ -19,7 +19,6 @@
  * @param {Function} options.enforceAnchors          Pure function: personality × tokens → tokens.
  * @param {Function} options.inferStyleDirection     Intelligence: manifest → style string.
  * @param {Function} options.scoreCoverage           Intelligence: manifest × tokens → unused types.
- * @param {Function} options.inferLayoutDescription  Intelligence: personality × tokens → description.
  * @param {Function} options.inferSectionLabel       Intelligence: engine × preview → section label.
  * @param {Function} options.recommendPersonalities  Intelligence: manifest × personalities → top 3 names.
  * @param {Function} options.analyzeContentHints     Intelligence: manifest × items → hint strings.
@@ -108,7 +107,6 @@ export function useAldusGeneration( {
 	inferTokens,
 	enforceAnchors,
 	inferStyleDirection,
-	inferLayoutDescription,
 	inferSectionLabel,
 	recommendPersonalities,
 	analyzeContentHints,
@@ -455,7 +453,7 @@ export function useAldusGeneration( {
 								? coverageResults[ personalityIdx ]?.unused ??
 								  []
 								: [],
-						// Description starts empty; filled in by background pass below.
+						// Description empty until user hovers/expands (see LayoutCard).
 						description: '',
 					};
 				};
@@ -499,28 +497,6 @@ export function useAldusGeneration( {
 					);
 					return;
 				}
-
-				// Step 6: fill in descriptions in the background — one per personality,
-				// updating the card in place as each resolves. Users see the fallback
-				// tagline immediately and descriptions appear as the LLM finishes.
-				finalTokenResults.forEach( ( tokens, i ) => {
-					inferLayoutDescription( engine, personalities[ i ], tokens )
-						.then( ( result ) => {
-							const desc = result?.description ?? '';
-							if ( ! desc ) {
-								return;
-							}
-							// Merge the description into the matching card by label.
-							streamingLayouts = streamingLayouts.map(
-								( card ) =>
-									card.label === personalities[ i ].name
-										? { ...card, description: desc }
-										: card
-							);
-							onLayoutsReady( streamingLayouts );
-						} )
-						.catch( () => {} );
-				} );
 
 				speak(
 					sprintf(
@@ -634,7 +610,6 @@ export function useAldusGeneration( {
 			inferTokens,
 			enforceAnchors,
 			inferStyleDirection,
-			inferLayoutDescription,
 			inferSectionLabel,
 			recommendPersonalities,
 			analyzeContentHints,

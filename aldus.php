@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Plugin Name:       Aldus — Layout Explorer
  * Plugin URI:        https://github.com/RegionallyFamous/aldus
  * Description:       You write it. Aldus designs it. Layout styles for your content — pick the one that fits, and it becomes real WordPress blocks.
- * Version:           1.26.0
+ * Version:           1.27.0
  * Requires at least: 6.4
  * Requires PHP:      8.0
  * Author:            Regionally Famous
@@ -21,13 +21,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-defined( 'ALDUS_VERSION' ) || define( 'ALDUS_VERSION', '1.26.0' );
+defined( 'ALDUS_VERSION' ) || define( 'ALDUS_VERSION', '1.27.0' );
 defined( 'ALDUS_PATH' ) || define( 'ALDUS_PATH', plugin_dir_path( __FILE__ ) );
 defined( 'ALDUS_URL' ) || define( 'ALDUS_URL', plugin_dir_url( __FILE__ ) );
 // Injected by the build script (bin/inject-build-hash.js) from the webpack
 // content hash.  An empty string is safe: the cache key falls back to version
 // + request params, which is correct for manual/dev builds.
-defined( 'ALDUS_BUILD_HASH' ) || define( 'ALDUS_BUILD_HASH', '4555f9e8950af6b3e55e' );
+defined( 'ALDUS_BUILD_HASH' ) || define( 'ALDUS_BUILD_HASH', 'e16acddafb833522a4db' );
 
 register_activation_hook( __FILE__, 'aldus_activate' );
 register_deactivation_hook( __FILE__, 'aldus_deactivate' );
@@ -63,21 +63,20 @@ function aldus_deactivate(): void {
 add_action( 'plugins_loaded', 'aldus_init' );
 
 /**
- * Loads all plugin files and registers WordPress hooks.
+ * Loads token renderers, content distributor, and the /assemble handler.
  *
- * Require order follows the dependency chain:
- *   Foundation → Configuration → Renderers → API layer → Admin
+ * Not needed for ordinary front-end HTML views (the Aldus block SSR only wraps
+ * inner blocks). Loaded when the REST API initializes so /aldus/v1/assemble and
+ * related routes have their dependencies; skipped on typical page loads without
+ * wp-json, reducing parse cost for pages that never call Aldus.
  */
-function aldus_init(): void {
-	// Core dependencies — always loaded on every request.
-	require_once ALDUS_PATH . 'includes/sanitize.php';
-	require_once ALDUS_PATH . 'includes/tokens.php';
-	require_once ALDUS_PATH . 'includes/theme.php';
-	require_once ALDUS_PATH . 'includes/personality.php';
-	require_once ALDUS_PATH . 'includes/block-html.php';
-	require_once ALDUS_PATH . 'includes/serialize.php';
-	require_once ALDUS_PATH . 'includes/styles.php';
-	require_once ALDUS_PATH . 'includes/bindings.php';
+function aldus_load_assembly_stack(): void {
+	static $loaded = false;
+	if ( $loaded ) {
+		return;
+	}
+	$loaded = true;
+
 	require_once ALDUS_PATH . 'includes/class-content-distributor.php';
 	require_once ALDUS_PATH . 'includes/renderers/cover.php';
 	require_once ALDUS_PATH . 'includes/renderers/columns.php';
@@ -90,9 +89,28 @@ function aldus_init(): void {
 	require_once ALDUS_PATH . 'includes/renderers/structure.php';
 	require_once ALDUS_PATH . 'includes/renderers/layout.php';
 	require_once ALDUS_PATH . 'includes/render-router.php';
+	require_once ALDUS_PATH . 'includes/api-assemble.php';
+}
+add_action( 'rest_api_init', 'aldus_load_assembly_stack', 1 );
+
+/**
+ * Loads all plugin files and registers WordPress hooks.
+ *
+ * Require order follows the dependency chain:
+ *   Foundation → Configuration → REST controller (assembly stack loads on rest_api_init) → Admin
+ */
+function aldus_init(): void {
+	// Core dependencies — always loaded on every request.
+	require_once ALDUS_PATH . 'includes/sanitize.php';
+	require_once ALDUS_PATH . 'includes/tokens.php';
+	require_once ALDUS_PATH . 'includes/theme.php';
+	require_once ALDUS_PATH . 'includes/personality.php';
+	require_once ALDUS_PATH . 'includes/block-html.php';
+	require_once ALDUS_PATH . 'includes/serialize.php';
+	require_once ALDUS_PATH . 'includes/styles.php';
+	require_once ALDUS_PATH . 'includes/bindings.php';
 	require_once ALDUS_PATH . 'includes/class-rest-controller.php';
 	require_once ALDUS_PATH . 'includes/api.php';
-	require_once ALDUS_PATH . 'includes/api-assemble.php';
 	require_once ALDUS_PATH . 'includes/api-config.php';
 	require_once ALDUS_PATH . 'includes/api-health.php';
 	require_once ALDUS_PATH . 'includes/api-telemetry.php';

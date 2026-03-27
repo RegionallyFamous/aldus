@@ -747,6 +747,43 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		setIsEngineReady( false );
 	}, [ destroyEngine ] );
 
+	const requestLayoutDescription = useCallback(
+		async ( layout ) => {
+			if ( isPreview || layout?.description ) {
+				return;
+			}
+			const engine = engineRef.current;
+			if ( ! engine || ! layout?.tokens?.length ) {
+				return;
+			}
+			const personality = ACTIVE_PERSONALITIES.find(
+				( p ) => p.name === layout.label
+			);
+			if ( ! personality ) {
+				return;
+			}
+			try {
+				const result = await inferLayoutDescription(
+					engine,
+					personality,
+					layout.tokens
+				);
+				const desc = result?.description ?? '';
+				if ( ! desc ) {
+					return;
+				}
+				setLayouts( ( prev ) =>
+					prev.map( ( l ) =>
+						l.label === layout.label ? { ...l, description: desc } : l
+					)
+				);
+			} catch {
+				// Non-fatal — static tagline remains.
+			}
+		},
+		[ isPreview ]
+	);
+
 	const { runGenerate, isGenerating, incrementRerollCount, resetRetry } =
 		useAldusGeneration( {
 			initEngine,
@@ -755,7 +792,6 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 			inferTokens,
 			enforceAnchors,
 			inferStyleDirection,
-			inferLayoutDescription,
 			inferSectionLabel,
 			recommendPersonalities,
 			analyzeContentHints,
@@ -898,8 +934,25 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 									_aldus_layout_history:
 										JSON.stringify( updated ),
 								} );
-							} catch {
-								// Non-fatal — history display degrades gracefully.
+							} catch ( histErr ) {
+								// eslint-disable-next-line no-console
+								console.error(
+									'[Aldus] setMeta layout history failed:',
+									histErr
+								);
+								wpDispatch(
+									'core/notices'
+								).createWarningNotice(
+									__(
+										"Aldus couldn't save layout history to this post. The list below may reset after reload.",
+										'aldus'
+									),
+									{
+										id: 'aldus-history-meta-warning',
+										isDismissible: true,
+										type: 'snackbar',
+									}
+								);
 							}
 							return updated;
 						} );
@@ -1072,6 +1125,17 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 				setRetryCount( ( c ) => c + 1 );
 				reportError( 'api_error' );
 				setScreen( SCREEN.ERROR );
+				wpDispatch( 'core/notices' ).createErrorNotice(
+					__(
+						"Couldn't load the pack preview. Check your connection and try again.",
+						'aldus'
+					),
+					{
+						id: 'aldus-pack-preview-error',
+						isDismissible: true,
+						type: 'snackbar',
+					}
+				);
 				if ( window?.aldusDebug ) {
 					// eslint-disable-next-line no-console
 					console.error( '[Aldus] runPreview failed:', err );
@@ -1894,6 +1958,9 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							startOver={ requestStartOver }
 							regenerate={ requestRegenerate }
 							isPreview={ isPreview }
+							onRequestLayoutDescription={
+								requestLayoutDescription
+							}
 							onReroll={ rerollLayout }
 							rerollingLabel={ rerollingLabel }
 							rerollErrors={ rerollErrors }

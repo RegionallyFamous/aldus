@@ -3,7 +3,7 @@ Contributors: regionallyfamous
 Tags: blocks, layout, design, ai, gutenberg
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 1.26.0
+Stable tag: 1.27.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -74,7 +74,7 @@ All output is standard core WordPress blocks — Cover, Columns, Media & Text, G
 
 **Mix & match.** Combine sections from different styles into a single custom layout.
 
-**Per-card re-roll.** Not feeling one card? Regenerate just that slot without losing the rest.
+**Per-card re-roll.** Not feeling one card? Re-roll just that slot without losing the rest.
 
 **Saved sessions.** Bookmark your current set of content pieces and reload them later.
 
@@ -131,6 +131,12 @@ Nine themed content packs (Roast — specialty coffee; Meridian — B2B SaaS; He
 An optional free-text field on the building screen that steers the layout model — for example "lead with the image", "keep it minimal", or "bold CTA up top". It's passed directly into the model prompt.
 
 == Changelog ==
+
+= 1.27.0 =
+* Layout descriptions load when you focus, hover, or expand a card — less work during generation so the grid stays responsive.
+* Visitors see faster ordinary pages when Aldus is not calling the server — assembly code loads only when the REST API runs.
+* Clearer notices if layout history cannot be saved, or if a pack preview fails to load.
+* For reviewers: ARCHITECTURE.md documents how content flows from the browser model to blocks.
 
 = 1.26.0 =
 * Layouts respect what you actually wrote — each style only pulls in block types that fit your content, so you see fewer empty slots or blocks that do not match your post (for example code blocks when you did not add code).
@@ -250,6 +256,9 @@ An optional free-text field on the building screen that steers the layout model 
 * First release: add your content, see every layout style at once, pick the one that fits — no external services, no API keys, nothing leaves your browser.
 
 == Upgrade Notice ==
+
+= 1.27.0 =
+Faster, lighter behavior for layout descriptions and front-end page loads; clearer error messages. Safe to update.
 
 = 1.26.0 =
 Layouts align more closely with your real content; fewer odd or empty blocks. No change to how you use the editor. Safe to update.

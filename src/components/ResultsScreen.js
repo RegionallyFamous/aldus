@@ -59,6 +59,7 @@ export function ResultsScreen( {
 	beforeBlocks = [],
 	filteredPersonalitiesCount = 0,
 	showAllStyles = null,
+	onRequestLayoutDescription = null,
 } ) {
 	const hasSections = layouts.some( ( l ) => l.sections?.length > 0 );
 	const [ isCompact, setIsCompact ] = useState( layouts.length >= 8 );
@@ -472,6 +473,11 @@ export function ResultsScreen( {
 								items={ items }
 								tabIndex={ index === focusedCardIndex ? 0 : -1 }
 								onFocus={ () => setFocusedCardIndex( index ) }
+								onRequestLayoutDescription={
+									isPreview
+										? null
+										: onRequestLayoutDescription
+								}
 							/>
 						) )
 					) : (
@@ -561,8 +567,36 @@ export function LayoutCard( {
 	items = [],
 	tabIndex = -1,
 	onFocus,
+	onRequestLayoutDescription = null,
 } ) {
 	const [ isExpanded, setIsExpanded ] = useState( false );
+	const tokensSig = ( layout.tokens ?? [] ).join( '\u0000' );
+	const descRequestedKeyRef = useRef( '' );
+
+	useEffect( () => {
+		descRequestedKeyRef.current = '';
+	}, [ layout.label, tokensSig ] );
+
+	const tryRequestLayoutDescription = useCallback( () => {
+		if ( ! onRequestLayoutDescription || layout.description ) {
+			return;
+		}
+		if ( ! layout.tokens?.length ) {
+			return;
+		}
+		const key = `${ layout.label }\u0000${ tokensSig }`;
+		if ( descRequestedKeyRef.current === key ) {
+			return;
+		}
+		descRequestedKeyRef.current = key;
+		onRequestLayoutDescription( layout );
+	}, [ layout, onRequestLayoutDescription, tokensSig ] );
+
+	useEffect( () => {
+		if ( isExpanded ) {
+			tryRequestLayoutDescription();
+		}
+	}, [ isExpanded, tryRequestLayoutDescription ] );
 	const blocks = useMemo( () => {
 		try {
 			return parseBlocks( layout.blocks ).filter( ( b ) => b?.name );
@@ -603,7 +637,11 @@ export function LayoutCard( {
 					.join( ' ' ) }
 				role="gridcell"
 				tabIndex={ tabIndex }
-				onFocus={ onFocus }
+				onPointerEnter={ tryRequestLayoutDescription }
+				onFocus={ ( event ) => {
+					onFocus?.( event );
+					tryRequestLayoutDescription();
+				} }
 				style={ { animationDelay: `${ index * 40 }ms` } }
 			>
 				<div className="aldus-card-preview">

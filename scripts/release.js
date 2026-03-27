@@ -157,14 +157,14 @@ function applyVersion( oldVer, newVer ) {
 		write( 'src/block.json', bj );
 	}
 
-	// src/edit.js — ALDUS_JS_VERSION constant (version mismatch check).
-	if ( exists( 'src/edit.js' ) ) {
-		let ej = read( 'src/edit.js' );
-		ej = ej.replace(
-			/(const ALDUS_JS_VERSION\s*=\s*')[\d.]+(';)/,
+	// src/constants.js — ALDUS_JS_VERSION (must match ALDUS_VERSION in aldus.php).
+	if ( exists( 'src/constants.js' ) ) {
+		let cj = read( 'src/constants.js' );
+		cj = cj.replace(
+			/(export const ALDUS_JS_VERSION\s*=\s*')[\d.]+(')/,
 			`$1${ newVer }$2`
 		);
-		write( 'src/edit.js', ej );
+		write( 'src/constants.js', cj );
 	}
 }
 
