@@ -136,7 +136,7 @@ function aldus_block_table( Aldus_Content_Distributor $dist ): string {
 		return '';
 	}
 
-	$split_row = fn( string $row ): array => array_map( 'trim', str_getcsv( $row ) );
+	$split_row = fn( string $row ): array => array_map( 'trim', str_getcsv( $row, ',', '"', '' ) );
 
 	$header_cells = array_map(
 		fn( string $cell ): string =>

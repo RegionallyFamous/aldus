@@ -86,11 +86,24 @@ test.describe( 'Visual regression — admin dashboard', () => {
 // ---------------------------------------------------------------------------
 
 test.describe( 'Visual regression — pre-flight API checks', () => {
-	test( '/config endpoint returns expected shape', async ( { request } ) => {
-		const res = await request.get( '/wp-json/aldus/v1/config' );
-		expect( res.status() ).toBe( 200 );
-		const body = await res.json();
-		// Minimal shape assertions — confirms API is intact before visuals run.
+	test( '/config endpoint returns expected shape', async ( { page } ) => {
+		// Navigate to wp-admin to obtain the WP nonce, then call the REST API
+		// via page.evaluate so both the session cookie and nonce are included.
+		// The bare `request` fixture sends cookies but not the nonce required
+		// for WordPress cookie-based REST authentication.
+		await page.goto( '/wp-admin/', { waitUntil: 'domcontentloaded' } );
+		await page.waitForSelector( '#wpadminbar', { timeout: 15000 } );
+
+		const { status, body } = await page.evaluate( async () => {
+			const nonce = window.wpApiSettings?.nonce ?? '';
+			const res = await fetch( '/wp-json/aldus/v1/config', {
+				credentials: 'same-origin',
+				headers: nonce ? { 'X-WP-Nonce': nonce } : {},
+			} );
+			return { status: res.status, body: await res.json().catch( () => null ) };
+		} );
+
+		expect( status ).toBe( 200 );
 		expect( body ).toHaveProperty( 'version' );
 		expect( body ).toHaveProperty( 'personalities' );
 		expect( Array.isArray( body.personalities ) ).toBe( true );

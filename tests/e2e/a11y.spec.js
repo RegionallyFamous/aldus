@@ -4,6 +4,11 @@
  * Tests keyboard navigation, ARIA attributes, focus management, and screen
  * reader-friendly markup across the main Aldus UI surfaces.
  *
+ * REST API tests that require authentication use page.evaluate() with the
+ * WP nonce (available on admin pages via wpApiSettings.nonce) rather than
+ * the bare `request` fixture, which only sends cookies but not the nonce
+ * required for WordPress cookie-based REST authentication.
+ *
  * @see playwright.config.js
  * @see tests/e2e/helpers.js
  */
@@ -11,23 +16,42 @@
 'use strict';
 
 const { test, expect } = require( '@playwright/test' );
-const { openNewPost, getEditorFrame } = require( './helpers' );
+const { openNewPost } = require( './helpers' );
 
 // ---------------------------------------------------------------------------
-// REST API a11y probes (no browser engine needed)
+// Helper: navigate to wp-admin and make an authenticated REST call via fetch
+// (the page context carries both the session cookie and the WP nonce).
+// ---------------------------------------------------------------------------
+async function authedGet( page, path ) {
+	await page.goto( '/wp-admin/', { waitUntil: 'domcontentloaded' } );
+	await page.waitForSelector( '#wpadminbar', { timeout: 15000 } );
+	return page.evaluate( async ( url ) => {
+		const nonce = window.wpApiSettings?.nonce ?? '';
+		const res = await fetch( url, {
+			credentials: 'same-origin',
+			headers: nonce ? { 'X-WP-Nonce': nonce } : {},
+		} );
+		const data = await res.json().catch( () => null );
+		return { status: res.status, data };
+	}, path );
+}
+
+// ---------------------------------------------------------------------------
+// REST API a11y probes
 // ---------------------------------------------------------------------------
 
 test.describe( 'Aldus REST API a11y', () => {
-	test( '/config endpoint returns personalities array for a11y label sources', async ( {
-		request,
+	test( '/config endpoint returns personalities with non-empty labels', async ( {
+		page,
 	} ) => {
-		const res = await request.get( '/wp-json/aldus/v1/config' );
-		// 200 from authenticated client (session from storageState).
-		expect( res.status() ).toBe( 200 );
-		const body = await res.json();
-		expect( Array.isArray( body.personalities ) ).toBe( true );
-		// Each personality must have a label (used as button/chip labels).
-		for ( const p of body.personalities ) {
+		const { status, data } = await authedGet(
+			page,
+			'/wp-json/aldus/v1/config'
+		);
+		expect( status ).toBe( 200 );
+		expect( Array.isArray( data.personalities ) ).toBe( true );
+		// Each personality must have a non-empty label (used as button/chip labels).
+		for ( const p of data.personalities ) {
 			expect( typeof p.label ).toBe( 'string' );
 			expect( p.label.length ).toBeGreaterThan( 0 );
 		}
@@ -42,21 +66,19 @@ test.describe( 'Aldus block editor a11y', () => {
 	test( 'inserter opens and Aldus block appears in search results', async ( {
 		page,
 	} ) => {
-		const frame = await openNewPost( page );
+		await openNewPost( page );
 
-		// Open the block inserter.
-		const inserterBtn = page.getByRole( 'button', {
-			name: /toggle block inserter/i,
-		} );
+		// Open the block inserter — aria-label is "Block Inserter" in WP 6.x+.
+		const inserterBtn = page
+			.getByRole( 'button', { name: /block inserter/i } )
+			.first();
 		await inserterBtn.click();
 
-		// Search for "Aldus".
-		const search = page.getByRole( 'searchbox', {
-			name: /search for blocks/i,
-		} );
+		// Search for "Aldus" in the inserter search input.
+		const search = page.getByPlaceholder( /search/i ).first();
 		await search.fill( 'Aldus' );
 
-		// The Aldus block should appear.
+		// The Aldus block should appear as an option.
 		await expect(
 			page.getByRole( 'option', { name: /aldus/i } ).first()
 		).toBeVisible( { timeout: 10000 } );
@@ -76,24 +98,27 @@ test.describe( 'Aldus block editor a11y', () => {
 
 		// Insert via slash command.
 		await frame.locator( '.editor-post-title' ).click();
-		const canvas = frame.locator( '[data-type="core/post-content"], .editor-styles-wrapper' ).first();
+		const canvas = frame
+			.locator(
+				'[data-type="core/post-content"], .editor-styles-wrapper'
+			)
+			.first();
 		await canvas.click();
 		await page.keyboard.press( 'Enter' );
 		await page.keyboard.type( '/aldus' );
 		await page.keyboard.press( 'Enter' );
 
-		// Wait for the block to appear.
-		await frame
-			.locator( '[data-type="aldus/block"]' )
-			.waitFor( { timeout: 15000 } )
-			.catch( () => {} ); // May not be installed in this env; test is best-effort.
+		// Give the block a moment to settle.
+		await page.waitForTimeout( 2000 );
 
-		// No JS errors should have occurred.
-		const jsErrors = errors.filter(
+		// No critical JS errors should have occurred.
+		const critical = errors.filter(
 			( e ) =>
-				! /GPUBuffer|Block validation|Cannot update a component/i.test( e )
+				! /GPUBuffer|Block validation|Cannot update a component/i.test(
+					e
+				)
 		);
-		expect( jsErrors ).toEqual( [] );
+		expect( critical ).toEqual( [] );
 	} );
 } );
 
@@ -127,13 +152,15 @@ test.describe( 'Keyboard navigation', () => {
 		await page.goto( '/wp-admin/' );
 		await page.waitForSelector( '#adminmenuwrap', { timeout: 15000 } );
 
-		// Tab from body and check focus moves to admin menu area.
+		// Tab from body a few times and verify focus has moved off <body>.
 		await page.keyboard.press( 'Tab' );
 		await page.keyboard.press( 'Tab' );
 
-		const focused = await page.evaluate( () => document.activeElement?.id ?? '' );
-		// The focused element should be inside the admin chrome, not <body>.
-		expect( focused ).not.toBe( '' );
+		const focusedTag = await page.evaluate(
+			() => document.activeElement?.tagName ?? 'BODY'
+		);
+		// Focus should have moved to a focusable element (not body).
+		expect( focusedTag ).not.toBe( 'BODY' );
 	} );
 
 	test( 'block editor toolbar buttons are keyboard-accessible', async ( {
@@ -141,7 +168,9 @@ test.describe( 'Keyboard navigation', () => {
 	} ) => {
 		await openNewPost( page );
 		// The editor toolbar should contain focusable buttons.
-		const toolbar = page.locator( '.edit-post-header-toolbar, .editor-document-bar' ).first();
+		const toolbar = page
+			.locator( '.edit-post-header-toolbar, .editor-document-bar' )
+			.first();
 		await expect( toolbar ).toBeVisible( { timeout: 10000 } );
 		const buttons = toolbar.locator( 'button' );
 		await expect( buttons.first() ).toBeVisible();
