@@ -89,7 +89,7 @@ function aldus_handle_telemetry( WP_REST_Request $request ): WP_REST_Response {
 	if ( ! $updated ) {
 		// First occurrence for this code — add_option is a no-op on duplicate
 		// inserts so concurrent first-hits are handled gracefully.
-		add_option( $option_name, 1, '', 'no' );
+		add_option( $option_name, 1, '', false );
 	}
 
 	return rest_ensure_response( array( 'ok' => true ) );

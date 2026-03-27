@@ -26,15 +26,22 @@ if ( ! defined( 'ABSPATH' ) ) {
  * before being recycled.
  *
  * @return array{
- *   palette:    array,
- *   font_sizes: array,
- *   gradients:  array,
- *   dark:       string,
- *   light:      string,
- *   accent:     string,
- *   large:      string,
- *   medium:     string,
- *   gradient:   string
+ *   palette:        array,
+ *   font_sizes:     array,
+ *   gradients:      array,
+ *   shadows:        array,
+ *   font_families:  array,
+ *   heading_font:   string|null,
+ *   cover_overlay:  string|null,
+ *   section_styles: array,
+ *   dark:           string,
+ *   light:          string,
+ *   accent:         string,
+ *   large:          string,
+ *   medium:         string,
+ *   gradient:       string,
+ *   shadow_soft:    string,
+ *   shadow_deep:    string
  * }
  */
 function aldus_get_session_theme_context(): array {
@@ -709,6 +716,6 @@ function aldus_record_assembly_error( string $personality ): void {
 		// Row doesn't exist yet — add_option is safe here: if two concurrent
 		// requests both pass the $updated === 0 check, the second add_option
 		// is a no-op (WordPress ignores duplicate option inserts).
-		add_option( $key, 1, '', 'no' );
+		add_option( $key, 1, '', false );
 	}
 }
