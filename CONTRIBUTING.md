@@ -118,7 +118,7 @@ Keep the two in sync: if you rename or re-theme the JS pack, update the PHP patt
 
 1. Branch off `master` with a descriptive name: `fix/pattern-grove-title`, `feat/mypack-pack`, `chore/update-deps`.
 2. Make your changes. Run `npm test` and `npm run lint` locally before pushing.
-3. Add an entry to `CHANGELOG.md` under `## Unreleased` describing what changed and why.
+3. Add an entry to the **Changelog** section in `readme.txt` (newest version at the top). Frame each bullet as the **benefit to the user** — what they gain or avoid — not only which files or APIs changed.
 4. Open a PR against `master`. The CI pipeline runs lint, unit tests, and block-markup validation automatically.
 5. Request a review. All tests must be green before merging.
 

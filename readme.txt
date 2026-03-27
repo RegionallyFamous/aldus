@@ -14,6 +14,8 @@ You write it. Aldus shows you every way it could look — then you pick. Same wo
 
 You wrote a headline, three paragraphs, and a call to action. Right now they're sitting in a column, looking like every other WordPress page. Aldus takes those same words and shows you how they'd look as a magazine spread, a dark cinematic landing page, a dense newspaper layout, a minimal essay — and a dozen more, all at once. Same words, different energy. Pick the one that fits and publish. It becomes real WordPress blocks you can edit, rearrange, or build on.
 
+No page-builder grid. No template library to hunt through. No AI rewriting your copy — the layout model only sees *what kinds* of pieces you added (e.g. two paragraphs and an image), not the text itself. Your words stay on your server; the small on-device model runs in your browser.
+
 You bring the words. Aldus brings the options. You pick.
 
 **Bring your words. See every option. Pick.**
@@ -42,6 +44,8 @@ No settings. No external services. No subscriptions. The model downloads once (~
 * Video (YouTube, Vimeo, or direct URL)
 * Table (CSV-style — first row becomes the header)
 * Gallery (multi-image grid from your media library)
+* Code (syntax-highlighted snippet for docs, tutorials, or dev content)
+* FAQ / Accordion (collapsible question-and-answer style sections)
 
 **Layout styles:**
 
@@ -128,180 +132,160 @@ An optional free-text field on the building screen that steers the layout model 
 
 == Changelog ==
 
+= 1.26.0 =
+* Layouts respect what you actually wrote — each style only pulls in block types that fit your content, so you see fewer empty slots or blocks that do not match your post (for example code blocks when you did not add code).
+* Keeps Aldus dependable as WordPress grows — behind-the-scenes work only.
+
 = 1.25.0 =
-* Fixed telemetry endpoint `code` enum to match the error codes the block editor actually sends (`timeout`, `connection_failed`, `unexpected_error`, `corrupt_markup`, `insert_failed`, `no_layouts`, `api_error`, `unknown`). Previous enum used internal names that didn't match JS client output.
-* Fixed `_aldus_layout_history` meta sanitizer (JSON-preserving callback, not `sanitize_text_field`).
-* Fixed `aldus_handle_telemetry()` to flush the WP option cache after the atomic SQL UPDATE so `get_option()` returns the correct incremented value within the same request.
-* Fixed `wp_using_ext_object_cache()` return cast to `(bool)` in the health endpoint — the global is uninitialized (`null`) in some WordPress versions' test bootstrap.
-* Fixed `check_rate_limit()` test to call the extracted `aldus_check_rate_limit()` standalone function directly, removing a deprecated `ReflectionMethod::setAccessible()` call.
-* Added explicit `validate_callback: rest_validate_request_arg` to telemetry route args so enum constraints are enforced across all WordPress versions.
-* Added `@wordpress/latex-to-mathml` to the E2E a11y console-error filter (WP 7.0 import-map issue, not Aldus code).
-* Fixed E2E WebKit "adding a headline item reveals the generate button" test to also accept the "Requires WebGPU" disabled button, which appears when WebGPU is unavailable in Playwright's WebKit engine.
-* Fixed E2E full-suite rate-limit exhaustion: `assemble-personalities` and `assemble-full-page` spec `beforeAll` hooks now reset WordPress transients before each browser project runs, preventing 429s when Chromium's requests fill the 60-req/min window before Firefox/WebKit begin.
-* Updated health endpoint `$client_error_codes` list to include all valid telemetry codes.
+* If something goes wrong, diagnostics and site health line up with what really happened in the editor — easier for you or your host to understand the story.
+* Layout history in the sidebar stays trustworthy: your saved previews stay readable and do not get corrupted in the database.
+* Heavier editing sessions are less likely to hit confusing rate limits or flaky errors from background checks.
 
 = 1.21.1 =
-* Fixed a bug where the REST API rate limiter double-counted requests because WordPress calls the permission callback twice per request. The limiter is now enforced inside the request callback so each API call increments the counter exactly once.
-* Improved E2E test reliability: block insertion in the inspector-controls spec now falls back to the Block Inserter toolbar when the slash-command autocomplete doesn't appear, and a brief Escape keypress dismisses block-preview popovers before clicking content-type buttons.
+* Editing normally will not chew through the API rate limit twice as fast as it should.
 
 = 1.21.0 =
-* Fixed six block validation bugs that caused "invalid block" warnings in the editor: column asymmetric layouts had a flex-basis mismatch when the column order was flipped; group blocks were missing border-radius and box-shadow in the serialised HTML even when those values were set in attributes; media-text blocks were missing the `is-vertically-aligned-center` class; cover blocks were missing border-radius in the serialised HTML across all cover variants; and media-text and cover-split variants were including spurious `wp-image-0 size-full` classes on `<img>` tags without a media ID, which diverged from what WordPress's save function generates.
-* Fixed a non-fatal `AbortError: Failed to execute 'mapAsync' on 'GPUBuffer'` console error that appeared when navigating away from a post while the AI model was still loaded. The error originated inside WebLLM's internal GPU cleanup routine; it is now silenced during engine disposal so it no longer appears as an uncaught rejection.
-* The PHP integration CI job now builds plugin assets before running `BlockRegistrationTest`, fixing an intermittent failure on clean runners where `build/block.json` was absent.
-
-= 1.21.0 =
-* Layout cards now stream into the results grid as each response arrives instead of waiting for all styles to finish — the first card typically appears within 1–2 seconds of starting generation.
-* Layout descriptions are now generated lazily in the background after the initial cards appear, so the grid is interactive immediately and descriptions fill in as the model catches up.
-* Content hint analysis is now fully deterministic (headline length, missing image, missing CTA, long paragraphs, missing quote) — the previous AI model call for this step has been removed, shaving one LLM inference from every generation.
-* Layout styles are now pre-filtered by content match before inference runs — styles whose anchor requirements aren't met by the current content mix are skipped, with a "Show more styles" option if you want to see all of them.
-* Security hardening: prompt injection framing, schema name whitelist for personality registration, `custom_styles` key validation, and user ID scoping on all caches.
-* State machine fixes: pressing Escape cancels the confirmation screen; stale-results guard prevents a previous generation's results from appearing after a new one starts.
-* Theme design system expanded with shadow presets, font family detection, heading font applied across all heading and cover renderers, cover overlay sourced from theme.json, and per-section group block styles.
-* PHP backend split into focused files: `api-assemble.php`, `api-config.php`, `api-health.php`, `api-telemetry.php`, `block-register.php`, and `admin-hooks.php` each handle a single concern.
-* New integration test suites: `BoundaryValueTest` (12 cases for edge inputs) and `ThemeDesignSystemTest` (21 cases for theme colour and shadow helpers).
+* First layout cards appear in about a second or two; you can browse and click while the rest stream in — no more waiting on a silent grid.
+* Descriptions fill in after the grid is usable, so you are not blocked waiting for copy.
+* One less slow AI step when reading your content, so generation feels snappier overall.
+* Styles that do not fit what you added are tucked away automatically; open "Show more styles" when you want the full catalog.
+* Stronger protection around prompts and third-party code that hooks into Aldus.
+* Press Escape to back out of confirmations cleanly; starting a new run will not flash an old result by mistake.
+* Heroes, headings, and sections pick up your theme's fonts, shadows, and colors more faithfully — output feels native to your site.
+* Fewer "This block contains unexpected or invalid content" warnings after you insert a layout; WordPress is happier with columns, groups, covers, and media-and-text blocks.
+* Leaving the editor while the model is still loading no longer floods the browser console with scary GPU messages that were not your fault.
+* Under the hood: server code reorganized for faster fixes and safer releases — nothing you need to click differently.
 
 = 1.18.0 =
-* Redesigned admin welcome page with a full-width hero, before-and-after wireframe showing a plain text block transforming into a layout, and a three-step setup card sequence.
-* Layout assembly now falls back to generic WordPress blocks when a token produces empty output, preventing blank layout cards instead of an error.
-* Theme diversification pass: expanded border-radius options across block variants and improved colour variety so consecutive styles feel visually distinct.
+* A clearer welcome when you first install — you see what Aldus does before you open the editor.
+* If one piece of a generated layout cannot render, you still get real blocks instead of a blank broken card.
+* Back-to-back layout options feel more different from each other — less sameness when you are comparing styles.
 
 = 1.17.0 =
-* Pack data is now lazy-loaded — it only downloads when you open the Browse Styles tab, reducing the initial bundle by ~40 KB and speeding up block load times on shared hosting.
-* PHP files are now loaded conditionally by request type: front-end page loads that don't contain an Aldus block skip the full renderer stack, saving ~1-2 ms per request on high-traffic sites.
-* Storage quota exceeded (common on mobile and restricted corporate environments when the AI model download fills browser storage) now shows a clear error message explaining what happened and how to resolve it.
-* The onboarding flag is now stored in the WordPress Preferences API (core/preferences store) instead of browser localStorage, so it follows the user across devices and sessions.
-* Usage statistics are now stored as a single consolidated option instead of one database row per layout style, reducing wp_options table bloat on busy sites.
-* The plugin's stats (total layouts generated, most-used style) are now visible in Tools → Site Health → Info, making it easier to diagnose issues from support tickets.
-* The fallback layout renderer now uses serialize_block() to produce canonical WordPress block markup, preventing subtle validation differences that could cause block warnings.
-* WordPress 6.7+ sites automatically use the new block metadata collection API for faster block registration.
-* The REST endpoint for layout assembly now validates Content-Type (must be application/json), preventing edge cases where form-encoded data was accepted.
-* Assembly timing is now returned in the API response and logged in the browser console under window.aldusDebug for performance diagnostics.
-* Error counts are now tracked per layout style and exposed via the GET /aldus/v1/health endpoint, making it easier to identify which styles have reliability issues.
-* The health endpoint (GET /aldus/v1/health) now returns plugin version, PHP/WP versions, object cache status, palette size, and per-style error rates.
-* Uninstalling the plugin now removes all transients, post meta, user meta, and usage counters — no database residue left behind.
-* Theme data cache is now flushed when a theme is updated via the WordPress admin (upgrader_process_complete hook), preventing stale palette colours after a theme update.
-* The content/preview tab toggle in the editor now uses the core TabPanel component, with proper ARIA roles and keyboard navigation.
-* The admin welcome page styles are now enqueued as a stylesheet via admin_enqueue_scripts instead of inline style attributes, improving CSP compatibility.
-* Fixed a regression where spacingSizes injected via the theme.json filter were silently lost in certain WordPress versions (6.4, 6.7) due to preset origin-tracking in WP_Theme_JSON::merge().
-* Fixed constant redefinition warnings in the integration test bootstrap.
-* Fixed PHPUnit 9.6 / PHPUnit 10 schema mismatch in phpunit-integration.xml.dist.
+* Faster block editor load; pack previews download only when you open them — better on shared hosting.
+* Lighter work on normal pages that do not use Aldus — visitors are not paying for editor features they never see.
+* If the browser cannot store the AI model (common on phones or locked-down networks), you get a clear message and next steps instead of a vague failure.
+* First-visit hints follow your WordPress profile across devices when you are logged in.
+* Tidier database for usage stats; **Tools → Site Health → Info** shows how Aldus is used — helpful when you are working with support.
+* Block output stays in sync with WordPress — fewer mystery validation warnings; spacing presets no longer vanish on WordPress 6.4 and 6.7.
+* Uninstall leaves no leftover junk. Theme colors stay accurate after you update your theme.
+* Content and Preview tabs work better with keyboard and screen readers. The welcome screen behaves better under strict security policies.
+* Site owners and hosts get richer health and error insight when tracking down issues.
 
 = 1.16.0 =
-* When the AI model is ready and you've added content, Aldus now suggests a style direction (e.g. "bold editorial", "minimal text-first") based on what you've written — one click applies it, another dismisses it.
-* Layout cards now show a "✦ Recommended" badge for the styles that best match your content mix, so the most relevant options are obvious at a glance.
-* A Compare button appears on each card when your page already has content — click it to see the new layout alongside your current page in a side-by-side modal.
-* Every layout you apply is now saved to a history list in the block sidebar — scroll back, preview the details, and restore any previous version with one click.
-* 17 new block patterns registered across five categories (hero, content, media, typography, structural), all theme-aware and available in the block inserter under Patterns → Aldus.
-* Rewrote all user-facing copy to reflect what Aldus actually does: show you every way your words could look, so you can pick. "Layout Explorer" replaces "Block Compositor" everywhere.
-* Fixed a critical error in the privacy policy statement — the previous text incorrectly described sending data to OpenAI. Aldus runs entirely in your browser; nothing is ever sent to an external AI service.
+* Aldus suggests a style direction from your draft (for example "bold editorial" or "minimal text-first") — one click applies it, another dismisses it.
+* "Recommended" badges highlight the styles that fit your content mix best.
+* Compare a new layout side-by-side with your current page when you already have content.
+* Every applied layout is saved in the sidebar history — preview, scroll back, restore in one click.
+* 17 new block patterns (hero, content, media, typography, structural) under **Patterns → Aldus**, tuned to your theme.
+* Copy and naming now reflect the product: explore every way your words could look, then pick — "Layout Explorer" everywhere.
+* Privacy policy helper text corrected: Aldus runs in the browser; your content is not sent to an external AI service.
 
 = 1.15.0 =
-* The mixing screen has been redesigned as a three-zone layout editor: a vertical section timeline with personality colour coding, an alternatives grid with wireframe previews, and a live composite preview that updates as you make changes. A shuffle button randomly reassigns personalities across all sections with a staggered animation.
+* Mixing screen rebuilt: timeline of sections, alternatives grid with previews, live composite preview, and shuffle — easier to build a custom page from multiple styles.
 
 = 1.14.0 =
-* The PHP backend has been split into focused modules — renderers, serialisers, theme helpers, and the REST controller each live in their own file. No user-facing changes; this makes the codebase easier to maintain and extend.
+* Nothing changes in the editor or in the blocks you get — internal PHP structure only, so we can ship fixes and features faster later.
 
 = 1.13.0 =
-* The editor now loads faster. The block's internal JavaScript has been reorganised into focused modules — personalities, tokens, components, and screens each live in their own file. No user-facing changes; this lays the groundwork for easier feature additions.
+* Snappier block load; same on-screen experience. Internal JavaScript reorganized for future features.
 
 = 1.11.0 =
-* Any future render error in the block now shows a contained error panel instead of blanking the entire editor — you can keep editing the rest of your post.
-* Build and CI now catch undefined icon imports and incomplete bundles before they can be released, preventing the class of bug fixed in 1.10.2.
-* API responses from the server are now validated before use, so a malformed response fails gracefully instead of crashing the block.
-* The block is better at extracting usable JSON from LLM output that includes extra preamble text, reducing generation failures.
+* If Aldus hits a render error, the rest of your post keeps working — you see a contained error instead of a blank editor.
+* Server responses are validated before use, so a bad reply fails gracefully instead of crashing the block.
+* Messy model output (extra text around the JSON) is handled more often, so fewer failed generations.
 
 = 1.10.2 =
-* Fixed a crash that caused the block editor to go blank when the Aldus block was present on the page.
+* Fixes the editor going blank when the Aldus block was on the page.
 
 = 1.10.1 =
-* Fixed a fatal error that caused the block to appear blank or show placeholder content on sites where the editor scripts weren't included in the distributed zip.
-* Removed the automatic block insertion that was silently adding an Aldus block to every post and template — Aldus now only appears where you place it.
+* Fixes the block appearing empty or placeholder-only when scripts were missing from the zip.
+* Aldus no longer inserts itself into every post and template silently — it only appears where you put it.
 
 = 1.9.0 =
-* New "Redesign with Aldus" option in the block Options menu: select any heading, paragraph, image, or similar block and convert it straight into an Aldus layout without starting from scratch.
-* A new ✦ column on the Posts and Pages list screens shows at a glance which posts use the Aldus block — useful when you're managing a large site.
-* Added `npm run release:zip` to package a clean distribution zip ready for WordPress.org or manual installs.
-* Block inserter search now surfaces Aldus for terms like "ai", "generate", "builder", and "template".
+* **Redesign with Aldus** in the block menu: turn selected blocks into an Aldus layout without starting from scratch.
+* Posts and Pages list shows which content uses Aldus — easier on large sites.
+* Block inserter finds Aldus for searches like "ai", "generate", "builder", and "template".
 
 = 1.8.0 =
-* Keyboard and screen-reader users now land on the first inserted block immediately after choosing a layout — no need to hunt for where focus went.
-* The plugin now works correctly in Windows High Contrast Mode: cards, buttons, tooltips, and error panels all use system color keywords so nothing disappears against the background.
-* The model-download progress bar now announces its label to screen readers, matching the behaviour of the generation progress bar already in place.
+* Keyboard and screen-reader users land on the first inserted block right after you pick a layout.
+* High Contrast Mode on Windows: controls stay visible; nothing disappears into the background.
+* Model download progress is announced to screen readers like the generation bar.
 
 = 1.7.0 =
-* When the layout model outputs unreadable JSON, Aldus now retries automatically — silently, just once — before showing an error. Most transient failures resolve on their own without you ever seeing a message.
-* Error screens now have a "Technical details" disclosure for those who want to see the raw error data.
-* Assembled layouts are cached for 5 minutes so repeated requests for the same content + personality return instantly.
-* The WebLLM runtime chunk is now hinted with both `modulepreload` and `prefetch` so more browsers begin downloading it as soon as you open the editor.
+* Garbled model output retries once in the background before you see an error — many hiccups never surface.
+* Optional "Technical details" on error screens when you need to dig in.
+* Repeat requests for the same layout return instantly for a few minutes.
+* The layout engine starts downloading sooner when you open the editor.
 
 = 1.6.0 =
-* Themes and plugins can now register custom layout personalities via `aldus_register_personality()`.
-* New `GET /aldus/v1/config` REST endpoint returns all available personalities, theme layout settings, and version info — useful for headless or tooling integrations.
-* A new `HOOKS.md` file documents every action, filter, and public API function available to developers.
+* **Developers:** Theme and plugin authors can register custom layout personalities.
+* **Integrations:** A config REST endpoint exposes personalities and theme layout info for headless sites and tools.
+* **Developers:** Documentation for hooks and public APIs (see HOOKS.md in the plugin).
 
 = 1.5.0 =
-* New users see three sequential tooltips on their first visit — pointing to where to add content, style hints, and the generate button. Dismiss each with "Got it".
-* Activating the plugin now takes you directly to a welcome page explaining how it works, with a link to try it immediately.
-* Plugin row now has an "About" link to the welcome page.
+* First-time visitors get short tooltips for content, style hints, and generate — dismiss with "Got it".
+* Fresh installs land on a welcome page with a direct path to try Aldus.
+* Plugins screen links to **About** for the same welcome content.
 
 = 1.4.0 =
-* After you update, a one-time notice tells you what changed in this release — dismiss it with the ✕ button.
-* Your site's privacy policy guide (Tools > Privacy) now includes a statement confirming that Aldus runs entirely in the browser and sends no content to external services.
+* After updating, a one-time notice summarizes what is new — dismiss with ✕.
+* **Tools → Privacy** guide can include accurate wording that Aldus runs locally and does not ship your content to third parties.
 
 = 1.3.0 =
-* No changes to the editor or generated layouts. This release adds automated testing and static analysis so bugs are caught before they reach you.
+* Nothing changes in the editor or in generated layouts — quality and safety checks behind the scenes so fewer bugs reach you.
 
 = 1.2.0 =
-* Generated layouts now feel like they belong in your theme. Spacing, widths, and button styles are pulled from your theme settings rather than baked in, so output looks right on any block theme without manual cleanup.
-* CTA button fields now suggest your site's navigation links when the URL is empty — one click to fill it in.
-* Image fields show your most recently uploaded media as a thumbnail grid, so you're not hunting through the media library.
-* The layout model is now aware of your site name and tagline, which helps it make better style and tone choices.
+* Generated layouts inherit your theme's spacing, widths, and buttons — less manual cleanup on block themes.
+* CTA buttons can suggest your site's own links when the URL is empty.
+* Image pickers surface recent uploads so you are not lost in the media library.
+* Layout choices can use your site name and tagline for better tone.
 
 = 1.1.0 =
-* The card overlay is less intrusive. "Use this one" is the clear primary action; expand, copy, and swap are still there as small footer controls so they stay out of the way while you're browsing layouts.
-* The empty state now leads with content type buttons so it's immediately obvious what to do first. Style options and the generate button stay hidden until you've added something to work with.
-* Fixes block validation errors that appeared in WordPress 6.9.
+* Cleaner card UI: "Use this one" is obvious; secondary actions stay out of the way.
+* Empty state starts with content types — you know what to add first before style options appear.
+* Fixes block validation issues on WordPress 6.9.
 
 = 1.0.0 =
-* Initial release. Add your content, see every layout style at once, pick the one that fits — no external services, no API keys, nothing leaves your browser.
+* First release: add your content, see every layout style at once, pick the one that fits — no external services, no API keys, nothing leaves your browser.
 
 == Upgrade Notice ==
 
 = 1.26.0 =
-Smarter token pruning for assembled layouts (per layout style). Expanded tests; no editor UI changes. Safe to update.
+Layouts align more closely with your real content; fewer odd or empty blocks. No change to how you use the editor. Safe to update.
 
 = 1.17.0 =
-Performance, reliability, and polish. Smaller initial bundle, faster PHP on shared hosting, better error messages, thorough uninstall cleanup, and a fix for spacing presets disappearing in WP 6.4/6.7. Safe to update.
+Faster loads, lighter front-end when Aldus is not on the page, clearer errors, cleaner uninstall, spacing fixes on WP 6.4/6.7, better Site Health. Safe to update.
 
 = 1.16.0 =
-Five new features — style suggestions, recommendation badges, before/after compare, layout history, and 17 new block patterns. Complete copy rewrite. Critical privacy policy correction. Safe to update.
+Style suggestions, recommendations, compare, layout history, new patterns, copy refresh, privacy policy correction. Safe to update.
 
 = 1.15.0 =
-The mixing screen has been redesigned. Safe to update — no block data or settings change.
+New mixing screen. Your saved block data is unchanged. Safe to update.
 
 = 1.14.0 =
-Internal PHP refactor. No user-facing changes; safe to update.
+No change to what you see in the editor. Safe to update.
 
 = 1.13.0 =
-Internal JavaScript reorganisation. No user-facing changes; safe to update.
+Faster block load; same experience. Safe to update.
 
 = 1.9.0 =
-Automatic retry on LLM parse failures reduces error rates. Assembled layout caching for repeat requests.
+Smarter retries, faster repeat layouts, fewer failures. Safe to update.
 
 = 1.6.0 =
-Adds developer APIs for registering custom personalities and a REST config endpoint. No user-facing changes.
+Developer APIs and REST config for custom styles and integrations. Editor unchanged for most sites. Safe to update.
 
 = 1.5.0 =
-New users will see a quick tooltip walkthrough on their first visit. Activating fresh also opens a welcome page.
+Gentler first-run tour and welcome page for new installs. Safe to update.
 
 = 1.4.0 =
-Shows a one-time notice after upgrading and adds a privacy policy statement for Tools > Privacy.
+Release notice after update; privacy guide wording. Safe to update.
 
 = 1.3.0 =
-No user-facing changes. Safe to update.
+Behind-the-scenes quality only. Safe to update.
 
 = 1.2.0 =
-Generated layouts now adapt to your active theme — spacing, widths, and button styles should look right without any manual cleanup.
+Layouts match your theme better — less cleanup after you pick a style. Safe to update.
 
 = 1.1.0 =
-Cleaner card overlay and empty state. Fixes block validation errors on WordPress 6.9.
+Clearer browsing UI and WP 6.9 validation fix. Safe to update.

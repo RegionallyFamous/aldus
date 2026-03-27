@@ -11,7 +11,7 @@ You bring the words, images, and links. Aldus figures out how to arrange them.
 | Page | What it covers |
 |---|---|
 | [Getting Started](Getting-Started) | Requirements, installation, and your first layout |
-| [Content Types](Content-Types) | The ten types of content you can give Aldus |
+| [Content Types](Content-Types) | The twelve types of content you can give Aldus |
 | [Personalities](Personalities) | All layout personalities, their visual voices, and when to use each |
 | [Layout Tokens](Tokens) | The full reference for every layout section Aldus can place |
 | [Features](Features) | Style Notes, Re-Roll, Mix & Match, Saved Sessions, and all other tools |

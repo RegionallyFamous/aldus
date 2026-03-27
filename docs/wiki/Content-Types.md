@@ -1,6 +1,8 @@
 # Content Types
 
-Aldus accepts ten types of content. You add them in the block's input area before generating layouts. The types you add — and how many of each — directly shape what the model proposes.
+Aldus accepts **twelve** types of content. You add them in the block's input area before generating layouts. The types you add — and how many of each — directly shape what the model proposes.
+
+The block inserter shows the most common types first (**Headline**, **Paragraph**, **Image**, **Quote**, **Button**); open **More types** for subheading, list, video, table, gallery, code, and FAQ / accordion items.
 
 You don't need every type for every layout. Start with what you have. The completeness hints (the colored pills at the bottom of the content area) will tell you when adding a certain type would unlock more layout options.
 
@@ -131,6 +133,29 @@ Multiple images arranged in a gallery grid. Select images from your media librar
 - Add multiple images using the media picker; they are displayed in the order you add them
 - Gallery sections use the `gallery:2-col` and `gallery:3-col` tokens
 - The **Mosaic** and **Prism** personalities are designed specifically for gallery-heavy content and anchor their layouts on gallery sections
+
+---
+
+## Code
+
+**A syntax-highlighted snippet.**
+
+Paste a short code sample for documentation pages, tutorials, or developer-focused content. It renders as a `core/code` (or equivalent) block in the assembled layout.
+
+- Use it for: API examples, CLI commands, configuration samples
+- Long snippets may be split or truncated depending on the personality and token sequence
+- Pair with **Tutorial** quick-start presets or technical Style Notes for best results
+
+---
+
+## FAQ / Accordion (Details)
+
+**A collapsible Q&A or section.**
+
+The label you enter becomes the summary line; optional body copy can accompany it depending on the token. Used for FAQ sections and progressive disclosure.
+
+- Use it for: FAQs, “read more” style sections, labeled disclosures
+- Multiple details items unlock accordion-style token sequences in supported personalities
 
 ---
 
