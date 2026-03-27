@@ -777,9 +777,15 @@ function aldus_register_block(): void {
 	//            register_block_type() needed (eliminates per-block filesystem reads).
 	//   WP 6.7:  register metadata collection first, then register_block_type() still required.
 	//   WP ≤ 6.6 or no manifest: plain register_block_type().
+	//
+	// IMPORTANT: wp_register_block_types_from_metadata_collection() receives
+	// ALDUS_PATH (the plugin root) as the base path, NOT $build_path. The
+	// manifest key 'build' means WordPress resolves files relative to
+	// ALDUS_PATH/build/ — passing $build_path would make it look inside the
+	// non-existent build/build/ directory, causing silent registration failure.
 	$manifest = $build_path . '/blocks-manifest.php';
 	if ( function_exists( 'wp_register_block_types_from_metadata_collection' ) && file_exists( $manifest ) ) {
-		wp_register_block_types_from_metadata_collection( $build_path, $manifest );
+		wp_register_block_types_from_metadata_collection( ALDUS_PATH, $manifest );
 	} elseif ( function_exists( 'wp_register_block_metadata_collection' ) && file_exists( $manifest ) ) {
 		wp_register_block_metadata_collection( $build_path, $manifest );
 		register_block_type( $build_path );
