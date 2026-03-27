@@ -27,7 +27,7 @@ defined( 'ALDUS_URL' ) || define( 'ALDUS_URL', plugin_dir_url( __FILE__ ) );
 // Injected by the build script (bin/inject-build-hash.js) from the webpack
 // content hash.  An empty string is safe: the cache key falls back to version
 // + request params, which is correct for manual/dev builds.
-defined( 'ALDUS_BUILD_HASH' ) || define( 'ALDUS_BUILD_HASH', 'bee012d071eb2d3ce64e' );
+defined( 'ALDUS_BUILD_HASH' ) || define( 'ALDUS_BUILD_HASH', 'c59c2aa1075b2404f344' );
 
 register_activation_hook( __FILE__, 'aldus_activate' );
 register_deactivation_hook( __FILE__, 'aldus_deactivate' );

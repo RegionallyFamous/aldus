@@ -133,7 +133,7 @@ An optional free-text field on the building screen that steers the layout model 
 * Fixed a non-fatal `AbortError: Failed to execute 'mapAsync' on 'GPUBuffer'` console error that appeared when navigating away from a post while the AI model was still loaded. The error originated inside WebLLM's internal GPU cleanup routine; it is now silenced during engine disposal so it no longer appears as an uncaught rejection.
 * The PHP integration CI job now builds plugin assets before running `BlockRegistrationTest`, fixing an intermittent failure on clean runners where `build/block.json` was absent.
 
-= 1.19.0 =
+= 1.20.0 =
 * Layout cards now stream into the results grid as each response arrives instead of waiting for all styles to finish — the first card typically appears within 1–2 seconds of starting generation.
 * Layout descriptions are now generated lazily in the background after the initial cards appear, so the grid is interactive immediately and descriptions fill in as the model catches up.
 * Content hint analysis is now fully deterministic (headline length, missing image, missing CTA, long paragraphs, missing quote) — the previous AI model call for this step has been removed, shaving one LLM inference from every generation.

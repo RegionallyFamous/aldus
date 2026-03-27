@@ -252,6 +252,16 @@ registerBlockType( metadata.name, {
 		</AldusErrorBoundary>
 	),
 	save,
+	deprecations: [
+		{
+			// v1.19.0 and earlier: save() returned null, so inner blocks were
+			// never serialised to the database. The block was stored as a
+			// self-closing comment; the Detach button was the only path to
+			// frontend rendering. Recognising this deprecated form lets
+			// WordPress auto-recover existing posts on the next edit + save.
+			save: () => null,
+		},
+	],
 	transforms: {
 		/**
 		 * Transform TO core/group — graceful escape hatch.
