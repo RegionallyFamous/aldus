@@ -774,14 +774,16 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 				}
 				setLayouts( ( prev ) =>
 					prev.map( ( l ) =>
-						l.label === layout.label ? { ...l, description: desc } : l
+						l.label === layout.label
+							? { ...l, description: desc }
+							: l
 					)
 				);
 			} catch {
 				// Non-fatal — static tagline remains.
 			}
 		},
-		[ isPreview ]
+		[ isPreview, engineRef ]
 	);
 
 	const { runGenerate, isGenerating, incrementRerollCount, resetRetry } =
