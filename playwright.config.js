@@ -15,6 +15,11 @@ const AUTH_FILE = path.join( __dirname, 'tests/e2e/.auth.json' );
 
 module.exports = defineConfig( {
 	testDir: './tests/e2e',
+	// Omit {platform} from paths so one committed baseline works on Linux (CI)
+	// and macOS/Windows (local). Without this, CI looks for *-chromium-linux.png
+	// while developers often only have *-chromium-darwin.png, and the job fails
+	// before any pixel comparison runs.
+	snapshotPathTemplate: '{testDir}/{testFilePath}-snapshots/{arg}-{projectName}{ext}',
 	globalSetup: './tests/e2e/global.setup.js',
 	fullyParallel: false,
 	forbidOnly: !! process.env.CI,
