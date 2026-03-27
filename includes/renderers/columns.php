@@ -253,12 +253,15 @@ function aldus_block_columns_three( Aldus_Content_Distributor $dist, string $bg_
 	}
 
 	// Alternate backgrounds: accent · light · accent so the three columns read as
-	// distinct cards rather than a single solid block. Fall back to the accent slug
-	// for the middle column when no light palette entry is available.
-	$mid_slug = $light_slug ?: $bg_slug;
+	// distinct cards rather than a single solid block.  When no distinct light
+	// color is available (minimal palette or same slug), leave the middle column
+	// unstyled (empty slug → no backgroundColor attribute, no background class)
+	// so it gets the theme's default background and stays visually distinct from
+	// the two outer columns rather than producing three identical colored cards.
+	$mid_slug = ( $light_slug && $light_slug !== $bg_slug ) ? $light_slug : '';
 	$bg_slugs = array( $bg_slug, $mid_slug, $bg_slug );
 
-	$cols_attrs = array( 'isStackedOnMobile' => false );
+	$cols_attrs = array( 'isStackedOnMobile' => true );
 	if ( $name ) {
 		$cols_attrs['metadata'] = array( 'name' => $name );
 	}
@@ -275,8 +278,7 @@ function aldus_block_columns_three( Aldus_Content_Distributor $dist, string $bg_
 
 		$col_sm    = aldus_theme_spacing( 'sm' );
 		$col_attrs = array(
-			'backgroundColor' => $col_slug,
-			'style'           => array(
+			'style' => array(
 				'spacing' => array(
 					'padding' => array(
 						'top'    => $col_sm,
@@ -287,6 +289,11 @@ function aldus_block_columns_three( Aldus_Content_Distributor $dist, string $bg_
 				),
 			),
 		);
+		// Only set backgroundColor when a slug is present; an empty slug would
+		// produce a spurious empty attribute in the serialized block comment.
+		if ( $col_slug !== '' ) {
+			$col_attrs['backgroundColor'] = $col_slug;
+		}
 
 		$col_inner = '';
 		if ( $heading ) {
@@ -666,6 +673,29 @@ function aldus_columns_two_equal_v4( Aldus_Content_Distributor $dist, string $na
  */
 
 function aldus_block_columns_four_equal( Aldus_Content_Distributor $dist, string $bg_slug, string $name = '' ): string {
+	// Check availability BEFORE consuming so that if fewer than 3 items exist,
+	// we only consume what the 2-col fallback actually needs.  Without this
+	// pre-check the old code consumed up to 4 items from the pool before
+	// deciding to fall back, leaving those subheadings/paragraphs unavailable
+	// to any subsequent token in the layout.
+	$avail = $dist->remaining( 'subheading' ) + $dist->remaining( 'paragraph' );
+
+	if ( $avail === 0 ) {
+		return '';
+	}
+
+	if ( $avail < 3 ) {
+		// Only consume what the 2-col layout needs.
+		$items2 = array();
+		for ( $i = 0; $i < 2; $i++ ) {
+			$item = $dist->consume( 'subheading' ) ?? $dist->consume( 'paragraph' );
+			if ( $item ) {
+				$items2[] = $item;
+			}
+		}
+		return aldus_block_columns_two_equal_from_items( $items2, $bg_slug, $name );
+	}
+
 	// Collect up to 4 items — subheadings preferred (for feature/stat grids).
 	$col_items = array();
 	for ( $i = 0; $i < 4; $i++ ) {
@@ -679,13 +709,8 @@ function aldus_block_columns_four_equal( Aldus_Content_Distributor $dist, string
 		return '';
 	}
 
-	// Fewer than 3 items looks awkward in a 4-col grid — fall back to 2-col.
-	if ( count( $col_items ) < 3 ) {
-		return aldus_block_columns_two_equal_from_items( $col_items, $bg_slug, $name );
-	}
-
 	$col_sm     = aldus_theme_spacing( 'sm' );
-	$cols_attrs = array( 'isStackedOnMobile' => false );
+	$cols_attrs = array( 'isStackedOnMobile' => true );
 	$col_attrs  = array(
 		'backgroundColor' => $bg_slug,
 		'style'           => array(
@@ -699,7 +724,6 @@ function aldus_block_columns_four_equal( Aldus_Content_Distributor $dist, string
 			),
 		),
 	);
-	$bg_safe    = sanitize_html_class( $bg_slug );
 	if ( $name ) {
 		$cols_attrs['metadata'] = array( 'name' => $name );
 	}
@@ -766,7 +790,7 @@ function aldus_block_columns_two_equal_from_items( array $items, string $bg_slug
 	}
 
 	$col_sm     = aldus_theme_spacing( 'sm' );
-	$cols_attrs = array( 'isStackedOnMobile' => false );
+	$cols_attrs = array( 'isStackedOnMobile' => true );
 	$col_attrs  = array(
 		'backgroundColor' => $bg_slug,
 		'style'           => array(
@@ -780,7 +804,6 @@ function aldus_block_columns_two_equal_from_items( array $items, string $bg_slug
 			),
 		),
 	);
-	$bg_safe    = sanitize_html_class( $bg_slug );
 	if ( $name ) {
 		$cols_attrs['metadata'] = array( 'name' => $name );
 	}

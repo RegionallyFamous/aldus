@@ -172,7 +172,15 @@ function aldus_render_block_token(
 			);
 
 		case 'cover:minimal':
-			return aldus_block_cover_minimal( $dist, $dark, $large, 'Minimal Cover', $heading_font );
+			$dark_hex = '';
+			foreach ( $palette as $p ) {
+				if ( ( $p['slug'] ?? '' ) === $dark ) {
+					$dark_hex = $p['color'] ?? '';
+					break;
+				}
+			}
+			$is_light_dark = aldus_hex_luminance( $dark_hex ) > 0.5;
+			return aldus_block_cover_minimal( $dist, $dark, $large, 'Minimal Cover', $heading_font, $is_light_dark );
 
 		case 'cover:split':
 			return aldus_block_cover_split( $dist, $large, 'Split Cover', $heading_font );

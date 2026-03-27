@@ -188,11 +188,12 @@ function aldus_enforce_anchors( string $label, array $tokens, array $manifest ):
 	$anchors_map = aldus_anchor_tokens();
 	$required    = $anchors_map[ $label ] ?? array();
 
-	// High-creativity (loose) personalities: anchors may appear anywhere.
-	// Loose personalities have anchors appended (they can lead with anything).
-	// Folio is strict — its columns:28-72 anchor must open the layout.
-	$loose_personalities = array( 'Stratum', 'Nocturne', 'Overture', 'Codex', 'Dusk', 'Solstice', 'Mirage', 'Mosaic' );
-	$is_loose            = in_array( $label, $loose_personalities, true );
+	// Derive loose/strict from the personality style rules table so that
+	// adding a new personality to aldus_personality_style_rules() with an
+	// explicit 'anchor_mode' key is sufficient — no separate list to maintain.
+	// Unknown personalities default to 'strict' (prepend) for safety.
+	$style_rules = aldus_personality_style_rules();
+	$is_loose    = ( ( $style_rules[ $label ]['anchor_mode'] ?? 'strict' ) === 'loose' );
 
 	// Prune tokens that need content we don't have.
 	$tokens = aldus_prune_unavailable_tokens( $tokens, $manifest );

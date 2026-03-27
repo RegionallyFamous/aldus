@@ -189,9 +189,9 @@ function aldus_cover_product_hero( Aldus_Content_Distributor $dist, array $ctx )
 	$cover_min_height         = aldus_cover_min_height( $ctx['headline_raw'], 520 );
 	$attrs['minHeight']       = $cover_min_height;
 
-	$dim_class    = "has-background-dim-{$ctx['dim_ratio']}";
-	$hero_radius  = $attrs['style']['border']['radius'] ?? '';
-	$image_html   = $ctx['image_url']
+	$dim_class   = "has-background-dim-{$ctx['dim_ratio']}";
+	$hero_radius = $attrs['style']['border']['radius'] ?? '';
+	$image_html  = $ctx['image_url']
 		? "<img class=\"wp-block-cover__image-background\" src=\"{$ctx['image_url']}\" alt=\"\" data-object-fit=\"cover\"/>\n"
 		: '';
 
@@ -306,7 +306,7 @@ function aldus_cover_manifesto( array $ctx ): string {
 	$attrs['contentPosition'] = 'center center';
 	$cover_min_height         = aldus_cover_min_height( $ctx['headline_raw'], 360 );
 	$attrs['minHeight']       = $cover_min_height;
-	unset( $attrs['url'], $attrs['hasParallax'] );
+	unset( $attrs['url'], $attrs['hasParallax'], $attrs['useFeaturedImage'] );
 
 	$color_safe       = $ctx['color_safe'];
 	$text_color       = $ctx['text_color'];
@@ -446,15 +446,24 @@ function aldus_cover_standard(
 	) . "\n\n";
 }
 
-function aldus_block_cover_minimal( Aldus_Content_Distributor $dist, string $color_slug, string $font_size, string $name = '', ?string $heading_font = null ): string {
+function aldus_block_cover_minimal(
+	Aldus_Content_Distributor $dist,
+	string $color_slug,
+	string $font_size,
+	string $name = '',
+	?string $heading_font = null,
+	bool $is_light = false
+): string {
 	$headline = $dist->consume( 'headline' ) ?? $dist->consume( 'subheading' );
 	if ( ! $headline ) {
 		return '';
 	}
 
-	$headline_raw = $headline['content'] ?? '';
-	$text         = esc_html( $headline_raw );
-	$color_safe   = sanitize_html_class( $color_slug );
+	$headline_raw    = $headline['content'] ?? '';
+	$text            = esc_html( $headline_raw );
+	$color_safe      = sanitize_html_class( $color_slug );
+	$text_color      = $is_light ? 'black' : 'white';
+	$text_color_safe = sanitize_html_class( $text_color );
 
 	$cover_min_height = aldus_cover_min_height( $headline_raw, 380 );
 	$attrs            = array(
@@ -472,7 +481,7 @@ function aldus_block_cover_minimal( Aldus_Content_Distributor $dist, string $col
 
 	$h1_attrs = array(
 		'level'     => 1,
-		'textColor' => 'white',
+		'textColor' => $text_color,
 		'fontSize'  => $font_size,
 		'textAlign' => 'center',
 	);
@@ -486,7 +495,7 @@ function aldus_block_cover_minimal( Aldus_Content_Distributor $dist, string $col
 			'attrs'        => $h1_attrs,
 			'innerBlocks'  => array(),
 			'innerContent' => array(
-				'<h1 class="wp-block-heading has-text-align-center has-white-color'
+				"<h1 class=\"wp-block-heading has-text-align-center has-{$text_color_safe}-color"
 				. " has-text-color has-{$font_size}-font-size\">{$text}</h1>",
 			),
 		)

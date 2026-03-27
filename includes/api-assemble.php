@@ -214,16 +214,21 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 	// Including ALDUS_BUILD_HASH (injected by the build script) invalidates
 	// cached markup whenever the renderer output format changes, even if the
 	// plugin version number stays the same (e.g. during local development).
-	$build_hash      = defined( 'ALDUS_BUILD_HASH' ) ? ALDUS_BUILD_HASH : '';
-	$user_id         = get_current_user_id();
-	$cache_key       = 'aldus_asm_' . substr(
+	$build_hash = defined( 'ALDUS_BUILD_HASH' ) ? ALDUS_BUILD_HASH : '';
+	$user_id    = get_current_user_id();
+	// reroll_count is intentionally excluded from the assembled cache key.
+	// Including it would create a unique write-only transient for every reroll
+	// that is never read again (because reroll counts only ever increase).
+	// Variety across rerolls is handled by $layout_seed (base_seed + reroll*37).
+	// Rerolls always bypass the cache so they render fresh; only the initial
+	// generation (reroll_count === 0) is cached and re-served on repeat requests.
+	$cache_key = 'aldus_asm_' . substr(
 		md5(
 			wp_json_encode(
 				compact(
 					'tokens',
 					'items',
 					'personality',
-					'reroll_count',
 					'custom_styles',
 					'section_label',
 					'active_theme',
@@ -236,9 +241,11 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 		0,
 		20
 	);
-	$cached_response = get_transient( $cache_key );
-	if ( false !== $cached_response && is_array( $cached_response ) ) {
-		return rest_ensure_response( $cached_response );
+	if ( $reroll_count === 0 ) {
+		$cached_response = get_transient( $cache_key );
+		if ( false !== $cached_response && is_array( $cached_response ) ) {
+			return rest_ensure_response( $cached_response );
+		}
 	}
 
 	// Cache miss — load theme context (static-cached per process) and render.
@@ -440,9 +447,13 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 	}
 
 	// Cache the assembled response for 5 minutes to serve repeat requests instantly.
+	// Rerolls are never stored in the assembled cache — each reroll generates fresh
+	// output and there is no value in caching it since reroll counts only increase.
 	// Also populate the raw-input cache (4 min) so future identical requests are
 	// served before any sanitization work runs.
-	set_transient( $cache_key, $response_data, 5 * MINUTE_IN_SECONDS );
+	if ( $reroll_count === 0 ) {
+		set_transient( $cache_key, $response_data, 5 * MINUTE_IN_SECONDS );
+	}
 	set_transient( $raw_cache_key, $response_data, 4 * MINUTE_IN_SECONDS );
 
 	return rest_ensure_response( $response_data );

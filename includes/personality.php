@@ -92,6 +92,12 @@ function aldus_personality_style_rules(): array {
 	//   interactivity — comma-separated effect names applied to generated blocks
 	//                   '' = none | 'parallax' | 'reveal' | 'countup'
 	//                   Multiple: 'parallax,reveal'
+	// anchor_mode — controls how aldus_enforce_anchors() places missing required
+	// tokens for each personality:
+	//   'loose'  — anchors are APPENDED, letting the model's ordering lead.
+	//   'strict' — anchors are PREPENDED, locking the opening structure.
+	// When adding a new personality, explicitly set anchor_mode so the intent is
+	// clear rather than silently falling back to a default.
 	$rules = array(
 		'Dispatch'   => array(
 			'align'         => 'left',
@@ -102,6 +108,7 @@ function aldus_personality_style_rules(): array {
 			'edges'         => 'sharp',
 			'separator'     => 'wide',
 			'interactivity' => 'parallax,reveal',
+			'anchor_mode'   => 'strict',
 		),
 		'Tribune'    => array(
 			'align'         => 'centered',
@@ -112,6 +119,7 @@ function aldus_personality_style_rules(): array {
 			'edges'         => 'sharp',
 			'separator'     => 'wide',
 			'interactivity' => 'countup',
+			'anchor_mode'   => 'strict',
 		),
 		'Folio'      => array(
 			'align'         => 'left',
@@ -122,6 +130,7 @@ function aldus_personality_style_rules(): array {
 			'edges'         => 'default',
 			'separator'     => 'default',
 			'interactivity' => 'reveal',
+			'anchor_mode'   => 'strict',
 		),
 		'Nocturne'   => array(
 			'align'         => 'centered',
@@ -132,6 +141,7 @@ function aldus_personality_style_rules(): array {
 			'edges'         => 'default',
 			'separator'     => 'wide',
 			'interactivity' => 'parallax,reveal',
+			'anchor_mode'   => 'loose',
 		),
 		'Broadsheet' => array(
 			'align'         => 'left',
@@ -142,6 +152,7 @@ function aldus_personality_style_rules(): array {
 			'edges'         => 'sharp',
 			'separator'     => 'wide',
 			'interactivity' => '',
+			'anchor_mode'   => 'strict',
 		),
 		'Codex'      => array(
 			'align'         => 'left',
@@ -152,6 +163,7 @@ function aldus_personality_style_rules(): array {
 			'edges'         => 'sharp',
 			'separator'     => 'default',
 			'interactivity' => '',
+			'anchor_mode'   => 'loose',
 		),
 		'Dusk'       => array(
 			'align'         => 'centered',
@@ -162,6 +174,7 @@ function aldus_personality_style_rules(): array {
 			'edges'         => 'default',
 			'separator'     => 'wide',
 			'interactivity' => 'parallax,reveal',
+			'anchor_mode'   => 'loose',
 		),
 		'Solstice'   => array(
 			'align'         => 'centered',
@@ -172,6 +185,7 @@ function aldus_personality_style_rules(): array {
 			'edges'         => 'soft',
 			'separator'     => 'wide',
 			'interactivity' => 'reveal',
+			'anchor_mode'   => 'loose',
 		),
 		'Mirage'     => array(
 			'align'         => 'mixed',
@@ -182,6 +196,7 @@ function aldus_personality_style_rules(): array {
 			'edges'         => 'soft',
 			'separator'     => 'wide',
 			'interactivity' => 'reveal',
+			'anchor_mode'   => 'loose',
 		),
 		'Ledger'     => array(
 			'align'         => 'left',
@@ -192,6 +207,7 @@ function aldus_personality_style_rules(): array {
 			'edges'         => 'default',
 			'separator'     => 'dots',
 			'interactivity' => '',
+			'anchor_mode'   => 'strict',
 		),
 		'Mosaic'     => array(
 			'align'         => 'mixed',
@@ -202,6 +218,7 @@ function aldus_personality_style_rules(): array {
 			'edges'         => 'default',
 			'separator'     => 'wide',
 			'interactivity' => 'reveal',
+			'anchor_mode'   => 'loose',
 		),
 		'Prism'      => array(
 			'align'         => 'mixed',
@@ -212,6 +229,7 @@ function aldus_personality_style_rules(): array {
 			'edges'         => 'soft',
 			'separator'     => 'wide',
 			'interactivity' => 'reveal',
+			'anchor_mode'   => 'strict',
 		),
 		'Broadside'  => array(
 			'align'         => 'left',
@@ -222,6 +240,7 @@ function aldus_personality_style_rules(): array {
 			'edges'         => 'default',
 			'separator'     => 'wide',
 			'interactivity' => 'reveal',
+			'anchor_mode'   => 'strict',
 		),
 		'Manifesto'  => array(
 			'align'         => 'centered',
@@ -232,6 +251,7 @@ function aldus_personality_style_rules(): array {
 			'edges'         => 'default',
 			'separator'     => 'wide',
 			'interactivity' => 'parallax,reveal',
+			'anchor_mode'   => 'strict',
 		),
 		'Overture'   => array(
 			'align'         => 'centered',
@@ -242,6 +262,7 @@ function aldus_personality_style_rules(): array {
 			'edges'         => 'soft',
 			'separator'     => 'wide',
 			'interactivity' => 'reveal',
+			'anchor_mode'   => 'loose',
 		),
 		'Stratum'    => array(
 			'align'         => 'left',
@@ -252,6 +273,7 @@ function aldus_personality_style_rules(): array {
 			'edges'         => 'default',
 			'separator'     => 'wide',
 			'interactivity' => 'reveal',
+			'anchor_mode'   => 'loose',
 		),
 	);
 	$rules = (array) apply_filters( 'aldus_personality_style_rules', $rules );
