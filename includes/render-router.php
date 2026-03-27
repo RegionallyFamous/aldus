@@ -292,7 +292,7 @@ function aldus_render_block_token(
 			return aldus_block_pullquote( $dist, $dark, 'solid-color', true, $context );
 
 		case 'pullquote:centered':
-			return aldus_block_pullquote_centered( $dist );
+			return aldus_block_pullquote_centered( $dist, '', $accent );
 
 		// ---- Headings ----
 

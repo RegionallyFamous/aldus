@@ -22,6 +22,8 @@
 
 'use strict';
 
+const { spawnSync } = require( 'child_process' );
+const path = require( 'path' );
 const { test, expect } = require( '@playwright/test' );
 
 // ---------------------------------------------------------------------------
@@ -417,6 +419,15 @@ test.describe.configure( { mode: 'serial' } );
 let wpNonce = '';
 
 test.beforeAll( async ( { browser } ) => {
+	// Reset rate-limit transients so this browser project starts with a clean
+	// counter.  When all browsers run back-to-back, Chromium's requests can
+	// saturate the 60-req/min window before Firefox/WebKit begin.
+	spawnSync(
+		'npx wp-env run cli wp transient delete --all',
+		[],
+		{ cwd: path.resolve( __dirname, '..', '..' ), env: process.env, shell: true }
+	);
+
 	const page = await browser.newPage();
 	await page.goto( '/wp-admin/' );
 	wpNonce = await page.evaluate( () => {

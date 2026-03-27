@@ -644,6 +644,7 @@ export function useAldusGeneration( {
 			onProgress,
 			onError,
 			onErrorDetail,
+			onPersonalitiesFiltered,
 			onStyleDetected,
 			onRecommendationsReady,
 			onHintsReady,

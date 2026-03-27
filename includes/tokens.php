@@ -267,6 +267,7 @@ function aldus_token_content_requirements(): array {
 		'table:data'           => 'table',
 		'gallery:2-col'        => 'gallery',
 		'gallery:3-col'        => 'gallery',
+		'code:block'           => 'code',
 	);
 	return $map;
 }

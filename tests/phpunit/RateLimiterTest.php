@@ -6,32 +6,21 @@ namespace Aldus\Tests;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for the fixed-window rate limiter in Aldus_REST_Controller::check_rate_limit().
+ * Tests for the fixed-window rate limiter via aldus_check_rate_limit().
  *
- * check_rate_limit() is private, so we use ReflectionClass to invoke it.
+ * The logic lives in the standalone helper (extracted from the private class
+ * method) so we call it directly — no reflection needed.
  * The transient functions are stubbed by tests/phpunit/bootstrap.php using
  * $GLOBALS['_aldus_test_transients'] so no database is needed.
  */
 class RateLimiterTest extends TestCase {
 
-	/** @var \Aldus_REST_Controller */
-	private \Aldus_REST_Controller $controller;
-
-	/** @var \ReflectionMethod */
-	private \ReflectionMethod $method;
-
 	protected function setUp(): void {
 		parent::setUp();
 
 		// Start with a clean transient store for each test.
-		$GLOBALS['_aldus_test_transients']     = array();
+		$GLOBALS['_aldus_test_transients']      = array();
 		$GLOBALS['_aldus_test_current_user_id'] = 1;
-
-		$this->controller = new \Aldus_REST_Controller();
-
-		$reflection   = new \ReflectionClass( $this->controller );
-		$this->method = $reflection->getMethod( 'check_rate_limit' );
-		$this->method->setAccessible( true );
 	}
 
 	protected function tearDown(): void {
@@ -44,9 +33,9 @@ class RateLimiterTest extends TestCase {
 	// Helpers
 	// -----------------------------------------------------------------------
 
-	/** Invoke check_rate_limit() on our controller instance. */
+	/** Invoke aldus_check_rate_limit() with the default 60-req/min limit. */
 	private function call_rate_limit(): true|\WP_Error {
-		return $this->method->invoke( $this->controller );
+		return aldus_check_rate_limit( 60 );
 	}
 
 	// -----------------------------------------------------------------------

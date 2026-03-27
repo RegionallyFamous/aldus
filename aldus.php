@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Plugin Name:       Aldus — Layout Explorer
  * Plugin URI:        https://github.com/RegionallyFamous/aldus
  * Description:       You write it. Aldus designs it. Layout styles for your content — pick the one that fits, and it becomes real WordPress blocks.
- * Version:           1.24.2
+ * Version:           1.25.0
  * Requires at least: 6.4
  * Requires PHP:      8.0
  * Author:            Regionally Famous
@@ -21,13 +21,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-defined( 'ALDUS_VERSION' ) || define( 'ALDUS_VERSION', '1.24.2' );
+defined( 'ALDUS_VERSION' ) || define( 'ALDUS_VERSION', '1.25.0' );
 defined( 'ALDUS_PATH' ) || define( 'ALDUS_PATH', plugin_dir_path( __FILE__ ) );
 defined( 'ALDUS_URL' ) || define( 'ALDUS_URL', plugin_dir_url( __FILE__ ) );
 // Injected by the build script (bin/inject-build-hash.js) from the webpack
 // content hash.  An empty string is safe: the cache key falls back to version
 // + request params, which is correct for manual/dev builds.
-defined( 'ALDUS_BUILD_HASH' ) || define( 'ALDUS_BUILD_HASH', '3e4ccfdfbfa69d2ad644' );
+defined( 'ALDUS_BUILD_HASH' ) || define( 'ALDUS_BUILD_HASH', '4555f9e8950af6b3e55e' );
 
 register_activation_hook( __FILE__, 'aldus_activate' );
 register_deactivation_hook( __FILE__, 'aldus_deactivate' );

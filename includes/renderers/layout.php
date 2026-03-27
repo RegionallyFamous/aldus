@@ -56,10 +56,10 @@ function aldus_block_row_stats( Aldus_Content_Distributor $dist, string $ia_attr
 				),
 				'style'    => array(
 					'spacing' => array(
-						'blockGap' => '1.5rem',
+						'blockGap' => aldus_theme_spacing( 'sm' ),
 						'padding'  => array(
-							'top'    => '2rem',
-							'bottom' => '2rem',
+							'top'    => aldus_theme_spacing( 'md' ),
+							'bottom' => aldus_theme_spacing( 'md' ),
 						),
 					),
 				),
@@ -94,7 +94,10 @@ function aldus_block_details_accordion( Aldus_Content_Distributor $dist, string 
 
 		$summary_text = $summary ? esc_html( $summary['content'] ) : '';
 		$body_text    = $body ? esc_html( $body['content'] ) : '';
-		$inner_html   = "<details class=\"wp-block-details\"{$ia_attrs}><summary>{$summary_text}</summary>\n"
+		// Interactivity API attributes belong on the outermost wrapper div,
+		// not on the semantic <details> element — putting them on <details>
+		// can interfere with the browser's native open/close behaviour.
+		$inner_html = "<details class=\"wp-block-details\"><summary>{$summary_text}</summary>\n"
 			. ( $body_text ? "<p>{$body_text}</p>\n" : '' )
 			. '</details>';
 
@@ -109,7 +112,28 @@ function aldus_block_details_accordion( Aldus_Content_Distributor $dist, string 
 		++$count;
 	}
 
-	return $output ? $output . "\n" : '';
+	if ( ! $output ) {
+		return '';
+	}
+
+	// Wrap all <details> in a flex group so the Interactivity API directive
+	// lands on the outer div and the JS can query child <details> elements
+	// without touching the native open attribute.
+	return serialize_block(
+		array(
+			'blockName'    => 'core/group',
+			'attrs'        => array(
+				'layout' => array(
+					'type'        => 'flex',
+					'orientation' => 'vertical',
+				),
+			),
+			'innerBlocks'  => array(),
+			'innerContent' => array(
+				'<div class="' . aldus_group_classes( 'flex' ) . "\" {$ia_attrs}>\n{$output}</div>",
+			),
+		)
+	) . "\n\n";
 }
 
 /**

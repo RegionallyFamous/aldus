@@ -90,7 +90,16 @@ function aldus_register_meta_and_bindings(): void {
 				'default'           => '[]',
 				'show_in_rest'      => true,
 				'auth_callback'     => fn() => current_user_can( 'edit_posts' ),
-				'sanitize_callback' => 'sanitize_text_field',
+				// sanitize_text_field strips slashes and HTML tags, which mangles
+				// JSON. Validate that the value is parseable JSON and return it
+				// unchanged; reset to an empty array on malformed input.
+				'sanitize_callback' => static function ( $value ) {
+					if ( ! is_string( $value ) ) {
+						return '[]';
+					}
+					$decoded = json_decode( $value, true );
+					return ( null !== $decoded ) ? $value : '[]';
+				},
 			)
 		);
 	}

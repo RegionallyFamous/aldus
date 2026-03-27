@@ -39,12 +39,28 @@ function aldus_register_telemetry_route(): void {
 					'required'          => true,
 					'type'              => 'string',
 					'enum'              => array( 'client_error' ),
+					'validate_callback' => 'rest_validate_request_arg',
 					'sanitize_callback' => 'sanitize_key',
 				),
 				'code'  => array(
 					'required'          => true,
 					'type'              => 'string',
-					'maxLength'         => 40,
+					// Allow only the codes that the block editor actually reports via
+					// reportError(). Any other string is rejected before it can write
+					// to wp_options.
+					'enum'              => array(
+						'timeout',
+						'connection_failed',
+						'parse_failed',
+						'llm_parse_failed',
+						'unexpected_error',
+						'corrupt_markup',
+						'insert_failed',
+						'no_layouts',
+						'api_error',
+						'unknown',
+					),
+					'validate_callback' => 'rest_validate_request_arg',
 					'sanitize_callback' => 'sanitize_key',
 				),
 			),
@@ -90,6 +106,10 @@ function aldus_handle_telemetry( WP_REST_Request $request ): WP_REST_Response {
 		// First occurrence for this code — add_option is a no-op on duplicate
 		// inserts so concurrent first-hits are handled gracefully.
 		add_option( $option_name, 1, '', false );
+	} else {
+		// The raw SQL UPDATE bypasses WP's in-memory option cache. Clear the
+		// cache entry so subsequent get_option() calls read the fresh DB value.
+		wp_cache_delete( $option_name, 'options' );
 	}
 
 	return rest_ensure_response( array( 'ok' => true ) );

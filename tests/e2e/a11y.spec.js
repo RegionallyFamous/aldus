@@ -112,9 +112,16 @@ test.describe( 'Aldus block editor a11y', () => {
 		await page.waitForTimeout( 2000 );
 
 		// No critical JS errors should have occurred.
+		// Suppress known WordPress-core noise that is not Aldus-related:
+		//   - GPUBuffer / WebGPU warnings
+		//   - Block validation mismatches (serialisation diff warnings)
+		//   - React concurrent-mode lifecycle warnings
+		//   - @wordpress/latex-to-mathml bare-specifier warning: WordPress 7.0
+		//     added this package but some browsers report a missing import-map
+		//     entry; it is a WP-core issue unrelated to Aldus.
 		const critical = errors.filter(
 			( e ) =>
-				! /GPUBuffer|Block validation|Cannot update a component/i.test(
+				! /GPUBuffer|Block validation|Cannot update a component|latex-to-mathml/i.test(
 					e
 				)
 		);

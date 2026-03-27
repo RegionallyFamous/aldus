@@ -102,8 +102,8 @@ function aldus_block_group(
 		return '';
 	}
 
-	$pad        = aldus_theme_spacing( 'lg' );
-	$style_str  = "padding-top:{$pad};padding-bottom:{$pad}";
+	$pad       = aldus_theme_spacing( 'lg' );
+	$style_str = "padding-top:{$pad};padding-bottom:{$pad}";
 	if ( $radius !== '' ) {
 		$style_str = "border-radius:{$radius};{$style_str}";
 	}

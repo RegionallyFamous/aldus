@@ -3,7 +3,7 @@ Contributors: regionallyfamous
 Tags: blocks, layout, design, ai, gutenberg
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 1.23.0
+Stable tag: 1.25.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -127,6 +127,18 @@ Nine themed content packs (Roast — specialty coffee; Meridian — B2B SaaS; He
 An optional free-text field on the building screen that steers the layout model — for example "lead with the image", "keep it minimal", or "bold CTA up top". It's passed directly into the model prompt.
 
 == Changelog ==
+
+= 1.25.0 =
+* Fixed telemetry endpoint `code` enum to match the error codes the block editor actually sends (`timeout`, `connection_failed`, `unexpected_error`, `corrupt_markup`, `insert_failed`, `no_layouts`, `api_error`, `unknown`). Previous enum used internal names that didn't match JS client output.
+* Fixed `_aldus_layout_history` meta sanitizer (JSON-preserving callback, not `sanitize_text_field`).
+* Fixed `aldus_handle_telemetry()` to flush the WP option cache after the atomic SQL UPDATE so `get_option()` returns the correct incremented value within the same request.
+* Fixed `wp_using_ext_object_cache()` return cast to `(bool)` in the health endpoint — the global is uninitialized (`null`) in some WordPress versions' test bootstrap.
+* Fixed `check_rate_limit()` test to call the extracted `aldus_check_rate_limit()` standalone function directly, removing a deprecated `ReflectionMethod::setAccessible()` call.
+* Added explicit `validate_callback: rest_validate_request_arg` to telemetry route args so enum constraints are enforced across all WordPress versions.
+* Added `@wordpress/latex-to-mathml` to the E2E a11y console-error filter (WP 7.0 import-map issue, not Aldus code).
+* Fixed E2E WebKit "adding a headline item reveals the generate button" test to also accept the "Requires WebGPU" disabled button, which appears when WebGPU is unavailable in Playwright's WebKit engine.
+* Fixed E2E full-suite rate-limit exhaustion: `assemble-personalities` and `assemble-full-page` spec `beforeAll` hooks now reset WordPress transients before each browser project runs, preventing 429s when Chromium's requests fill the 60-req/min window before Firefox/WebKit begin.
+* Updated health endpoint `$client_error_codes` list to include all valid telemetry codes.
 
 = 1.21.1 =
 * Fixed a bug where the REST API rate limiter double-counted requests because WordPress calls the permission callback twice per request. The limiter is now enforced inside the request callback so each API call increments the counter exactly once.

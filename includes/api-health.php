@@ -57,11 +57,15 @@ function aldus_handle_health(): WP_REST_Response {
 	// mirror the ERROR_MESSAGES keys in src/screens/ErrorScreen.js.
 	$client_error_codes  = array(
 		'timeout',
+		'connection_failed',
+		'parse_failed',
+		'llm_parse_failed',
 		'unexpected_error',
-		'insert_failed',
 		'corrupt_markup',
+		'insert_failed',
 		'no_layouts',
 		'api_error',
+		'unknown',
 	);
 	$client_error_counts = array();
 	foreach ( $client_error_codes as $code ) {
@@ -76,7 +80,7 @@ function aldus_handle_health(): WP_REST_Response {
 			'version'             => ALDUS_VERSION,
 			'php'                 => PHP_VERSION,
 			'wp'                  => get_bloginfo( 'version' ),
-			'object_cache'        => wp_using_ext_object_cache(),
+			'object_cache'        => (bool) wp_using_ext_object_cache(),
 			'theme'               => get_stylesheet(),
 			'palette_size'        => count( aldus_get_theme_palette() ),
 			'font_sizes'          => count( aldus_get_theme_font_sizes() ),

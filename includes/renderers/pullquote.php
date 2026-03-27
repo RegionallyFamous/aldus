@@ -63,7 +63,18 @@ function aldus_block_pullquote(
 	) . "\n\n";
 }
 
-function aldus_block_pullquote_centered( Aldus_Content_Distributor $dist, string $name = '' ): string {
+/**
+ * Renders a centered core/pullquote block.
+ *
+ * @param Aldus_Content_Distributor $dist
+ * @param string                    $name        Optional block name.
+ * @param string                    $color_slug  Optional border color slug.
+ */
+function aldus_block_pullquote_centered(
+	Aldus_Content_Distributor $dist,
+	string $name = '',
+	string $color_slug = ''
+): string {
 	$quote = $dist->consume( 'quote' );
 	if ( ! $quote ) {
 		return '';
@@ -71,16 +82,24 @@ function aldus_block_pullquote_centered( Aldus_Content_Distributor $dist, string
 
 	$text = esc_html( $quote['content'] );
 
+	$attrs = array(
+		'align' => 'wide',
+		'style' => array( 'typography' => array( 'textAlign' => 'center' ) ),
+	);
+	if ( $color_slug ) {
+		$attrs['borderColor'] = $color_slug;
+	}
+
+	$color_safe   = $color_slug ? sanitize_html_class( $color_slug ) : '';
+	$border_class = $color_safe ? " has-{$color_safe}-border-color" : '';
+
 	return serialize_block(
 		array(
 			'blockName'    => 'core/pullquote',
-			'attrs'        => array(
-				'align' => 'wide',
-				'style' => array( 'typography' => array( 'textAlign' => 'center' ) ),
-			),
+			'attrs'        => $attrs,
 			'innerBlocks'  => array(),
 			'innerContent' => array(
-				"<figure class=\"wp-block-pullquote alignwide has-text-align-center\"><blockquote><p>{$text}</p></blockquote></figure>",
+				"<figure class=\"wp-block-pullquote alignwide has-text-align-center{$border_class}\"><blockquote><p>{$text}</p></blockquote></figure>",
 			),
 		)
 	) . "\n\n";

@@ -143,41 +143,9 @@ class Aldus_REST_Controller extends WP_REST_Controller {
 	 * @return true|WP_Error  true if within limit; WP_Error 429 if exceeded.
 	 */
 	private function check_rate_limit(): true|WP_Error {
-		$user_id = get_current_user_id();
-		$tk      = "aldus_rl_{$user_id}";
-
-		if ( wp_using_ext_object_cache() ) {
-			$count = wp_cache_incr( $tk, 1, 'aldus' );
-			if ( false === $count ) {
-				// Key did not exist yet — prime it with a TTL.
-				wp_cache_set( $tk, 1, 'aldus', MINUTE_IN_SECONDS );
-				$count = 1;
-			}
-		} else {
-			$stored = get_transient( $tk );
-			if ( false === $stored ) {
-				// New window: record the start time and initialise count to 1.
-				$count = 1;
-				set_transient( $tk, array( 'c' => $count, 's' => time() ), MINUTE_IN_SECONDS );
-			} else {
-				// Existing window: increment count; re-save with the REMAINING TTL
-				// so the window closes at exactly start + 60 s, never later.
-				$count     = (int) ( $stored['c'] ?? (int) $stored ) + 1;
-				$start     = (int) ( $stored['s'] ?? ( time() - MINUTE_IN_SECONDS ) );
-				$remaining = max( 1, $start + MINUTE_IN_SECONDS - time() );
-				set_transient( $tk, array( 'c' => $count, 's' => $start ), $remaining );
-			}
-		}
-
-		if ( $count > 60 ) {
-			return new WP_Error(
-				'rate_limited',
-				__( 'Too many requests. Wait a moment and try again.', 'aldus' ),
-				array( 'status' => 429 )
-			);
-		}
-
-		return true;
+		// Delegate to the standalone helper so the AI endpoint can share the
+		// same algorithm without duplicating code.
+		return aldus_check_rate_limit( 60 );
 	}
 
 	/**
@@ -438,4 +406,65 @@ class Aldus_REST_Controller extends WP_REST_Controller {
  */
 function aldus_register_rest_routes(): void {
 	Aldus_REST_Controller::init();
+}
+
+/**
+ * Standalone per-user rate limiter callable from any REST handler.
+ *
+ * Uses the same fixed-window algorithm as the class method so all Aldus
+ * endpoints share the same logic.  The transient / cache key is scoped to
+ * the current user so different users never interfere with each other.
+ *
+ * @param int    $limit   Maximum requests allowed per 60-second window.
+ * @param string $tk_suffix Optional cache-key suffix to isolate limits per
+ *                           endpoint (e.g. 'ai' for the AI generate route).
+ * @return true|WP_Error true if within limit; WP_Error 429 if exceeded.
+ */
+function aldus_check_rate_limit( int $limit = 60, string $tk_suffix = '' ): true|WP_Error {
+	$user_id = get_current_user_id();
+	$suffix  = $tk_suffix !== '' ? "_{$tk_suffix}" : '';
+	$tk      = "aldus_rl_{$user_id}{$suffix}";
+
+	if ( wp_using_ext_object_cache() ) {
+		$count = wp_cache_incr( $tk, 1, 'aldus' );
+		if ( false === $count ) {
+			wp_cache_set( $tk, 1, 'aldus', MINUTE_IN_SECONDS );
+			$count = 1;
+		}
+	} else {
+		$stored = get_transient( $tk );
+		if ( false === $stored ) {
+			$count = 1;
+			set_transient(
+				$tk,
+				array(
+					'c' => $count,
+					's' => time(),
+				),
+				MINUTE_IN_SECONDS
+			);
+		} else {
+			$count     = (int) ( $stored['c'] ?? (int) $stored ) + 1;
+			$start     = (int) ( $stored['s'] ?? ( time() - MINUTE_IN_SECONDS ) );
+			$remaining = max( 1, $start + MINUTE_IN_SECONDS - time() );
+			set_transient(
+				$tk,
+				array(
+					'c' => $count,
+					's' => $start,
+				),
+				$remaining
+			);
+		}
+	}
+
+	if ( $count > $limit ) {
+		return new WP_Error(
+			'rate_limited',
+			__( 'Too many requests. Wait a moment and try again.', 'aldus' ),
+			array( 'status' => 429 )
+		);
+	}
+
+	return true;
 }

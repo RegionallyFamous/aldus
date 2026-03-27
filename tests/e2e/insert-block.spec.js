@@ -140,20 +140,30 @@ test( 'adding a headline item reveals the generate button', async () => {
 		.getByRole( 'button', { name: /headline/i } )
 		.first();
 
-	if (
-		await headlineBtn.isVisible( { timeout: 3000 } ).catch( () => false )
-	) {
-		// A block-preview popover can appear after insertion and intercept
-		// pointer events.  Pressing Escape dismisses any open popover without
-		// de-selecting the block.
-		await page.keyboard.press( 'Escape' );
+	// Wait explicitly for the headline button to be stable before interacting.
+	// On WebKit, the block can take longer to hydrate after insertion, so we
+	// use a dedicated waitFor instead of relying on a 3-second isVisible poll.
+	const headlineBtnVisible = await headlineBtn
+		.waitFor( { state: 'visible', timeout: 8000 } )
+		.then( () => true )
+		.catch( () => false );
+
+	if ( headlineBtnVisible ) {
+		// Click the block container first to ensure it is selected/focused.
+		// On WebKit, pressing Escape can sometimes deselect the block, which
+		// causes subsequent clicks on child buttons to be ignored.
+		await aldusBlock.click( { position: { x: 5, y: 5 } } );
 		await page.waitForTimeout( 300 );
 		await headlineBtn.click();
 	}
 
-	// After adding an item the "Make it happen" / generate button should appear.
+	// After adding an item the generate area should become visible.
+	// On WebGPU-capable browsers (Chromium, Firefox) this is the "Make it
+	// happen" / "Generate" button.  On WebKit (Playwright's built-in Safari
+	// engine), WebGPU is not supported and the button reads "Requires WebGPU"
+	// — both states confirm that items are present and the UI advanced.
 	const generateBtn = aldusBlock
-		.getByRole( 'button', { name: /make it happen|generate/i } )
+		.getByRole( 'button', { name: /make it happen|generate|WebGPU/i } )
 		.first();
-	await expect( generateBtn ).toBeVisible( { timeout: 10000 } );
+	await expect( generateBtn ).toBeVisible( { timeout: 15000 } );
 } );

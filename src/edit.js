@@ -616,7 +616,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 			loadPresetItems( preset );
 			setScreen( SCREEN.BUILDING );
 		},
-		[ loadPresetItems ]
+		[ loadPresetItems, setScreen ]
 	);
 
 	// ---------------------------------------------------------------------------
@@ -627,7 +627,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		setScreen( SCREEN.DOWNLOADING );
 		setDlProgress( { progress: 0, text: '' } );
 		setDlStalled( false );
-	}, [] );
+	}, [ setScreen ] );
 
 	const onDownloadProgress = useCallback(
 		( { progress, text } ) => setDlProgress( { progress, text } ),
@@ -689,12 +689,15 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		[]
 	);
 	const onErrorDetail = useCallback( ( err ) => setErrorDetail( err ), [] );
-	const onGenerationError = useCallback( ( code ) => {
-		setErrorCode( code );
-		setRetryCount( ( c ) => c + 1 );
-		reportError( code );
-		setScreen( SCREEN.ERROR );
-	}, [] );
+	const onGenerationError = useCallback(
+		( code ) => {
+			setErrorCode( code );
+			setRetryCount( ( c ) => c + 1 );
+			reportError( code );
+			setScreen( SCREEN.ERROR );
+		},
+		[ setScreen ]
+	);
 
 	// Feature 1: Debounced auto-infer style from content manifest (800 ms).
 	// Only fires when the engine is ready and items have changed.
@@ -1258,6 +1261,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		postId,
 		runGenerate,
 		resetRetry,
+		setScreen,
 	] );
 
 	const regenerate = generate;
@@ -1339,7 +1343,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 				}
 			} );
 		},
-		[ layouts ]
+		[ layouts, setScreen ]
 	);
 
 	const togglePersonality = useCallback(
@@ -1363,7 +1367,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		setAutoStyle( '' );
 		setRecommendedPersonalities( [] );
 		setContentHints( [] );
-	}, [] );
+	}, [ setScreen ] );
 
 	// Feature 4: Restore a previous layout from history.
 	const handleRestoreVersion = useCallback(
@@ -1435,12 +1439,15 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 
 	// "Try with my content" — called from a pack preview LayoutCard.
 	// Pins the personality and sends the user to the content tab.
-	const tryWithMyContent = useCallback( ( personalityLabel ) => {
-		setPinnedPersonality( personalityLabel );
-		setScreen( SCREEN.BUILDING );
-		setBuildingMode( 'content' );
-		setLayouts( [] );
-	}, [] );
+	const tryWithMyContent = useCallback(
+		( personalityLabel ) => {
+			setPinnedPersonality( personalityLabel );
+			setScreen( SCREEN.BUILDING );
+			setBuildingMode( 'content' );
+			setLayouts( [] );
+		},
+		[ setScreen ]
+	);
 
 	// Confirm-guarded variants for button-triggered actions on the results screen.
 	const requestStartOver = useCallback( () => {
@@ -1467,11 +1474,17 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		}
 		destroyEngineAndReset();
 		setScreen( SCREEN.BUILDING );
-	}, [ destroyEngineAndReset ] ); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [ abortRef, destroyEngineAndReset, setScreen ] );
 
-	const startMixing = useCallback( () => setScreen( SCREEN.MIXING ), [] );
+	const startMixing = useCallback(
+		() => setScreen( SCREEN.MIXING ),
+		[ setScreen ]
+	);
 
-	const backToResults = useCallback( () => setScreen( SCREEN.RESULTS ), [] );
+	const backToResults = useCallback(
+		() => setScreen( SCREEN.RESULTS ),
+		[ setScreen ]
+	);
 
 	// Keyboard shortcut handlers — guards ensure they only fire on the relevant screen.
 	useShortcut(
@@ -1609,7 +1622,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 				setScreen( SCREEN.ERROR );
 			}
 		},
-		[ clientId, replaceBlocks, selectBlock, setBlockEditingMode ]
+		[ clientId, replaceBlocks, selectBlock, setBlockEditingMode, setScreen ]
 	);
 
 	// ---------------------------------------------------------------------------
