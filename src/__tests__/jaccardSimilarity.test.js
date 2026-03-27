@@ -22,8 +22,8 @@ describe( 'jaccard()', () => {
 	} );
 
 	it( 'returns a value in [0, 1]', () => {
-		const a      = [ 'cover:dark', 'paragraph', 'buttons:cta' ];
-		const b      = [ 'cover:dark', 'heading:h1', 'separator' ];
+		const a = [ 'cover:dark', 'paragraph', 'buttons:cta' ];
+		const b = [ 'cover:dark', 'heading:h1', 'separator' ];
 		const result = jaccard( a, b );
 		expect( result ).toBeGreaterThanOrEqual( 0 );
 		expect( result ).toBeLessThanOrEqual( 1 );
@@ -47,8 +47,8 @@ describe( 'jaccard()', () => {
 
 	it( 'ignores duplicate entries — treats inputs as sets', () => {
 		// Duplicates in a or b should not inflate the score.
-		const a       = [ 'X', 'X', 'Y' ];
-		const b       = [ 'X', 'Z' ];
+		const a = [ 'X', 'X', 'Y' ];
+		const b = [ 'X', 'Z' ];
 		const noDedup = jaccard( a, b );
 		const deduped = jaccard( [ 'X', 'Y' ], b );
 		expect( noDedup ).toBe( deduped );
@@ -64,7 +64,10 @@ describe( 'jaccard()', () => {
 			[ [], [] ],
 			[ [ 'a' ], [] ],
 			[ [], [ 'a' ] ],
-			[ [ 'a', 'b', 'c' ], [ 'b', 'c', 'd', 'e' ] ],
+			[
+				[ 'a', 'b', 'c' ],
+				[ 'b', 'c', 'd', 'e' ],
+			],
 		];
 		pairs.forEach( ( [ a, b ] ) => {
 			const result = jaccard( a, b );

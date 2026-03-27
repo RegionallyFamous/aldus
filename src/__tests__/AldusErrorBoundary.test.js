@@ -2,6 +2,7 @@
  * RTL tests for AldusErrorBoundary component.
  */
 
+/* eslint-disable no-console */
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { AldusErrorBoundary } from '../components/AldusErrorBoundary.js';
@@ -51,7 +52,9 @@ describe( 'AldusErrorBoundary', () => {
 				<ThrowingChild shouldThrow={ true } />
 			</AldusErrorBoundary>
 		);
-		expect( screen.getByRole( 'button', { name: /try again/i } ) ).toBeInTheDocument();
+		expect(
+			screen.getByRole( 'button', { name: /try again/i } )
+		).toBeInTheDocument();
 	} );
 
 	it( 'shows technical details disclosure in error state', () => {

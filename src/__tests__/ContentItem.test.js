@@ -42,7 +42,12 @@ describe( 'ContentItem', () => {
 	} );
 
 	it( 'applies aldus-item class and type class', () => {
-		render( <ContentItem { ...baseProps } item={ makeItem( { type: 'paragraph' } ) } /> );
+		render(
+			<ContentItem
+				{ ...baseProps }
+				item={ makeItem( { type: 'paragraph' } ) }
+			/>
+		);
 		const el = screen.getByRole( 'listitem' );
 		expect( el ).toHaveClass( 'aldus-item' );
 		expect( el ).toHaveClass( 'aldus-item--paragraph' );
@@ -82,7 +87,12 @@ describe( 'ContentItem', () => {
 	} );
 
 	it( 'shows the type badge with the correct label', () => {
-		render( <ContentItem { ...baseProps } item={ makeItem( { type: 'quote' } ) } /> );
+		render(
+			<ContentItem
+				{ ...baseProps }
+				item={ makeItem( { type: 'quote' } ) }
+			/>
+		);
 		// Badge renders the label from TYPE_META
 		const badge = document.querySelector( '.aldus-type-badge' );
 		expect( badge ).toBeTruthy();
@@ -104,7 +114,12 @@ describe( 'ContentItem', () => {
 	} );
 
 	it( 'does not show badge preview when content is empty', () => {
-		render( <ContentItem { ...baseProps } item={ makeItem( { content: '' } ) } /> );
+		render(
+			<ContentItem
+				{ ...baseProps }
+				item={ makeItem( { content: '' } ) }
+			/>
+		);
 		expect( document.querySelector( '.aldus-badge-preview' ) ).toBeFalsy();
 	} );
 

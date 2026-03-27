@@ -59,7 +59,9 @@ describe( 'validateSavedItems()', () => {
 	} );
 
 	it( 'preserves a valid string id', () => {
-		const raw = [ { id: 'my-id', type: 'headline', content: 'Hi', url: '' } ];
+		const raw = [
+			{ id: 'my-id', type: 'headline', content: 'Hi', url: '' },
+		];
 		const result = validateSavedItems( raw );
 		expect( result[ 0 ].id ).toBe( 'my-id' );
 	} );
@@ -110,7 +112,9 @@ describe( 'validateSavedItems()', () => {
 	} );
 
 	it( 'accepts the code content type (added in later release)', () => {
-		const raw = [ { id: 'a', type: 'code', content: 'const x = 1;', url: '' } ];
+		const raw = [
+			{ id: 'a', type: 'code', content: 'const x = 1;', url: '' },
+		];
 		const result = validateSavedItems( raw );
 		expect( result ).toHaveLength( 1 );
 		expect( result[ 0 ].type ).toBe( 'code' );

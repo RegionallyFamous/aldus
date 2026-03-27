@@ -47,7 +47,9 @@ describe( 'LoadingScreen', () => {
 				genProgress={ null }
 			/>
 		);
-		expect( container.querySelector( '.aldus-loading-msg' ) ).toHaveClass( 'is-visible' );
+		expect( container.querySelector( '.aldus-loading-msg' ) ).toHaveClass(
+			'is-visible'
+		);
 	} );
 
 	it( 'applies is-hidden class when msgVisible is false', () => {
@@ -59,7 +61,9 @@ describe( 'LoadingScreen', () => {
 				genProgress={ null }
 			/>
 		);
-		expect( container.querySelector( '.aldus-loading-msg' ) ).toHaveClass( 'is-hidden' );
+		expect( container.querySelector( '.aldus-loading-msg' ) ).toHaveClass(
+			'is-hidden'
+		);
 	} );
 
 	it( 'shows Cancel button and calls onAbort when clicked', () => {
@@ -86,7 +90,9 @@ describe( 'LoadingScreen', () => {
 				genProgress={ null }
 			/>
 		);
-		expect( screen.queryByRole( 'button', { name: /cancel/i } ) ).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole( 'button', { name: /cancel/i } )
+		).not.toBeInTheDocument();
 	} );
 
 	it( 'renders a progressbar when genProgress.total > 0', () => {
@@ -168,7 +174,9 @@ describe( 'DownloadingScreen', () => {
 				onAbort={ null }
 			/>
 		);
-		expect( screen.queryByText( /starting download/i ) ).not.toBeInTheDocument();
+		expect(
+			screen.queryByText( /starting download/i )
+		).not.toBeInTheDocument();
 	} );
 
 	it( 'shows Cancel button and calls onAbort when clicked', () => {
@@ -214,7 +222,9 @@ describe( 'ErrorScreen', () => {
 				onRegenerate={ jest.fn() }
 			/>
 		);
-		expect( screen.getByText( /something got scrambled/i ) ).toBeInTheDocument();
+		expect(
+			screen.getByText( /something got scrambled/i )
+		).toBeInTheDocument();
 	} );
 
 	it( 'does not show "Go for it again" for connection_failed', () => {
@@ -257,7 +267,9 @@ describe( 'ErrorScreen', () => {
 				onRegenerate={ jest.fn() }
 			/>
 		);
-		expect( screen.getByText( /quick start presets/i ) ).toBeInTheDocument();
+		expect(
+			screen.getByText( /quick start presets/i )
+		).toBeInTheDocument();
 	} );
 
 	it( 'does not show retry hint before 2 failed attempts', () => {
@@ -270,7 +282,9 @@ describe( 'ErrorScreen', () => {
 				onRegenerate={ jest.fn() }
 			/>
 		);
-		expect( screen.queryByText( /quick start presets/i ) ).not.toBeInTheDocument();
+		expect(
+			screen.queryByText( /quick start presets/i )
+		).not.toBeInTheDocument();
 	} );
 
 	it( 'shows technical details when errorDetail is provided', () => {
@@ -298,7 +312,9 @@ describe( 'ErrorScreen', () => {
 				onRegenerate={ jest.fn() }
 			/>
 		);
-		fireEvent.click( screen.getByRole( 'button', { name: /edit my content/i } ) );
+		fireEvent.click(
+			screen.getByRole( 'button', { name: /edit my content/i } )
+		);
 		expect( onRetry ).toHaveBeenCalledTimes( 1 );
 	} );
 
@@ -313,7 +329,9 @@ describe( 'ErrorScreen', () => {
 				onRegenerate={ onRegenerate }
 			/>
 		);
-		fireEvent.click( screen.getByRole( 'button', { name: /go for it again/i } ) );
+		fireEvent.click(
+			screen.getByRole( 'button', { name: /go for it again/i } )
+		);
 		expect( onRegenerate ).toHaveBeenCalledTimes( 1 );
 	} );
 
@@ -405,7 +423,9 @@ describe( 'MixingScreen', () => {
 				onBack={ jest.fn() }
 			/>
 		);
-		const activeTile = document.querySelector( '.aldus-mix-section-tile.is-active' );
+		const activeTile = document.querySelector(
+			'.aldus-mix-section-tile.is-active'
+		);
 		expect( activeTile ).toBeTruthy();
 	} );
 
@@ -433,7 +453,9 @@ describe( 'MixingScreen', () => {
 				onBack={ jest.fn() }
 			/>
 		);
-		expect( screen.getByRole( 'button', { name: /back to layouts/i } ) ).toBeInTheDocument();
+		expect(
+			screen.getByRole( 'button', { name: /back to layouts/i } )
+		).toBeInTheDocument();
 	} );
 
 	it( 'calls onBack when "Back to layouts" button is clicked', () => {
@@ -445,7 +467,9 @@ describe( 'MixingScreen', () => {
 				onBack={ onBack }
 			/>
 		);
-		fireEvent.click( screen.getByRole( 'button', { name: /back to layouts/i } ) );
+		fireEvent.click(
+			screen.getByRole( 'button', { name: /back to layouts/i } )
+		);
 		expect( onBack ).toHaveBeenCalledTimes( 1 );
 	} );
 
@@ -457,7 +481,9 @@ describe( 'MixingScreen', () => {
 				onBack={ jest.fn() }
 			/>
 		);
-		expect( screen.getByRole( 'button', { name: /insert this mix/i } ) ).toBeInTheDocument();
+		expect(
+			screen.getByRole( 'button', { name: /insert this mix/i } )
+		).toBeInTheDocument();
 	} );
 
 	it( 'calls onInsert with a string when "Insert this mix" is clicked', () => {
@@ -469,7 +495,9 @@ describe( 'MixingScreen', () => {
 				onBack={ jest.fn() }
 			/>
 		);
-		fireEvent.click( screen.getByRole( 'button', { name: /insert this mix/i } ) );
+		fireEvent.click(
+			screen.getByRole( 'button', { name: /insert this mix/i } )
+		);
 		expect( onInsert ).toHaveBeenCalledTimes( 1 );
 		expect( typeof onInsert.mock.calls[ 0 ][ 0 ] ).toBe( 'string' );
 	} );
@@ -482,6 +510,8 @@ describe( 'MixingScreen', () => {
 				onBack={ jest.fn() }
 			/>
 		);
-		expect( screen.getByRole( 'button', { name: /shuffle/i } ) ).toBeInTheDocument();
+		expect(
+			screen.getByRole( 'button', { name: /shuffle/i } )
+		).toBeInTheDocument();
 	} );
 } );

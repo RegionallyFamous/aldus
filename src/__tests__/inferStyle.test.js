@@ -26,11 +26,15 @@ describe( 'matchChipToPhrase()', () => {
 	} );
 
 	it( 'matches image-lead chip for photo phrase', () => {
-		expect( matchChipToPhrase( 'photo-forward design' ) ).toBe( 'image-lead' );
+		expect( matchChipToPhrase( 'photo-forward design' ) ).toBe(
+			'image-lead'
+		);
 	} );
 
 	it( 'matches text-first chip for editorial phrase', () => {
-		expect( matchChipToPhrase( 'bold editorial style' ) ).toBe( 'text-first' );
+		expect( matchChipToPhrase( 'bold editorial style' ) ).toBe(
+			'text-first'
+		);
 	} );
 
 	it( 'matches minimal chip', () => {
@@ -38,7 +42,9 @@ describe( 'matchChipToPhrase()', () => {
 	} );
 
 	it( 'matches cta-focus chip for sales phrase', () => {
-		expect( matchChipToPhrase( 'sales conversion page' ) ).toBe( 'cta-focus' );
+		expect( matchChipToPhrase( 'sales conversion page' ) ).toBe(
+			'cta-focus'
+		);
 	} );
 
 	it( 'matches dark chip for moody phrase', () => {
@@ -48,7 +54,9 @@ describe( 'matchChipToPhrase()', () => {
 	it( 'matches magazine chip', () => {
 		// 'spread' contains 'read' → matches text-first before magazine,
 		// so use a phrase with only magazine-specific keywords.
-		expect( matchChipToPhrase( 'magazine story layout' ) ).toBe( 'magazine' );
+		expect( matchChipToPhrase( 'magazine story layout' ) ).toBe(
+			'magazine'
+		);
 	} );
 
 	it( 'returns null for phrase matching no chip', () => {
@@ -62,7 +70,9 @@ describe( 'matchChipToPhrase()', () => {
 
 	it( 'CHIP_KEYWORDS is an object with at least 5 entries', () => {
 		expect( typeof CHIP_KEYWORDS ).toBe( 'object' );
-		expect( Object.keys( CHIP_KEYWORDS ).length ).toBeGreaterThanOrEqual( 5 );
+		expect( Object.keys( CHIP_KEYWORDS ).length ).toBeGreaterThanOrEqual(
+			5
+		);
 	} );
 
 	it( 'every chip keyword is a non-empty string', () => {
@@ -85,9 +95,7 @@ describe( 'inferStyleFromContent()', () => {
 			chat: {
 				completions: {
 					create: jest.fn().mockResolvedValue( {
-						choices: [
-							{ message: { content: responseText } },
-						],
+						choices: [ { message: { content: responseText } } ],
 					} ),
 				},
 			},
@@ -139,7 +147,9 @@ describe( 'inferStyleFromContent()', () => {
 		const engine = {
 			chat: {
 				completions: {
-					create: jest.fn().mockRejectedValue( new Error( 'Engine error' ) ),
+					create: jest
+						.fn()
+						.mockRejectedValue( new Error( 'Engine error' ) ),
 				},
 			},
 		};
@@ -151,8 +161,7 @@ describe( 'inferStyleFromContent()', () => {
 		const engine = makeEngine( 'image-forward' );
 		await inferStyleFromContent( engine, { image: 2, paragraph: 1 } );
 
-		const callArg =
-			engine.chat.completions.create.mock.calls[ 0 ][ 0 ];
+		const callArg = engine.chat.completions.create.mock.calls[ 0 ][ 0 ];
 		const prompt = callArg.messages[ 0 ].content;
 		expect( prompt ).toContain( 'image' );
 		expect( prompt ).toContain( 'paragraph' );

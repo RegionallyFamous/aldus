@@ -46,15 +46,15 @@ describe( 'computeCoverage()', () => {
 	it( 'returns no unused types when all manifest types are covered', () => {
 		// cover:dark covers 'image'; paragraph covers 'paragraph'.
 		const manifest = { image: 1, paragraph: 2 };
-		const tokens   = [ 'cover:dark', 'paragraph' ];
-		const result   = computeCoverage( manifest, tokens );
+		const tokens = [ 'cover:dark', 'paragraph' ];
+		const result = computeCoverage( manifest, tokens );
 		expect( result.unused ).toHaveLength( 0 );
 	} );
 
 	it( 'returns unused types that no token covers', () => {
 		const manifest = { image: 1, paragraph: 2, cta: 1 };
-		const tokens   = [ 'cover:dark', 'paragraph' ]; // no cta token
-		const result   = computeCoverage( manifest, tokens );
+		const tokens = [ 'cover:dark', 'paragraph' ]; // no cta token
+		const result = computeCoverage( manifest, tokens );
 		expect( result.unused ).toContain( 'cta' );
 	} );
 
@@ -65,7 +65,7 @@ describe( 'computeCoverage()', () => {
 
 	it( 'returns all manifest types as unused when tokens are empty', () => {
 		const manifest = { image: 1, paragraph: 2 };
-		const result   = computeCoverage( manifest, [] );
+		const result = computeCoverage( manifest, [] );
 		expect( result.unused ).toContain( 'image' );
 		expect( result.unused ).toContain( 'paragraph' );
 	} );
@@ -74,8 +74,8 @@ describe( 'computeCoverage()', () => {
 		// separator and spacer have no TOKEN_CONTENT_TYPES entry —
 		// they should not remove any type from unused.
 		const manifest = { image: 1 };
-		const tokens   = [ 'separator', 'spacer:large' ];
-		const result   = computeCoverage( manifest, tokens );
+		const tokens = [ 'separator', 'spacer:large' ];
+		const result = computeCoverage( manifest, tokens );
 		expect( result.unused ).toContain( 'image' );
 	} );
 
@@ -94,30 +94,26 @@ describe( 'computeBestMatches()', () => {
 	const personalities = [ DISPATCH, FOLIO, NOCTURNE ];
 
 	it( 'returns a Set', () => {
-		const items  = [ { type: 'image' } ];
+		const items = [ { type: 'image' } ];
 		const result = computeBestMatches( items, personalities );
 		expect( result ).toBeInstanceOf( Set );
 	} );
 
 	it( 'returns Dispatch when image + quote + cta are all present', () => {
-		const items = [
-			{ type: 'image' },
-			{ type: 'quote' },
-			{ type: 'cta' },
-		];
+		const items = [ { type: 'image' }, { type: 'quote' }, { type: 'cta' } ];
 		const result = computeBestMatches( items, personalities );
 		expect( result.has( 'Dispatch' ) ).toBe( true );
 	} );
 
 	it( 'returns Nocturne when image is present', () => {
-		const items  = [ { type: 'image' } ];
+		const items = [ { type: 'image' } ];
 		const result = computeBestMatches( items, personalities );
 		// Nocturne anchors: cover:dark (needs image) + image:full (needs image)
 		expect( result.has( 'Nocturne' ) ).toBe( true );
 	} );
 
 	it( 'returns empty set when no personality anchors are satisfied', () => {
-		const items  = [ { type: 'paragraph' } ];
+		const items = [ { type: 'paragraph' } ];
 		const result = computeBestMatches( items, personalities );
 		// None of Dispatch (needs image+quote+cta), Folio (needs headline+paragraph),
 		// Nocturne (needs image) can be fully satisfied with paragraph only.
@@ -160,7 +156,7 @@ describe( 'computeBestMatches()', () => {
 
 describe( 'formatTokenPool()', () => {
 	it( 'groups tokens by category', () => {
-		const pool   = [ 'cover:dark', 'paragraph' ];
+		const pool = [ 'cover:dark', 'paragraph' ];
 		const result = formatTokenPool( pool );
 		// Should contain the category name and token.
 		expect( result ).toMatch( /Covers:/i );
@@ -182,21 +178,21 @@ describe( 'formatTokenPool()', () => {
 
 	it( 'only includes categories with tokens in the pool', () => {
 		// Only cover tokens — should not include "Text:" or "Buttons:".
-		const pool   = [ 'cover:dark', 'cover:light' ];
+		const pool = [ 'cover:dark', 'cover:light' ];
 		const result = formatTokenPool( pool );
 		expect( result ).not.toContain( 'Text:' );
 		expect( result ).not.toContain( 'Buttons:' );
 	} );
 
 	it( 'puts uncategorized tokens in an Other: section', () => {
-		const pool   = [ 'my-custom-token' ];
+		const pool = [ 'my-custom-token' ];
 		const result = formatTokenPool( pool );
 		expect( result ).toContain( 'Other:' );
 		expect( result ).toContain( 'my-custom-token' );
 	} );
 
 	it( 'separates categories with /', () => {
-		const pool   = [ 'cover:dark', 'paragraph' ];
+		const pool = [ 'cover:dark', 'paragraph' ];
 		const result = formatTokenPool( pool );
 		expect( result ).toContain( ' / ' );
 	} );
@@ -210,34 +206,36 @@ describe( 'scorePersonalityFit()', () => {
 	const personalities = [ DISPATCH, FOLIO, NOCTURNE ];
 
 	it( 'returns a Map', () => {
-		const layouts  = [ { label: 'Dispatch', tokens: [ 'cover:dark' ] } ];
+		const layouts = [ { label: 'Dispatch', tokens: [ 'cover:dark' ] } ];
 		const manifest = { image: 1 };
-		const result   = scorePersonalityFit( layouts, manifest, personalities );
+		const result = scorePersonalityFit( layouts, manifest, personalities );
 		expect( result ).toBeInstanceOf( Map );
 	} );
 
 	it( 'returns 1.0 for a personality whose all anchors are satisfied', () => {
 		// Nocturne anchors: cover:dark (needs image), image:full (needs image).
-		const layouts  = [ { label: 'Nocturne', tokens: [ 'cover:dark', 'image:full' ] } ];
+		const layouts = [
+			{ label: 'Nocturne', tokens: [ 'cover:dark', 'image:full' ] },
+		];
 		const manifest = { image: 1 };
-		const result   = scorePersonalityFit( layouts, manifest, personalities );
+		const result = scorePersonalityFit( layouts, manifest, personalities );
 		expect( result.get( 'Nocturne' ) ).toBe( 1 );
 	} );
 
 	it( 'returns 0 for an unknown personality label', () => {
-		const layouts  = [ { label: 'Unknown', tokens: [] } ];
+		const layouts = [ { label: 'Unknown', tokens: [] } ];
 		const manifest = {};
-		const result   = scorePersonalityFit( layouts, manifest, personalities );
+		const result = scorePersonalityFit( layouts, manifest, personalities );
 		expect( result.get( 'Unknown' ) ).toBe( 0 );
 	} );
 
 	it( 'returns fractional score when only some anchors are satisfied', () => {
 		// Dispatch anchors: cover:dark (needs image), pullquote:full-solid (needs quote), buttons:cta (needs cta).
 		// With only image: 1 satisfied out of 3 = 0.333...
-		const layouts  = [ { label: 'Dispatch', tokens: [ 'cover:dark' ] } ];
+		const layouts = [ { label: 'Dispatch', tokens: [ 'cover:dark' ] } ];
 		const manifest = { image: 1 }; // only image, no quote or cta
-		const result   = scorePersonalityFit( layouts, manifest, personalities );
-		const score    = result.get( 'Dispatch' );
+		const result = scorePersonalityFit( layouts, manifest, personalities );
+		const score = result.get( 'Dispatch' );
 		expect( score ).toBeGreaterThan( 0 );
 		expect( score ).toBeLessThan( 1 );
 	} );

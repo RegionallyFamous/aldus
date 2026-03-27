@@ -66,7 +66,7 @@ describe( 'extractItemFromBlock()', () => {
 	// -----------------------------------------------------------------------
 
 	it( 'maps a level-1 heading to headline', () => {
-		const block  = {
+		const block = {
 			name: 'core/heading',
 			attributes: { level: 1, content: 'My Headline' },
 			innerBlocks: [],
@@ -78,7 +78,7 @@ describe( 'extractItemFromBlock()', () => {
 	} );
 
 	it( 'maps a level-2 heading to subheading', () => {
-		const block  = {
+		const block = {
 			name: 'core/heading',
 			attributes: { level: 2, content: 'A Subheading' },
 			innerBlocks: [],
@@ -88,7 +88,7 @@ describe( 'extractItemFromBlock()', () => {
 	} );
 
 	it( 'maps level 3+ headings to subheading', () => {
-		const block  = {
+		const block = {
 			name: 'core/heading',
 			attributes: { level: 3, content: 'H3' },
 			innerBlocks: [],
@@ -102,7 +102,7 @@ describe( 'extractItemFromBlock()', () => {
 	// -----------------------------------------------------------------------
 
 	it( 'maps core/paragraph to paragraph type', () => {
-		const block  = {
+		const block = {
 			name: 'core/paragraph',
 			attributes: { content: 'A paragraph of text.' },
 			innerBlocks: [],
@@ -117,7 +117,7 @@ describe( 'extractItemFromBlock()', () => {
 	// -----------------------------------------------------------------------
 
 	it( 'maps core/image to image type', () => {
-		const block  = {
+		const block = {
 			name: 'core/image',
 			attributes: { url: 'https://example.com/img.jpg', alt: 'Alt' },
 			innerBlocks: [],
@@ -132,7 +132,7 @@ describe( 'extractItemFromBlock()', () => {
 	// -----------------------------------------------------------------------
 
 	it( 'maps core/quote to quote type', () => {
-		const block  = {
+		const block = {
 			name: 'core/quote',
 			attributes: { value: 'A great quote.' },
 			innerBlocks: [],
@@ -183,7 +183,10 @@ describe( 'extractItemFromBlock()', () => {
 			innerBlocks: [
 				{
 					name: 'core/button',
-					attributes: { text: 'Click me', url: 'https://example.com' },
+					attributes: {
+						text: 'Click me',
+						url: 'https://example.com',
+					},
 				},
 			],
 		};
@@ -224,8 +227,17 @@ describe( 'extractItemFromBlock()', () => {
 		const block = {
 			name: 'core/table',
 			attributes: {
-				head: [ { cells: [ { content: 'Header A' }, { content: 'Header B' } ] } ],
-				body: [ { cells: [ { content: 'Row 1A' }, { content: 'Row 1B' } ] } ],
+				head: [
+					{
+						cells: [
+							{ content: 'Header A' },
+							{ content: 'Header B' },
+						],
+					},
+				],
+				body: [
+					{ cells: [ { content: 'Row 1A' }, { content: 'Row 1B' } ] },
+				],
 			},
 			innerBlocks: [],
 		};
@@ -296,7 +308,7 @@ describe( 'extractItemFromBlock()', () => {
 	// -----------------------------------------------------------------------
 
 	it( 'assigns a non-empty string id to each extracted item', () => {
-		const block  = {
+		const block = {
 			name: 'core/paragraph',
 			attributes: { content: 'Test' },
 			innerBlocks: [],

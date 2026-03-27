@@ -2153,8 +2153,8 @@ function InsertedScreen( {
 	return (
 		<>
 			{ /* group="content" so the panel appears inside the Content tab
-			   * even when templateLock:"contentOnly" suppresses the default
-			   * Settings tab (WP 6.6+ section-block inspector behaviour). */ }
+			 * even when templateLock:"contentOnly" suppresses the default
+			 * Settings tab (WP 6.6+ section-block inspector behaviour). */ }
 			<InspectorControls group="content">
 				<PanelBody title={ __( 'Aldus Layout', 'aldus' ) }>
 					<p

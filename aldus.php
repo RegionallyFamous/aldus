@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Plugin Name:       Aldus — Layout Explorer
  * Plugin URI:        https://github.com/RegionallyFamous/aldus
  * Description:       You write it. Aldus designs it. Layout styles for your content — pick the one that fits, and it becomes real WordPress blocks.
- * Version:           1.24.1
+ * Version:           1.24.2
  * Requires at least: 6.4
  * Requires PHP:      8.0
  * Author:            Regionally Famous
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-defined( 'ALDUS_VERSION' ) || define( 'ALDUS_VERSION', '1.24.1' );
+defined( 'ALDUS_VERSION' ) || define( 'ALDUS_VERSION', '1.24.2' );
 defined( 'ALDUS_PATH' ) || define( 'ALDUS_PATH', plugin_dir_path( __FILE__ ) );
 defined( 'ALDUS_URL' ) || define( 'ALDUS_URL', plugin_dir_url( __FILE__ ) );
 // Injected by the build script (bin/inject-build-hash.js) from the webpack
@@ -42,13 +42,23 @@ function aldus_activate(): void {
 	if ( ! get_option( 'aldus_version' ) ) {
 		add_option( 'aldus_version', ALDUS_VERSION, '', false );
 		set_transient( 'aldus_activation_redirect', true, 60 );
+	} elseif ( get_option( 'aldus_version' ) !== ALDUS_VERSION ) {
+		// Keep the stored version current on upgrades so migration hooks have
+		// a reliable before/after reference point.
+		update_option( 'aldus_version', ALDUS_VERSION, false );
 	}
 }
 
 /**
  * Runs on plugin deactivation.
  */
-function aldus_deactivate(): void {}
+function aldus_deactivate(): void {
+	// Flush cached theme data so a subsequent activation (possibly after a
+	// theme switch) always starts with fresh values.
+	if ( function_exists( 'aldus_flush_theme_cache' ) ) {
+		aldus_flush_theme_cache();
+	}
+}
 
 add_action( 'plugins_loaded', 'aldus_init' );
 
