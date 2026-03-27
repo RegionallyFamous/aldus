@@ -64,9 +64,9 @@ export const VALID_TOKENS_SET = new Set( VALID_TOKENS );
 // Used by computeBestMatches to find personalities whose anchors are fully fed.
 //
 // NOTE: This mapping intentionally mirrors the PHP token→type maps in
-// Aldus_Content_Distributor::prioritize() (templates.php) and
-// aldus_prune_unavailable_tokens() (api.php). Keep them in sync when adding
-// new tokens — three places, same truth.
+// Aldus_Content_Distributor::prioritize() and aldus_prune_unavailable_tokens()
+// (includes/tokens.php; pruning is scoped per personality via anchor lists).
+// Keep them in sync when adding new tokens.
 //
 // Tokens with no content requirement (structural, separators, spacers) are
 // omitted; absent keys resolve to [] and pass vacuously, which is correct:

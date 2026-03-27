@@ -71,8 +71,7 @@ class EnforceAnchorsTest extends TestCase {
 
 	/** @test */
 	public function prunes_non_anchor_image_tokens_when_no_image_in_manifest(): void {
-		// image:wide is NOT a global anchor — enforce_anchors calls prune internally.
-		// We use Dispatch (no image anchors) so the anchor-insertion step is irrelevant.
+		// image:wide is not a Dispatch anchor — enforce_anchors calls prune internally.
 		$tokens   = [ 'heading:h1', 'image:wide', 'paragraph' ];
 		$manifest = [ 'headline' => 1, 'paragraph' => 2 ]; // no image
 		$result   = aldus_enforce_anchors( 'Dispatch', $tokens, $manifest );

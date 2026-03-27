@@ -538,3 +538,43 @@ for ( const personality of PERSONALITIES ) {
 		}
 	} );
 }
+
+// ---------------------------------------------------------------------------
+// cover:minimal — dedicated headline-in-output check (not covered by §6 above)
+// ---------------------------------------------------------------------------
+
+test( 'cover:minimal — headline text appears inside wp:cover output', async ( {
+	request,
+} ) => {
+	const minimalHeadline = 'E2E minimal cover headline';
+
+	const response = await request.post( '/wp-json/aldus/v1/assemble', {
+		headers: { 'X-WP-Nonce': wpNonce },
+		data: {
+			personality: 'Solstice',
+			tokens: [ 'cover:minimal', 'paragraph' ],
+			items: [
+				{
+					type: 'headline',
+					content: minimalHeadline,
+					url: '',
+					id: 'cm-h1',
+				},
+				{
+					type: 'paragraph',
+					content:
+						'Supporting paragraph so the layout has body copy after the hero.',
+					url: '',
+					id: 'cm-p1',
+				},
+			],
+		},
+	} );
+
+	expect( response.status() ).toBe( 200 );
+	const body = await response.json();
+	expect( body.success ).toBe( true );
+	expect( typeof body.blocks ).toBe( 'string' );
+	expect( body.blocks ).toContain( '<!-- wp:cover' );
+	expect( body.blocks ).toContain( minimalHeadline );
+} );

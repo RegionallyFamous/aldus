@@ -196,4 +196,32 @@ class BlockBindingsTest extends WP_UnitTestCase {
 			'aldus_bindings_get_value must return null when no post meta is set for the post.'
 		);
 	}
+
+	// -----------------------------------------------------------------------
+	// Layout history meta — JSON must survive register_post_meta sanitization
+	// -----------------------------------------------------------------------
+
+	public function test_layout_history_meta_round_trips_json_intact(): void {
+		$post_id = self::factory()->post->create( [ 'post_status' => 'publish' ] );
+
+		$json = wp_json_encode(
+			[
+				[
+					'personality' => 'Solstice',
+					'tokens'      => [ 'cover:minimal', 'paragraph' ],
+					'at'          => '2024-01-15T12:00:00+00:00',
+				],
+			]
+		);
+		$this->assertIsString( $json );
+
+		update_post_meta( $post_id, '_aldus_layout_history', $json );
+
+		$roundtrip = get_post_meta( $post_id, '_aldus_layout_history', true );
+		$this->assertSame( $json, $roundtrip, 'JSON must not be mangled by sanitize_callback' );
+
+		$decoded = json_decode( $roundtrip, true );
+		$this->assertIsArray( $decoded );
+		$this->assertSame( 'Solstice', $decoded[0]['personality'] ?? null );
+	}
 }

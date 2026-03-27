@@ -199,7 +199,7 @@ class BoundaryValueTest extends TestCase {
 		$tokens   = [ 'heading:h1', 'gallery:2-col', 'paragraph' ];
 		$manifest = [ 'headline' => 1, 'paragraph' => 2 ]; // no gallery key
 
-		$result = aldus_prune_unavailable_tokens( $tokens, $manifest );
+		$result = aldus_prune_unavailable_tokens( $tokens, $manifest, 'Dispatch' );
 
 		$this->assertNotContains(
 			'gallery:2-col',
@@ -220,7 +220,7 @@ class BoundaryValueTest extends TestCase {
 		$tokens   = [ 'heading:h1', 'gallery:2-col' ];
 		$manifest = [ 'headline' => 1, 'gallery' => 1 ];
 
-		$result = aldus_prune_unavailable_tokens( $tokens, $manifest );
+		$result = aldus_prune_unavailable_tokens( $tokens, $manifest, 'Dispatch' );
 
 		$this->assertContains( 'gallery:2-col', $result );
 	}
@@ -285,10 +285,9 @@ class BoundaryValueTest extends TestCase {
 		$tokens   = [ 'heading:h1', 'cover:dark', 'image:wide', 'gallery:2-col' ];
 		$manifest = [ 'headline' => 1 ];
 
-		$result = aldus_prune_unavailable_tokens( $tokens, $manifest );
+		$result = aldus_prune_unavailable_tokens( $tokens, $manifest, 'Dispatch' );
 
-		// heading:h1 and cover:dark have no strict content requirements —
-		// they should survive pruning with a headline-only manifest.
+		// heading:h1 has no content requirement; cover:dark is a Dispatch anchor.
 		$this->assertContains( 'heading:h1', $result );
 		// image:wide requires 'image' which is absent — must be pruned.
 		$this->assertNotContains( 'image:wide', $result );

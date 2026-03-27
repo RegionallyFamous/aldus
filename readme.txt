@@ -3,7 +3,7 @@ Contributors: regionallyfamous
 Tags: blocks, layout, design, ai, gutenberg
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 1.25.0
+Stable tag: 1.26.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -266,6 +266,9 @@ An optional free-text field on the building screen that steers the layout model 
 * Initial release. Add your content, see every layout style at once, pick the one that fits — no external services, no API keys, nothing leaves your browser.
 
 == Upgrade Notice ==
+
+= 1.26.0 =
+Smarter token pruning for assembled layouts (per layout style). Expanded tests; no editor UI changes. Safe to update.
 
 = 1.17.0 =
 Performance, reliability, and polish. Smaller initial bundle, faster PHP on shared hosting, better error messages, thorough uninstall cleanup, and a fix for spacing presets disappearing in WP 6.4/6.7. Safe to update.

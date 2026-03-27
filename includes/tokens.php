@@ -195,8 +195,8 @@ function aldus_enforce_anchors( string $label, array $tokens, array $manifest ):
 	$style_rules = aldus_personality_style_rules();
 	$is_loose    = ( ( $style_rules[ $label ]['anchor_mode'] ?? 'strict' ) === 'loose' );
 
-	// Prune tokens that need content we don't have.
-	$tokens = aldus_prune_unavailable_tokens( $tokens, $manifest );
+	// Prune tokens that need content we don't have (per-personality anchor exemption).
+	$tokens = aldus_prune_unavailable_tokens( $tokens, $manifest, $label );
 
 	// Build a hash set for O(1) membership checks during anchor insertion.
 	$token_set = array_flip( $tokens );
@@ -234,8 +234,9 @@ function aldus_enforce_anchors( string $label, array $tokens, array $manifest ):
  * Maps every token that requires a specific content type to that type.
  *
  * Tokens absent from this map (headings, paragraphs, separators, spacers)
- * have no content requirement and are never pruned. Anchor tokens that appear
- * here are still never pruned — see aldus_prune_unavailable_tokens().
+ * have no content requirement and are never pruned. For a given personality,
+ * tokens that are both in this map and in that personality's anchor list are
+ * still not pruned for missing content — see aldus_prune_unavailable_tokens().
  *
  * This is the single source of truth. Both aldus_prune_unavailable_tokens()
  * and Aldus_Content_Distributor::prepare() read from here.
@@ -274,33 +275,20 @@ function aldus_token_content_requirements(): array {
 
 /**
  * Removes tokens that require content types absent from the manifest.
- * Anchor tokens are never pruned — renderers degrade gracefully on empty content.
+ *
+ * Tokens that are layout anchors for the given personality are never pruned
+ * (renderers may degrade gracefully on empty content for those slots).
  *
  * @param list<string>       $tokens
  * @param array<string,int>  $manifest
+ * @param string             $personality_label Personality key, e.g. Dispatch.
  * @return list<string>
  */
-/**
- * Returns a flipped hash-set of every token that appears as an anchor for any
- * personality, cached in a static variable so the merge + flip is only done
- * once per PHP process (not once per aldus_prune_unavailable_tokens call).
- *
- * @return array<string,int>  Keys are anchor token strings, values are 0.
- */
-function aldus_all_anchor_tokens(): array {
-	static $set = null;
-	if ( null !== $set ) {
-		return $set;
-	}
-	$anchor_maps = array_values( aldus_anchor_tokens() );
-	$set         = $anchor_maps ? array_flip( array_unique( array_merge( ...$anchor_maps ) ) ) : array();
-	return $set;
-}
-
-function aldus_prune_unavailable_tokens( array $tokens, array $manifest ): array {
-	// Use the static-cached anchor set — avoids rebuilding on every call.
-	$anchor_set   = aldus_all_anchor_tokens();
-	$requirements = aldus_token_content_requirements();
+function aldus_prune_unavailable_tokens( array $tokens, array $manifest, string $personality_label ): array {
+	$anchors_map    = aldus_anchor_tokens();
+	$person_anchors = $anchors_map[ $personality_label ] ?? array();
+	$anchor_set     = array_flip( $person_anchors );
+	$requirements   = aldus_token_content_requirements();
 
 	return array_values(
 		array_filter(

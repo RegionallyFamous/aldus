@@ -47,12 +47,27 @@ const hash = versionMatch[ 1 ].trim();
 
 const pluginContent = fs.readFileSync( PLUGIN_FILE, 'utf8' );
 
-const updated = pluginContent.replace(
-	/define\(\s*'ALDUS_BUILD_HASH'\s*,\s*'[^']*'\s*\)/,
-	`define( 'ALDUS_BUILD_HASH', '${ hash }' )`
+const patternDefinedOr =
+	/defined\(\s*'ALDUS_BUILD_HASH'\s*\)\s*\|\|\s*define\(\s*'ALDUS_BUILD_HASH'\s*,\s*'[^']*'\s*\)\s*;/;
+const patternDefineOnly =
+	/define\(\s*'ALDUS_BUILD_HASH'\s*,\s*'[^']*'\s*\)/;
+
+let updated = pluginContent.replace(
+	patternDefinedOr,
+	`defined( 'ALDUS_BUILD_HASH' ) || define( 'ALDUS_BUILD_HASH', '${ hash }' );`
 );
 
 if ( updated === pluginContent ) {
+	updated = pluginContent.replace(
+		patternDefineOnly,
+		`define( 'ALDUS_BUILD_HASH', '${ hash }' )`
+	);
+}
+
+if (
+	! patternDefinedOr.test( pluginContent ) &&
+	! patternDefineOnly.test( pluginContent )
+) {
 	console.warn(
 		'[inject-build-hash] ALDUS_BUILD_HASH constant not found in aldus.php — skipping.'
 	);

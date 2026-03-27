@@ -22,6 +22,8 @@ class TelemetryEndpointTest extends WP_UnitTestCase {
 		delete_option( 'aldus_client_error_timeout' );
 		delete_option( 'aldus_client_error_unexpected_error' );
 		delete_option( 'aldus_client_error_no_layouts' );
+		delete_option( 'aldus_client_error_custom_arbitrary_key' );
+		delete_option( 'aldus_client_error_etcpasswd' );
 		parent::tear_down();
 	}
 
@@ -123,6 +125,36 @@ class TelemetryEndpointTest extends WP_UnitTestCase {
 
 		$response = rest_do_request( $request );
 		$this->assertSame( 400, $response->get_status() );
+	}
+
+	public function test_telemetry_returns_400_for_unknown_code_and_does_not_write_option(): void {
+		wp_set_current_user( $this->editor_id );
+
+		$request = new WP_REST_Request( 'POST', '/aldus/v1/telemetry' );
+		$request->set_body_params( [
+			'event' => 'client_error',
+			'code'  => 'custom_arbitrary_key',
+		] );
+
+		$response = rest_do_request( $request );
+		$this->assertSame( 400, $response->get_status() );
+		$this->assertFalse( get_option( 'aldus_client_error_custom_arbitrary_key', false ) );
+	}
+
+	public function test_telemetry_rejects_pathological_code_without_option_write(): void {
+		wp_set_current_user( $this->editor_id );
+
+		$request = new WP_REST_Request( 'POST', '/aldus/v1/telemetry' );
+		$request->set_body_params( [
+			'event' => 'client_error',
+			'code'  => '../../etc/passwd',
+		] );
+
+		$response = rest_do_request( $request );
+		$this->assertSame( 400, $response->get_status() );
+
+		// Must not create wp_options keys for arbitrary / pathological codes.
+		$this->assertFalse( get_option( 'aldus_client_error_etcpasswd', false ) );
 	}
 
 	// -----------------------------------------------------------------------

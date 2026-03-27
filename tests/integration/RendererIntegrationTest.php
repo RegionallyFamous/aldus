@@ -195,4 +195,46 @@ class RendererIntegrationTest extends WP_UnitTestCase {
 		$this->assertSame( 200, $response->get_status() );
 		$this->assertSame( $personality, $data['label'] );
 	}
+
+	public function test_columns_three_equal_output_includes_is_stacked_on_mobile(): void {
+		wp_set_current_user( $this->editor_id );
+
+		$request = new WP_REST_Request( 'POST', '/aldus/v1/assemble' );
+		$request->set_body_params( [
+			'items'       => self::$fixture_items,
+			'personality' => 'Broadsheet',
+			'tokens'      => [ 'columns:3-equal', 'heading:h2', 'paragraph', 'separator' ],
+		] );
+
+		$response = rest_do_request( $request );
+		$data     = $response->get_data();
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertStringContainsString(
+			'"isStackedOnMobile":true',
+			$data['blocks'],
+			'columns:3-equal should set isStackedOnMobile on core/columns'
+		);
+	}
+
+	public function test_columns_four_equal_output_includes_is_stacked_on_mobile(): void {
+		wp_set_current_user( $this->editor_id );
+
+		$request = new WP_REST_Request( 'POST', '/aldus/v1/assemble' );
+		$request->set_body_params( [
+			'items'       => self::$fixture_items,
+			'personality' => 'Ledger',
+			'tokens'      => [ 'columns:4-equal', 'heading:h3', 'paragraph', 'separator' ],
+		] );
+
+		$response = rest_do_request( $request );
+		$data     = $response->get_data();
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertStringContainsString(
+			'"isStackedOnMobile":true',
+			$data['blocks'],
+			'columns:4-equal should set isStackedOnMobile on core/columns'
+		);
+	}
 }
