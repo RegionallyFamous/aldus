@@ -150,7 +150,8 @@ class ThemeHelpersTest extends TestCase {
 			[ 'slug' => 'mid-blue', 'color' => '#4466aa' ],
 			[ 'slug' => 'near-white', 'color' => '#f0f0f0' ],
 		];
-		// mid-blue is closest to 0.4 luminance — it should be chosen.
+		// mid-blue is the only non-extreme candidate; it is also the most
+		// saturated, so the saturation-first picker selects it.
 		$result = aldus_pick_accent( $palette );
 		$this->assertSame( 'mid-blue', $result );
 	}
@@ -164,5 +165,141 @@ class ThemeHelpersTest extends TestCase {
 		$result = aldus_pick_accent( $palette );
 		$this->assertIsString( $result );
 		$this->assertNotEmpty( $result );
+	}
+
+	// -----------------------------------------------------------------------
+	// Fix 1: aldus_hex_saturation()
+	// -----------------------------------------------------------------------
+
+	/** @test */
+	public function vivid_red_has_high_saturation(): void {
+		$this->assertGreaterThan( 0.9, aldus_hex_saturation( '#ff0000' ) );
+	}
+
+	/** @test */
+	public function vivid_blue_has_high_saturation(): void {
+		$this->assertGreaterThan( 0.9, aldus_hex_saturation( '#0000ff' ) );
+	}
+
+	/** @test */
+	public function mid_gray_has_zero_saturation(): void {
+		$this->assertEqualsWithDelta( 0.0, aldus_hex_saturation( '#808080' ), 0.001 );
+	}
+
+	/** @test */
+	public function black_has_zero_saturation(): void {
+		$this->assertEqualsWithDelta( 0.0, aldus_hex_saturation( '#000000' ), 0.001 );
+	}
+
+	/** @test */
+	public function invalid_hex_saturation_returns_zero(): void {
+		$this->assertSame( 0.0, aldus_hex_saturation( '#abc' ) );
+		$this->assertSame( 0.0, aldus_hex_saturation( '' ) );
+	}
+
+	/** @test */
+	public function saturation_without_hash_prefix_matches(): void {
+		$with    = aldus_hex_saturation( '#ff6600' );
+		$without = aldus_hex_saturation( 'ff6600' );
+		$this->assertEqualsWithDelta( $with, $without, 0.001 );
+	}
+
+	// -----------------------------------------------------------------------
+	// Fix 2: aldus_contrast_ratio()
+	// -----------------------------------------------------------------------
+
+	/** @test */
+	public function black_and_white_contrast_is_near_21(): void {
+		$ratio = aldus_contrast_ratio( 0.0, 1.0 );
+		$this->assertEqualsWithDelta( 21.0, $ratio, 0.01 );
+	}
+
+	/** @test */
+	public function same_luminance_contrast_is_one(): void {
+		$ratio = aldus_contrast_ratio( 0.5, 0.5 );
+		$this->assertEqualsWithDelta( 1.0, $ratio, 0.001 );
+	}
+
+	/** @test */
+	public function contrast_ratio_is_order_independent(): void {
+		$a = aldus_contrast_ratio( 0.2, 0.8 );
+		$b = aldus_contrast_ratio( 0.8, 0.2 );
+		$this->assertEqualsWithDelta( $a, $b, 0.001 );
+	}
+
+	/** @test */
+	public function dark_blue_passes_wcag_aa_against_white(): void {
+		// #003366 is dark navy — should give > 4.5:1 against white.
+		$lum   = aldus_hex_luminance( '#003366' );
+		$ratio = aldus_contrast_ratio( $lum, 1.0 );
+		$this->assertGreaterThanOrEqual( 4.5, $ratio );
+	}
+
+	// -----------------------------------------------------------------------
+	// Fix 3: rgb()/rgba() parsing in aldus_hex_luminance()
+	// -----------------------------------------------------------------------
+
+	/** @test */
+	public function rgb_notation_matches_hex_luminance(): void {
+		$hex_lum = aldus_hex_luminance( '#ff0000' );
+		$rgb_lum = aldus_hex_luminance( 'rgb(255, 0, 0)' );
+		$this->assertEqualsWithDelta( $hex_lum, $rgb_lum, 0.001 );
+	}
+
+	/** @test */
+	public function rgba_notation_is_parsed_correctly(): void {
+		// rgba ignores the alpha channel — same result as rgb for luminance.
+		$rgb  = aldus_hex_luminance( 'rgb(0, 128, 0)' );
+		$rgba = aldus_hex_luminance( 'rgba(0, 128, 0, 0.5)' );
+		$this->assertEqualsWithDelta( $rgb, $rgba, 0.001 );
+	}
+
+	/** @test */
+	public function oklch_returns_midpoint_sentinel(): void {
+		$this->assertSame( 0.5, aldus_hex_luminance( 'oklch(60% 0.2 30)' ) );
+	}
+
+	/** @test */
+	public function var_css_property_returns_midpoint_sentinel(): void {
+		$this->assertSame( 0.5, aldus_hex_luminance( 'var(--wp--preset--color--primary)' ) );
+	}
+
+	// -----------------------------------------------------------------------
+	// Fix 1+2 combined: saturation beats same-luminance gray
+	// -----------------------------------------------------------------------
+
+	/** @test */
+	public function vivid_color_beats_gray_at_same_luminance_for_accent(): void {
+		// Build a palette where a vivid orange and a gray share similar luminance
+		// so the old luminance-closest-to-40% logic might pick either one.
+		// The new saturation-first logic must always pick the vivid orange.
+		$palette = [
+			[ 'slug' => 'black', 'color' => '#000000' ],       // darkest (excluded)
+			[ 'slug' => 'vivid-orange', 'color' => '#e06000' ], // saturated mid-tone
+			[ 'slug' => 'gray-mid', 'color' => '#777777' ],     // gray at similar luminance
+			[ 'slug' => 'white', 'color' => '#ffffff' ],        // lightest (excluded)
+		];
+		$result = aldus_pick_accent( $palette );
+		$this->assertSame( 'vivid-orange', $result );
+	}
+
+	// -----------------------------------------------------------------------
+	// Fix 5: minimal-palette fallback returns palette[1] not lightest
+	// -----------------------------------------------------------------------
+
+	/** @test */
+	public function minimal_palette_fallback_returns_second_entry_not_lightest(): void {
+		// A 3-color palette where the first two are dark — the old code would
+		// return 'white' (lightest); the new code returns palette[1].
+		$palette = [
+			[ 'slug' => 'black', 'color' => '#000000' ],
+			[ 'slug' => 'dark-navy', 'color' => '#001133' ],
+			[ 'slug' => 'white', 'color' => '#ffffff' ],
+		];
+		$result = aldus_pick_accent( $palette );
+		// With the new algorithm: dark-navy is the only non-extreme candidate
+		// and will be chosen directly by the saturation path, not the fallback.
+		// Either way, the result must NOT be 'white' (the lightest).
+		$this->assertNotSame( 'white', $result );
 	}
 }

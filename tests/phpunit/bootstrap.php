@@ -123,6 +123,25 @@ if ( ! function_exists( 'wp_get_global_styles' ) ) {
 	}
 }
 
+if ( ! function_exists( 'get_stylesheet' ) ) {
+	function get_stylesheet(): string {
+		return 'test-theme';
+	}
+}
+
+if ( ! function_exists( 'wp_get_theme' ) ) {
+	function wp_get_theme( string $stylesheet = '' ): object {
+		return new class {
+			public function get( string $field ): string {
+				return match ( $field ) {
+					'Version' => '1.0',
+					default   => '',
+				};
+			}
+		};
+	}
+}
+
 if ( ! function_exists( 'esc_html' ) ) {
 	function esc_html( string $text ): string {
 		return htmlspecialchars( $text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8' );

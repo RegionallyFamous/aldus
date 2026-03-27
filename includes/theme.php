@@ -13,12 +13,32 @@ if ( ! defined( 'ABSPATH' ) ) {
 // ---------------------------------------------------------------------------
 
 /**
+ * Returns a stable cache-key suffix scoped to the active theme's identity.
+ *
+ * Using the theme stylesheet slug and version (rather than ALDUS_VERSION)
+ * means the cache survives Aldus plugin updates when the theme hasn't changed,
+ * while still invalidating correctly after a theme switch or theme update.
+ * The result is memoised in a static variable so wp_get_theme() is only called
+ * once per request.
+ *
+ * @return string Sanitized key fragment, e.g. "twentytwentyfive_1-2".
+ */
+function aldus_theme_cache_suffix(): string {
+	static $suffix = null;
+	if ( null === $suffix ) {
+		$theme  = wp_get_theme();
+		$suffix = sanitize_key( get_stylesheet() . '_' . $theme->get( 'Version' ) );
+	}
+	return $suffix;
+}
+
+/**
  * Returns the active theme's color palette, sorted by luminance.
  *
  * @return list<array{slug:string,color:string}>
  */
 function aldus_get_theme_palette(): array {
-	$cache_key = 'aldus_palette_' . ALDUS_VERSION;
+	$cache_key = 'aldus_palette_' . aldus_theme_cache_suffix();
 	$cached    = wp_cache_get( $cache_key, 'aldus' );
 	if ( false !== $cached ) {
 		return (array) $cached;
@@ -65,7 +85,7 @@ function aldus_get_theme_palette(): array {
  * @return list<array{slug:string,size:string}>
  */
 function aldus_get_theme_font_sizes(): array {
-	$cache_key = 'aldus_font_sizes_' . ALDUS_VERSION;
+	$cache_key = 'aldus_font_sizes_' . aldus_theme_cache_suffix();
 	$cached    = wp_cache_get( $cache_key, 'aldus' );
 	if ( false !== $cached ) {
 		return (array) $cached;
@@ -107,7 +127,7 @@ function aldus_get_theme_font_sizes(): array {
  * @return string CSS length value, e.g. '650px' or '48rem'.
  */
 function aldus_theme_content_size(): string {
-	$cache_key = 'aldus_content_size_' . ALDUS_VERSION;
+	$cache_key = 'aldus_content_size_' . aldus_theme_cache_suffix();
 	$cached    = wp_cache_get( $cache_key, 'aldus' );
 	if ( false !== $cached ) {
 		return (string) $cached;
@@ -129,7 +149,7 @@ function aldus_theme_content_size(): string {
  * @return string CSS width value, e.g. '72rem'.
  */
 function aldus_theme_wide_size(): string {
-	$cache_key = 'aldus_wide_size_' . ALDUS_VERSION;
+	$cache_key = 'aldus_wide_size_' . aldus_theme_cache_suffix();
 	$cached    = wp_cache_get( $cache_key, 'aldus' );
 	if ( false !== $cached ) {
 		return (string) $cached;
@@ -158,7 +178,7 @@ function aldus_theme_spacing( string $role ): string {
 	static $map = null;
 
 	if ( null === $map ) {
-		$cache_key = 'aldus_spacing_map_' . ALDUS_VERSION;
+		$cache_key = 'aldus_spacing_map_' . aldus_theme_cache_suffix();
 		$cached    = wp_cache_get( $cache_key, 'aldus' );
 
 		if ( false !== $cached ) {
@@ -218,7 +238,7 @@ function aldus_theme_spacer_scale(): string {
 		return $scale;
 	}
 
-	$cache_key = 'aldus_spacer_scale_' . ALDUS_VERSION;
+	$cache_key = 'aldus_spacer_scale_' . aldus_theme_cache_suffix();
 	$cached    = wp_cache_get( $cache_key, 'aldus' );
 	if ( false !== $cached ) {
 		$scale = (string) $cached;
@@ -267,7 +287,7 @@ function aldus_theme_spacer_scale(): string {
  * @return array{border_width: bool, color_background: bool}
  */
 function aldus_get_theme_appearance_tools(): array {
-	$cache_key = 'aldus_appearance_tools_' . ALDUS_VERSION;
+	$cache_key = 'aldus_appearance_tools_' . aldus_theme_cache_suffix();
 	$cached    = wp_cache_get( $cache_key, 'aldus' );
 	if ( false !== $cached ) {
 		return (array) $cached;
@@ -324,23 +344,87 @@ function aldus_lighten_hex( string $hex, int $percent ): string {
 }
 
 /**
- * Calculates relative luminance of a hex color string (for palette sorting).
+ * Calculates relative luminance of a color value (WCAG 2.x definition).
  *
- * @param string $hex e.g. "#ff6600" or "ff6600"
- * @return float 0 (black) to 1 (white)
+ * Accepts six-digit hex strings (with or without '#'), rgb()/rgba() functional
+ * notation, or any other CSS value.  oklch(), hsl(), and var() references
+ * require a CSS runtime to resolve and are returned as the 0.5 sentinel so
+ * they sort to the middle of the palette and don't skew dark/light picks.
+ *
+ * @param string $hex e.g. "#ff6600", "ff6600", "rgb(255,102,0)"
+ * @return float 0 (black) to 1 (white); 0.5 for unresolvable values
  */
 function aldus_hex_luminance( string $hex ): float {
+	$linearize = static fn( float $c ): float => $c <= 0.03928
+		? $c / 12.92
+		: ( ( $c + 0.055 ) / 1.055 ) ** 2.4;
+
+	// Fast-path: rgb()/rgba() functional notation used by many modern themes.
+	if ( preg_match( '/^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})/i', $hex, $m ) ) {
+		$r = min( 255, (int) $m[1] ) / 255;
+		$g = min( 255, (int) $m[2] ) / 255;
+		$b = min( 255, (int) $m[3] ) / 255;
+		return 0.2126 * $linearize( $r ) + 0.7152 * $linearize( $g ) + 0.0722 * $linearize( $b );
+	}
+
 	$hex = ltrim( $hex, '#' );
 	if ( strlen( $hex ) !== 6 ) {
+		// oklch(), hsl(), var() — cannot resolve without a CSS runtime.
 		return 0.5;
 	}
 	$r = hexdec( substr( $hex, 0, 2 ) ) / 255;
 	$g = hexdec( substr( $hex, 2, 2 ) ) / 255;
 	$b = hexdec( substr( $hex, 4, 2 ) ) / 255;
 
-	$linearize = fn( float $c ) => $c <= 0.03928 ? $c / 12.92 : ( ( $c + 0.055 ) / 1.055 ) ** 2.4;
-
 	return 0.2126 * $linearize( $r ) + 0.7152 * $linearize( $g ) + 0.0722 * $linearize( $b );
+}
+
+/**
+ * Returns the HSL saturation (0–1) of a six-digit hex color.
+ *
+ * Used by aldus_pick_accent() to prefer the most visually vivid color over
+ * a mid-gray that happens to share the same luminance.  Non-hex or achromatic
+ * values return 0.0 so they are ranked last during accent selection.
+ *
+ * @param string $hex Six-digit hex with or without '#'.
+ * @return float 0 (achromatic / unresolvable) to 1 (fully saturated).
+ */
+function aldus_hex_saturation( string $hex ): float {
+	$hex = ltrim( $hex, '#' );
+	if ( strlen( $hex ) !== 6 ) {
+		return 0.0;
+	}
+	$r = hexdec( substr( $hex, 0, 2 ) ) / 255;
+	$g = hexdec( substr( $hex, 2, 2 ) ) / 255;
+	$b = hexdec( substr( $hex, 4, 2 ) ) / 255;
+
+	$max   = max( $r, $g, $b );
+	$min   = min( $r, $g, $b );
+	$delta = $max - $min;
+
+	if ( $delta < 0.0001 ) {
+		return 0.0; // achromatic (gray)
+	}
+
+	$l = ( $max + $min ) / 2.0;
+	// HSL saturation formula — avoids division-by-zero on pure black/white
+	// because delta > 0 means (1 - |2L-1|) > 0.
+	return $delta / ( 1.0 - abs( 2.0 * $l - 1.0 ) );
+}
+
+/**
+ * Computes the WCAG 2.x contrast ratio between two relative luminances.
+ *
+ * Returns a value in the range [1, 21]. WCAG AA for normal text requires ≥ 4.5.
+ *
+ * @param float $l1 Relative luminance of the first color (0–1).
+ * @param float $l2 Relative luminance of the second color (0–1).
+ * @return float Contrast ratio.
+ */
+function aldus_contrast_ratio( float $l1, float $l2 ): float {
+	$lighter = max( $l1, $l2 );
+	$darker  = min( $l1, $l2 );
+	return ( $lighter + 0.05 ) / ( $darker + 0.05 );
 }
 
 /**
@@ -363,19 +447,61 @@ function aldus_pick_light( array $palette ): string {
 }
 
 /**
- * Returns a mid-range palette slug to use as an accent.
- * Picks the entry closest to 40% luminance.
+ * Returns the most visually vivid mid-range palette slug for use as an accent.
  *
- * On minimal palettes (< 4 colours) the luminance target often resolves to the
- * same slug as the dark colour, leaving no visual contrast. When that happens,
- * fall back to the lightest slug so the accent is always visually distinct.
+ * Algorithm (in order of preference):
+ *   1. Exclude the darkest (index 0) and lightest (last index) entries — those
+ *      are reserved for the dark/light pickers.
+ *   2. Sort remaining candidates by HSL saturation descending (most vivid first).
+ *   3. Walk the sorted list and return the first entry that achieves ≥ 4.5:1
+ *      WCAG AA contrast against either white or black text.
+ *   4. If no candidate passes the contrast check, return the most saturated one
+ *      anyway — it is still more useful than a gray.
+ *   5. When fewer than 3 palette entries exist, or after excluding extremes no
+ *      candidates remain, fall back to the old luminance-closest-to-40% logic.
  *
- * @param list<array{slug:string,color:string}> $palette
+ * Minimal-palette guard: if the fallback path resolves to the same slug as the
+ * dark picker (can happen on 2-color themes), return palette[1] — the second-
+ * darkest entry — which is guaranteed to differ from both the darkest and, on
+ * palettes with > 2 entries, the lightest.
+ *
+ * @param list<array{slug:string,color:string}> $palette Luminance-sorted palette.
  */
 function aldus_pick_accent( array $palette ): string {
-	if ( count( $palette ) < 3 ) {
-		return sanitize_html_class( $palette[ (int) floor( count( $palette ) / 2 ) ]['slug'] ?? 'primary' );
+	$count = count( $palette );
+
+	if ( $count < 3 ) {
+		return sanitize_html_class( $palette[ (int) floor( $count / 2 ) ]['slug'] ?? 'primary' );
 	}
+
+	// Candidates: everything between the darkest (index 0) and lightest (last).
+	$candidates = array_slice( $palette, 1, $count - 2 );
+
+	if ( ! empty( $candidates ) ) {
+		// Sort by HSL saturation descending — most vivid first.
+		usort(
+			$candidates,
+			static fn( array $a, array $b ) =>
+				aldus_hex_saturation( $b['color'] ?? '' ) <=> aldus_hex_saturation( $a['color'] ?? '' )
+		);
+
+		// Pick the most saturated entry that achieves WCAG AA (4.5:1) contrast
+		// with either white or black, so generated text is always readable.
+		foreach ( $candidates as $entry ) {
+			$lum = aldus_hex_luminance( $entry['color'] ?? '#888' );
+			if (
+				aldus_contrast_ratio( $lum, 1.0 ) >= 4.5 ||
+				aldus_contrast_ratio( $lum, 0.0 ) >= 4.5
+			) {
+				return sanitize_html_class( $entry['slug'] ?? 'primary' );
+			}
+		}
+
+		// No candidate passes WCAG AA — return the most saturated one anyway.
+		return sanitize_html_class( $candidates[0]['slug'] ?? 'primary' );
+	}
+
+	// Fallback (< 3 usable candidates after slicing): luminance closest to 40%.
 	$target = 0.4;
 	$best   = $palette[0];
 	$best_d = abs( aldus_hex_luminance( $best['color'] ?? '#000' ) - $target );
@@ -388,11 +514,11 @@ function aldus_pick_accent( array $palette ): string {
 	}
 	$accent = sanitize_html_class( $best['slug'] ?? 'primary' );
 
-	// On minimal palettes the luminance search often picks the darkest entry,
-	// leaving accent === dark and no visible contrast in generated layouts.
-	// Fall back to the lightest available slug to guarantee differentiation.
+	// Minimal-palette guard: if the luminance search picked the darkest color,
+	// fall back to palette[1] (second-darkest) rather than the lightest — it is
+	// guaranteed to differ from the darkest while avoiding light-on-light risk.
 	if ( aldus_palette_is_minimal( $palette ) && $accent === aldus_pick_dark( $palette ) ) {
-		return aldus_pick_light( $palette );
+		return sanitize_html_class( $palette[1]['slug'] ?? $palette[0]['slug'] ?? 'primary' );
 	}
 
 	return $accent;
@@ -447,7 +573,7 @@ function aldus_pick_medium_font( array $font_sizes ): string {
 }
 
 function aldus_get_theme_gradients(): array {
-	$cache_key = 'aldus_gradients_' . ALDUS_VERSION;
+	$cache_key = 'aldus_gradients_' . aldus_theme_cache_suffix();
 	$cached    = wp_cache_get( $cache_key, 'aldus' );
 	if ( false !== $cached ) {
 		return (array) $cached;
@@ -504,7 +630,7 @@ function aldus_pick_gradient( array $gradients ): string {
  * @return list<array{slug:string, shadow:string}>
  */
 function aldus_get_theme_shadows(): array {
-	$cache_key = 'aldus_shadows_' . ALDUS_VERSION;
+	$cache_key = 'aldus_shadows_' . aldus_theme_cache_suffix();
 	$cached    = wp_cache_get( $cache_key, 'aldus' );
 	if ( false !== $cached ) {
 		return (array) $cached;
@@ -591,7 +717,7 @@ function aldus_pick_shadow( array $presets, string $preference = 'soft' ): strin
  * @return list<array{slug:string, name:string, fontFamily:string}>
  */
 function aldus_get_theme_font_families(): array {
-	$cache_key = 'aldus_font_families_' . ALDUS_VERSION;
+	$cache_key = 'aldus_font_families_' . aldus_theme_cache_suffix();
 	$cached    = wp_cache_get( $cache_key, 'aldus' );
 	if ( false !== $cached ) {
 		return (array) $cached;
@@ -644,7 +770,7 @@ function aldus_get_theme_heading_font_slug(): ?string {
 		return null;
 	}
 
-	$cache_key = 'aldus_heading_font_' . ALDUS_VERSION;
+	$cache_key = 'aldus_heading_font_' . aldus_theme_cache_suffix();
 	$cached    = wp_cache_get( $cache_key, 'aldus' );
 	if ( false !== $cached ) {
 		return ( 'null' === $cached ) ? null : (string) $cached;
@@ -773,7 +899,7 @@ function aldus_get_theme_block_styles( string $block_name ): array {
  * @return string|null CSS value (hex, hsl, or gradient string) or null.
  */
 function aldus_get_theme_cover_overlay(): ?string {
-	$cache_key = 'aldus_cover_overlay_' . ALDUS_VERSION;
+	$cache_key = 'aldus_cover_overlay_' . aldus_theme_cache_suffix();
 	$cached    = wp_cache_get( $cache_key, 'aldus' );
 	if ( false !== $cached ) {
 		return ( 'null' === $cached ) ? null : (string) $cached;
@@ -910,7 +1036,7 @@ function aldus_flush_theme_cache(): void {
 		return;
 	}
 
-	$v = ALDUS_VERSION;
+	$v = aldus_theme_cache_suffix();
 	wp_cache_delete( 'aldus_palette_' . $v, 'aldus' );
 	wp_cache_delete( 'aldus_font_sizes_' . $v, 'aldus' );
 	wp_cache_delete( 'aldus_gradients_' . $v, 'aldus' );

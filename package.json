@@ -1,6 +1,6 @@
 {
 	"name": "aldus",
-	"version": "1.21.1",
+	"version": "1.22.0",
 	"description": "AI Block Compositor for WordPress",
 	"scripts": {
 		"build": "wp-scripts build --blocks-manifest && node bin/inject-build-hash.js",
