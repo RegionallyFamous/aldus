@@ -366,15 +366,23 @@ describe( 'analyzeContentHints()', () => {
 		expect( result ).toEqual( { hints: [] } );
 	} );
 
-	it( 'returns { hints: [] } on parse failure', async () => {
+	it( 'returns applicable hints regardless of engine state (deterministic)', async () => {
+		// analyzeContentHints no longer calls the LLM — engine arg is ignored.
+		// manifest has no image or CTA, so two hints apply.
 		const manifest = { paragraph: 1 };
 		const items = [ { type: 'paragraph', content: 'hello' } ];
 		const engine = makeEngine( 'cannot parse this' );
 		const result = await analyzeContentHints( engine, manifest, items );
-		expect( result ).toEqual( { hints: [] } );
+		expect( result.hints ).toContain(
+			'No image — adding one unlocks more layout options'
+		);
+		expect( result.hints ).toContain(
+			'No CTA — adding one unlocks button-focused layouts'
+		);
 	} );
 
-	it( 'returns { hints: [] } when the engine rejects', async () => {
+	it( 'returns hints based on manifest even when engine would have rejected', async () => {
+		// manifest has no image, no CTA, and 2 paragraphs but no quote — 3 hints apply.
 		const manifest = { paragraph: 2 };
 		const items = [
 			{ type: 'paragraph', content: 'Paragraph one.' },
@@ -382,22 +390,26 @@ describe( 'analyzeContentHints()', () => {
 		];
 		const engine = makeRejectedEngine();
 		const result = await analyzeContentHints( engine, manifest, items );
-		expect( result ).toEqual( { hints: [] } );
+		expect( result.hints.length ).toBe( 3 );
+		expect( result.hints ).toContain(
+			'No quote — adding a pullquote adds visual contrast to text-heavy layouts'
+		);
 	} );
 
-	it( 'discards out-of-range indices returned by the model', async () => {
+	it( 'returns only hints whose conditions are met (no headline = no headline hint)', async () => {
+		// manifest has no headline, so the "headline over 10 words" rule never fires.
+		// No image, no CTA, 2 paragraphs no quote → 3 hints.
 		const manifest = { paragraph: 2 };
 		const items = [
 			{ type: 'paragraph', content: 'One.' },
 			{ type: 'paragraph', content: 'Two.' },
 		];
-		// The model returns indices 0, 99 — only 0 is valid.
-		const engine = makeEngine( '{"apply": [0, 99]}' );
+		const engine = makeEngine( '{"apply": [0, 99]}' ); // engine ignored now
 		const result = await analyzeContentHints( engine, manifest, items );
-		// Index 99 doesn't exist in the rules; index 0 only applies if the
-		// headline is over 10 words. Since there's no headline in this manifest,
-		// rule 0 won't be generated and apply: [0, 99] will resolve to at most
-		// 0 valid hints.
 		expect( Array.isArray( result.hints ) ).toBe( true );
+		// Headline hint must NOT appear — there is no headline in the manifest.
+		expect( result.hints ).not.toContain(
+			'Headline is over 10 words — cover blocks work best with 5–10'
+		);
 	} );
 } );

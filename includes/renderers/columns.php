@@ -185,9 +185,14 @@ function aldus_columns_asymmetric_wrap(
 	string $right_content,
 	bool $flip
 ): string {
-	// Swap columns if flipped.
+	// Swap columns if flipped — attrs, content, AND the width integers used
+	// to build the inline flex-basis style must all move together.  Swapping
+	// attrs without swapping the widths produces mismatched block attributes
+	// (e.g. attrs say 72% but style says 28%), which causes block validation
+	// failures in the editor.
 	if ( $flip ) {
-		[ $narrow_attrs, $wide_attrs, $left_content, $right_content ] = array( $wide_attrs, $narrow_attrs, $right_content, $left_content );
+		[ $narrow_attrs, $wide_attrs, $left_content, $right_content, $narrow_width, $wide_width ] =
+			array( $wide_attrs, $narrow_attrs, $right_content, $left_content, $wide_width, $narrow_width );
 	}
 
 	$narrow_col = serialize_block(

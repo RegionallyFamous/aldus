@@ -102,7 +102,11 @@ function aldus_block_group(
 		return '';
 	}
 
-	$pad = aldus_theme_spacing( 'lg' );
+	$pad        = aldus_theme_spacing( 'lg' );
+	$style_str  = "padding-top:{$pad};padding-bottom:{$pad}";
+	if ( $radius !== '' ) {
+		$style_str = "border-radius:{$radius};{$style_str}";
+	}
 	return serialize_block(
 		array(
 			'blockName'    => 'core/group',
@@ -111,7 +115,7 @@ function aldus_block_group(
 			'innerContent' => array(
 				'<div class="' . aldus_group_classes( 'constrained' )
 				. "{$align_class}{$style_class}{$color_class}\"{$ia_attrs}"
-				. " style=\"padding-top:{$pad};padding-bottom:{$pad}\">\n{$inner}</div>",
+				. " style=\"{$style_str}\">\n{$inner}</div>",
 			),
 		)
 	) . "\n\n";
@@ -364,13 +368,17 @@ function aldus_block_group_border( Aldus_Content_Distributor $dist, string $name
 		return '';
 	}
 
+	$border_style_str = "border-color:currentColor;border-style:solid;border-width:2px;padding-top:{$border_pad};padding-right:{$border_pad};padding-bottom:{$border_pad};padding-left:{$border_pad}";
+	if ( $shadow ) {
+		$border_style_str .= ";box-shadow:{$shadow}";
+	}
 	return serialize_block(
 		array(
 			'blockName'    => 'core/group',
 			'attrs'        => $attrs,
 			'innerBlocks'  => array(),
 			// phpcs:disable Generic.Files.LineLength.MaxExceeded -- serialize_block innerContent must be a single unbroken string.
-			'innerContent' => array( '<div class="' . aldus_group_classes() . " has-border-color\" style=\"border-color:currentColor;border-style:solid;border-width:2px;padding-top:{$border_pad};padding-right:{$border_pad};padding-bottom:{$border_pad};padding-left:{$border_pad}\">\n{$inner}</div>" ),
+			'innerContent' => array( '<div class="' . aldus_group_classes() . " has-border-color\" style=\"{$border_style_str}\">\n{$inner}</div>" ),
 			// phpcs:enable Generic.Files.LineLength.MaxExceeded
 		)
 	) . "\n\n";
@@ -527,7 +535,10 @@ function aldus_block_group_gradient(
 		return '';
 	}
 
-	$gradient_safe = sanitize_html_class( $gradient_slug );
+	$gradient_style_str = "padding-top:{$gradient_pad};padding-bottom:{$gradient_pad}";
+	if ( $shadow ) {
+		$gradient_style_str .= ";box-shadow:{$shadow}";
+	}
 	return serialize_block(
 		array(
 			'blockName'    => 'core/group',
@@ -535,7 +546,7 @@ function aldus_block_group_gradient(
 			'innerBlocks'  => array(),
 			'innerContent' => array(
 				'<div class="' . aldus_group_classes( 'constrained', 'full', '', '', $gradient_slug )
-				. "\" style=\"padding-top:{$gradient_pad};padding-bottom:{$gradient_pad}\">\n{$inner}</div>",
+				. "\" style=\"{$gradient_style_str}\">\n{$inner}</div>",
 			),
 		)
 	) . "\n\n";

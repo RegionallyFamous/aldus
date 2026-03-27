@@ -3,7 +3,7 @@ Contributors: regionallyfamous
 Tags: blocks, layout, design, ai, gutenberg
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 1.19.0
+Stable tag: 1.20.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -127,6 +127,27 @@ Nine themed content packs (Roast — specialty coffee; Meridian — B2B SaaS; He
 An optional free-text field on the building screen that steers the layout model — for example "lead with the image", "keep it minimal", or "bold CTA up top". It's passed directly into the model prompt.
 
 == Changelog ==
+
+= 1.20.0 =
+* Fixed six block validation bugs that caused "invalid block" warnings in the editor: column asymmetric layouts had a flex-basis mismatch when the column order was flipped; group blocks were missing border-radius and box-shadow in the serialised HTML even when those values were set in attributes; media-text blocks were missing the `is-vertically-aligned-center` class; cover blocks were missing border-radius in the serialised HTML across all cover variants; and media-text and cover-split variants were including spurious `wp-image-0 size-full` classes on `<img>` tags without a media ID, which diverged from what WordPress's save function generates.
+* Fixed a non-fatal `AbortError: Failed to execute 'mapAsync' on 'GPUBuffer'` console error that appeared when navigating away from a post while the AI model was still loaded. The error originated inside WebLLM's internal GPU cleanup routine; it is now silenced during engine disposal so it no longer appears as an uncaught rejection.
+* The PHP integration CI job now builds plugin assets before running `BlockRegistrationTest`, fixing an intermittent failure on clean runners where `build/block.json` was absent.
+
+= 1.19.0 =
+* Layout cards now stream into the results grid as each response arrives instead of waiting for all styles to finish — the first card typically appears within 1–2 seconds of starting generation.
+* Layout descriptions are now generated lazily in the background after the initial cards appear, so the grid is interactive immediately and descriptions fill in as the model catches up.
+* Content hint analysis is now fully deterministic (headline length, missing image, missing CTA, long paragraphs, missing quote) — the previous AI model call for this step has been removed, shaving one LLM inference from every generation.
+* Layout styles are now pre-filtered by content match before inference runs — styles whose anchor requirements aren't met by the current content mix are skipped, with a "Show more styles" option if you want to see all of them.
+* Security hardening: prompt injection framing, schema name whitelist for personality registration, `custom_styles` key validation, and user ID scoping on all caches.
+* State machine fixes: pressing Escape cancels the confirmation screen; stale-results guard prevents a previous generation's results from appearing after a new one starts.
+* Theme design system expanded with shadow presets, font family detection, heading font applied across all heading and cover renderers, cover overlay sourced from theme.json, and per-section group block styles.
+* PHP backend split into focused files: `api-assemble.php`, `api-config.php`, `api-health.php`, `api-telemetry.php`, `block-register.php`, and `admin-hooks.php` each handle a single concern.
+* New integration test suites: `BoundaryValueTest` (12 cases for edge inputs) and `ThemeDesignSystemTest` (21 cases for theme colour and shadow helpers).
+
+= 1.18.0 =
+* Redesigned admin welcome page with a full-width hero, before-and-after wireframe showing a plain text block transforming into a layout, and a three-step setup card sequence.
+* Layout assembly now falls back to generic WordPress blocks when a token produces empty output, preventing blank layout cards instead of an error.
+* Theme diversification pass: expanded border-radius options across block variants and improved colour variety so consecutive styles feel visually distinct.
 
 = 1.17.0 =
 * Pack data is now lazy-loaded — it only downloads when you open the Browse Styles tab, reducing the initial bundle by ~40 KB and speeding up block load times on shared hosting.

@@ -137,14 +137,22 @@ function aldus_block_media_text( Aldus_Content_Distributor $dist, string $image_
 		}
 	}
 
+	// Only render an <img> when a URL is present.  Without a URL the
+	// core/media-text save() function generates an empty <figure>, so the
+	// innerContent must match that structure to avoid block validation failures.
+	// We also never set a mediaId attr, so no wp-image-* or size-* classes.
+	$media_html = $image_url
+		? "<img src=\"{$image_url}\" alt=\"\"/>"
+		: '';
+
 	return serialize_block(
 		array(
 			'blockName'    => 'core/media-text',
 			'attrs'        => $attrs,
 			'innerBlocks'  => array(),
 			'innerContent' => array(
-				'<div class="' . aldus_media_text_classes( $image_position, true ) . '" style="' . aldus_media_text_style( 38, $image_position ) . "\">\n"
-				. "<figure class=\"wp-block-media-text__media\"><img src=\"{$image_url}\" alt=\"\" class=\"wp-image-0 size-full\"/></figure>\n"
+				'<div class="' . aldus_media_text_classes( $image_position, true, '', 'center' ) . '" style="' . aldus_media_text_style( 38, $image_position ) . "\">\n"
+				. "<figure class=\"wp-block-media-text__media\">{$media_html}</figure>\n"
 				. "<div class=\"wp-block-media-text__content\">\n{$content_inner}</div>\n</div>",
 			),
 		)

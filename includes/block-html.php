@@ -195,14 +195,17 @@ function aldus_button_link_classes( string $extra = '' ): string {
 /**
  * Returns the class string for the root <div> of a core/media-text block.
  *
- * @param string $position  'left' or 'right'.
- * @param bool   $stacked   Whether to add 'is-stacked-on-mobile'.
- * @param string $align     'full', 'wide', or '' for no alignment class.
+ * @param string $position           'left' or 'right'.
+ * @param bool   $stacked            Whether to add 'is-stacked-on-mobile'.
+ * @param string $align              'full', 'wide', or '' for no alignment class.
+ * @param string $vertical_alignment 'center', 'top', 'bottom', or '' for none.
+ *                                   Must match the `verticalAlignment` block attr.
  */
 function aldus_media_text_classes(
 	string $position = 'left',
 	bool $stacked = true,
-	string $align = ''
+	string $align = '',
+	string $vertical_alignment = ''
 ): string {
 	$classes = 'wp-block-media-text';
 	if ( 'right' === $position ) {
@@ -210,6 +213,9 @@ function aldus_media_text_classes(
 	}
 	if ( $stacked ) {
 		$classes .= ' is-stacked-on-mobile';
+	}
+	if ( $vertical_alignment !== '' ) {
+		$classes .= " is-vertically-aligned-{$vertical_alignment}";
 	}
 	if ( $align !== '' ) {
 		$classes .= " align{$align}";

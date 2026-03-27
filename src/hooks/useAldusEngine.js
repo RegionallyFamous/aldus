@@ -222,18 +222,41 @@ export function useAldusEngine( {
 		const engine = engineRef.current;
 		engineRef.current = null;
 		initPromiseRef.current = null;
-		if ( engine ) {
-			try {
-				// WebLLM exposes unload() to release model weights from VRAM.
-				// Use it if available; fall back to destroy() for older versions.
-				if ( typeof engine.unload === 'function' ) {
-					await engine.unload();
-				} else if ( typeof engine.destroy === 'function' ) {
-					await engine.destroy();
-				}
-			} catch {
-				// Disposal errors are non-fatal — the ref is already cleared.
+		if ( ! engine ) {
+			return;
+		}
+
+		// WebLLM fires internal GPUBuffer.mapAsync promises that get aborted
+		// during disposal.  Those rejections bypass the try/catch below because
+		// they are unhandled rejections spawned inside the engine, not awaited
+		// by engine.unload().  Suppress them for the duration of the unload.
+		const suppressGpuAbort = ( event ) => {
+			const msg = event.reason?.message ?? '';
+			if (
+				event.reason instanceof DOMException &&
+				event.reason.name === 'AbortError' &&
+				msg.includes( 'GPUBuffer' )
+			) {
+				event.preventDefault();
 			}
+		};
+		window.addEventListener( 'unhandledrejection', suppressGpuAbort );
+
+		try {
+			// WebLLM exposes unload() to release model weights from VRAM.
+			// Use it if available; fall back to destroy() for older versions.
+			if ( typeof engine.unload === 'function' ) {
+				await engine.unload();
+			} else if ( typeof engine.destroy === 'function' ) {
+				await engine.destroy();
+			}
+		} catch {
+			// Disposal errors are non-fatal — the ref is already cleared.
+		} finally {
+			window.removeEventListener(
+				'unhandledrejection',
+				suppressGpuAbort
+			);
 		}
 	}, [] );
 
