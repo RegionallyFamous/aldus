@@ -278,10 +278,26 @@ function aldus_token_content_requirements(): array {
  * @param array<string,int>  $manifest
  * @return list<string>
  */
-function aldus_prune_unavailable_tokens( array $tokens, array $manifest ): array {
+/**
+ * Returns a flipped hash-set of every token that appears as an anchor for any
+ * personality, cached in a static variable so the merge + flip is only done
+ * once per PHP process (not once per aldus_prune_unavailable_tokens call).
+ *
+ * @return array<string,int>  Keys are anchor token strings, values are 0.
+ */
+function aldus_all_anchor_tokens(): array {
+	static $set = null;
+	if ( null !== $set ) {
+		return $set;
+	}
 	$anchor_maps = array_values( aldus_anchor_tokens() );
-	// Build a hash set for O(1) anchor membership checks instead of O(n) in_array.
-	$anchor_set   = $anchor_maps ? array_flip( array_unique( array_merge( ...$anchor_maps ) ) ) : array();
+	$set         = $anchor_maps ? array_flip( array_unique( array_merge( ...$anchor_maps ) ) ) : array();
+	return $set;
+}
+
+function aldus_prune_unavailable_tokens( array $tokens, array $manifest ): array {
+	// Use the static-cached anchor set — avoids rebuilding on every call.
+	$anchor_set   = aldus_all_anchor_tokens();
 	$requirements = aldus_token_content_requirements();
 
 	return array_values(

@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Plugin Name:       Aldus — Layout Explorer
  * Plugin URI:        https://github.com/RegionallyFamous/aldus
  * Description:       You write it. Aldus designs it. Layout styles for your content — pick the one that fits, and it becomes real WordPress blocks.
- * Version:           1.18.0
+ * Version:           1.19.0
  * Requires at least: 6.4
  * Requires PHP:      8.0
  * Author:            Regionally Famous
@@ -21,9 +21,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-defined( 'ALDUS_VERSION' ) || define( 'ALDUS_VERSION', '1.18.0' );
+defined( 'ALDUS_VERSION' ) || define( 'ALDUS_VERSION', '1.19.0' );
 defined( 'ALDUS_PATH' ) || define( 'ALDUS_PATH', plugin_dir_path( __FILE__ ) );
 defined( 'ALDUS_URL' ) || define( 'ALDUS_URL', plugin_dir_url( __FILE__ ) );
+// Injected by the build script (bin/inject-build-hash.js) from the webpack
+// content hash.  An empty string is safe: the cache key falls back to version
+// + request params, which is correct for manual/dev builds.
+defined( 'ALDUS_BUILD_HASH' ) || define( 'ALDUS_BUILD_HASH', '9459da16883510c247f5' );
 
 register_activation_hook( __FILE__, 'aldus_activate' );
 register_deactivation_hook( __FILE__, 'aldus_deactivate' );
@@ -78,6 +82,12 @@ function aldus_init(): void {
 	require_once ALDUS_PATH . 'includes/render-router.php';
 	require_once ALDUS_PATH . 'includes/class-rest-controller.php';
 	require_once ALDUS_PATH . 'includes/api.php';
+	require_once ALDUS_PATH . 'includes/api-assemble.php';
+	require_once ALDUS_PATH . 'includes/api-config.php';
+	require_once ALDUS_PATH . 'includes/api-health.php';
+	require_once ALDUS_PATH . 'includes/api-telemetry.php';
+	require_once ALDUS_PATH . 'includes/block-register.php';
+	require_once ALDUS_PATH . 'includes/admin-hooks.php';
 	require_once ALDUS_PATH . 'includes/ai-client.php';
 
 	// Warn about deprecated filter usage (defined in api.php).

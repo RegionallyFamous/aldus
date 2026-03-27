@@ -255,7 +255,9 @@ function getManifest() {
 	const missing = required.filter( ( f ) => ! exists( f ) );
 	if ( missing.length ) {
 		die(
-			`Missing required build files (run npm run build first):\n    ${ missing.join( '\n    ' ) }`
+			`Missing required build files (run npm run build first):\n    ${ missing.join(
+				'\n    '
+			) }`
 		);
 	}
 

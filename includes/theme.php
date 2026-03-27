@@ -490,6 +490,400 @@ function aldus_pick_gradient( array $gradients ): string {
 }
 
 // ---------------------------------------------------------------------------
+// Shadow presets
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the active theme's shadow presets.
+ *
+ * WordPress ships 5 defaults (Natural, Deep, Sharp, Outlined, Crisp) via
+ * `shadow.presets` in theme.json (stable since WP 6.2). Themes may override
+ * or extend them. Returns the theme-defined presets when available, falling
+ * back to the core defaults, and ultimately to an empty array.
+ *
+ * @return list<array{slug:string, shadow:string}>
+ */
+function aldus_get_theme_shadows(): array {
+	$cache_key = 'aldus_shadows_' . ALDUS_VERSION;
+	$cached    = wp_cache_get( $cache_key, 'aldus' );
+	if ( false !== $cached ) {
+		return (array) $cached;
+	}
+
+	$settings = wp_get_global_settings( array( 'shadow', 'presets' ) );
+	if ( is_wp_error( $settings ) || ! is_array( $settings ) ) {
+		$settings = array();
+	}
+	$presets = $settings['theme'] ?? $settings['default'] ?? array();
+
+	// Keep only entries that have both slug and shadow value.
+	$presets = array_values(
+		array_filter(
+			$presets,
+			fn( $p ) => is_array( $p ) && ! empty( $p['slug'] ) && ! empty( $p['shadow'] )
+		)
+	);
+
+	wp_cache_set( $cache_key, $presets, 'aldus', HOUR_IN_SECONDS );
+	return $presets;
+}
+
+/**
+ * Picks a shadow preset CSS var for a given visual weight preference.
+ *
+ * Preference 'soft' picks the lightest shadow (smallest box-shadow spread
+ * / alpha); preference 'deep' picks the most dramatic. When no presets
+ * exist the function returns an empty string (no shadow).
+ *
+ * The heuristic reads the `shadow` CSS value and scores it by the first
+ * rgba/hsla alpha component or a fixed keyword.  This is intentionally
+ * approximate — the goal is a "lighter vs heavier" ordering, not pixel-
+ * perfect measurement.
+ *
+ * @param list<array{slug:string, shadow:string}> $presets Shadow preset list.
+ * @param string                                  $preference 'soft' | 'deep'
+ * @return string CSS var reference or empty string.
+ */
+function aldus_pick_shadow( array $presets, string $preference = 'soft' ): string {
+	if ( empty( $presets ) ) {
+		return '';
+	}
+
+	// First try known WP default slugs that map well to the two preferences.
+	$soft_slugs = array( 'natural', 'outlined', 'crisp' );
+	$deep_slugs = array( 'deep', 'sharp' );
+
+	$priority = 'deep' === $preference ? $deep_slugs : $soft_slugs;
+	$fallback = 'deep' === $preference ? $soft_slugs : $deep_slugs;
+
+	foreach ( $priority as $target ) {
+		foreach ( $presets as $p ) {
+			if ( sanitize_html_class( $p['slug'] ) === $target ) {
+				return 'var(--wp--preset--shadow--' . sanitize_html_class( $p['slug'] ) . ')';
+			}
+		}
+	}
+	// No priority slug found — fall back to any matching fallback group slug.
+	foreach ( $fallback as $target ) {
+		foreach ( $presets as $p ) {
+			if ( sanitize_html_class( $p['slug'] ) === $target ) {
+				return 'var(--wp--preset--shadow--' . sanitize_html_class( $p['slug'] ) . ')';
+			}
+		}
+	}
+	// Last resort: use the first (soft) or last (deep) preset.
+	$index = 'deep' === $preference ? count( $presets ) - 1 : 0;
+	$slug  = sanitize_html_class( $presets[ $index ]['slug'] );
+	return $slug ? "var(--wp--preset--shadow--{$slug})" : '';
+}
+
+// ---------------------------------------------------------------------------
+// Font families and heading font detection
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the active theme's font family presets (merged theme + default).
+ *
+ * Each entry is an associative array with at minimum `slug`, `name`, and
+ * `fontFamily` (the CSS value). An optional `fontFace` key holds @font-face
+ * declaration objects when the font is bundled with the theme.
+ *
+ * @return list<array{slug:string, name:string, fontFamily:string}>
+ */
+function aldus_get_theme_font_families(): array {
+	$cache_key = 'aldus_font_families_' . ALDUS_VERSION;
+	$cached    = wp_cache_get( $cache_key, 'aldus' );
+	if ( false !== $cached ) {
+		return (array) $cached;
+	}
+
+	$settings = wp_get_global_settings( array( 'typography', 'fontFamilies' ) );
+	if ( is_wp_error( $settings ) || ! is_array( $settings ) ) {
+		$settings = array();
+	}
+
+	// Merge in priority order: theme first, then custom (user-installed), then
+	// core defaults. Slug uniqueness is maintained — first occurrence wins.
+	$merged = array();
+	$seen   = array();
+	foreach ( array( 'theme', 'custom', 'default' ) as $origin ) {
+		foreach ( $settings[ $origin ] ?? array() as $fam ) {
+			if ( ! is_array( $fam ) || empty( $fam['slug'] ) ) {
+				continue;
+			}
+			$slug = sanitize_html_class( $fam['slug'] );
+			if ( ! isset( $seen[ $slug ] ) ) {
+				$seen[ $slug ] = true;
+				$merged[]      = $fam;
+			}
+		}
+	}
+
+	wp_cache_set( $cache_key, $merged, 'aldus', HOUR_IN_SECONDS );
+	return $merged;
+}
+
+/**
+ * Returns the slug of the theme's heading font, or null when headings share
+ * the body font.
+ *
+ * Detection strategy (in order):
+ * 1. Read `styles.elements.heading.typography.fontFamily` via
+ *    `wp_get_global_styles()` with variable resolution (WP 5.9+).
+ * 2. Parse the preset reference: `var:preset|font-family|{slug}` or
+ *    `var(--wp--preset--font-family--{slug})`.
+ * 3. Compare slug to the body font slug resolved from root
+ *    `styles.typography.fontFamily`.  Return `null` if they are the same.
+ *
+ * Returns `null` on WP < 5.9 or when no distinct heading font is defined.
+ *
+ * @return string|null Font family slug or null.
+ */
+function aldus_get_theme_heading_font_slug(): ?string {
+	if ( ! function_exists( 'wp_get_global_styles' ) ) {
+		return null;
+	}
+
+	$cache_key = 'aldus_heading_font_' . ALDUS_VERSION;
+	$cached    = wp_cache_get( $cache_key, 'aldus' );
+	if ( false !== $cached ) {
+		return ( 'null' === $cached ) ? null : (string) $cached;
+	}
+
+	/**
+	 * Helper: extract slug from a font-family CSS var reference.
+	 *
+	 * @param mixed $value
+	 * @return string|null
+	 */
+	$extract_slug = function ( $value ): ?string {
+		if ( ! is_string( $value ) || '' === $value ) {
+			return null;
+		}
+		// Serialized theme.json form: "var:preset|font-family|{slug}"
+		if ( preg_match( '/^var:preset\|font-family\|(.+)$/', $value, $m ) ) {
+			return sanitize_html_class( $m[1] );
+		}
+		// CSS custom property form: "var(--wp--preset--font-family--{slug})"
+		if ( preg_match( '/var\(--wp--preset--font-family--([^)]+)\)/', $value, $m ) ) {
+			return sanitize_html_class( $m[1] );
+		}
+		return null;
+	};
+
+	$heading_raw  = wp_get_global_styles(
+		array( 'elements', 'heading', 'typography', 'fontFamily' )
+	);
+	$heading_slug = $extract_slug( $heading_raw );
+
+	// No heading font defined at the element level.
+	if ( null === $heading_slug ) {
+		wp_cache_set( $cache_key, 'null', 'aldus', HOUR_IN_SECONDS );
+		return null;
+	}
+
+	// Compare against the body/root font slug.
+	$body_raw  = wp_get_global_styles( array( 'typography', 'fontFamily' ) );
+	$body_slug = $extract_slug( $body_raw );
+
+	if ( null !== $body_slug && $body_slug === $heading_slug ) {
+		// Heading font is the same as body font — no distinct pairing.
+		wp_cache_set( $cache_key, 'null', 'aldus', HOUR_IN_SECONDS );
+		return null;
+	}
+
+	wp_cache_set( $cache_key, $heading_slug, 'aldus', HOUR_IN_SECONDS );
+	return $heading_slug;
+}
+
+// ---------------------------------------------------------------------------
+// Element-level and per-block styles
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the resolved global styles for a given element type.
+ *
+ * Supported $element values (following theme.json): 'heading', 'button',
+ * 'link', 'caption', 'cite'.  Returns an empty array on WP < 5.9 or when
+ * no element styles are defined.
+ *
+ * Pass `'transforms' => ['resolve-variables']` so callers receive actual
+ * hex/rem values rather than CSS var() references — this is used when Aldus
+ * needs to make design decisions (e.g. dark vs light text), not to produce
+ * block markup (which should reference vars, not resolved values).
+ *
+ * @param string $element Element name: 'heading' | 'button' | 'link' | etc.
+ * @return array<string, mixed>
+ */
+function aldus_get_theme_element_styles( string $element ): array {
+	if ( ! function_exists( 'wp_get_global_styles' ) ) {
+		return array();
+	}
+	$element = sanitize_key( $element );
+	if ( '' === $element ) {
+		return array();
+	}
+	$styles = wp_get_global_styles(
+		array( 'elements', $element ),
+		array( 'transforms' => array( 'resolve-variables' ) )
+	);
+	return is_array( $styles ) ? $styles : array();
+}
+
+/**
+ * Returns the resolved global styles for a specific block type.
+ *
+ * Uses `wp_get_global_styles()` with `block_name` context so the returned
+ * values already reflect any block-scoped theme overrides.
+ *
+ * Useful for detecting the Cover block's overlay color, the Pullquote
+ * border color, or the Group block's background as defined in theme.json.
+ *
+ * @param string $block_name Full block name, e.g. 'core/cover'.
+ * @return array<string, mixed>
+ */
+function aldus_get_theme_block_styles( string $block_name ): array {
+	if ( ! function_exists( 'wp_get_global_styles' ) ) {
+		return array();
+	}
+	$block_name = sanitize_text_field( $block_name );
+	if ( '' === $block_name ) {
+		return array();
+	}
+	$styles = wp_get_global_styles(
+		array(),
+		array(
+			'block_name' => $block_name,
+			'transforms' => array( 'resolve-variables' ),
+		)
+	);
+	return is_array( $styles ) ? $styles : array();
+}
+
+/**
+ * Returns the Cover block's theme-defined overlay color or gradient CSS value.
+ *
+ * Reads `styles.blocks.core/cover.color.background` (solid color) or
+ * `styles.blocks.core/cover.color.gradient` from the active theme.json.
+ * Returns `null` when neither is defined — in that case the cover renderer
+ * keeps its default overlay.
+ *
+ * The result is cached for HOUR_IN_SECONDS.
+ *
+ * @return string|null CSS value (hex, hsl, or gradient string) or null.
+ */
+function aldus_get_theme_cover_overlay(): ?string {
+	$cache_key = 'aldus_cover_overlay_' . ALDUS_VERSION;
+	$cached    = wp_cache_get( $cache_key, 'aldus' );
+	if ( false !== $cached ) {
+		return ( 'null' === $cached ) ? null : (string) $cached;
+	}
+
+	$styles  = aldus_get_theme_block_styles( 'core/cover' );
+	$overlay = $styles['color']['background'] ?? $styles['color']['gradient'] ?? null;
+
+	// Only return a non-empty string.
+	if ( ! is_string( $overlay ) || '' === trim( $overlay ) ) {
+		$overlay = null;
+	}
+
+	wp_cache_set( $cache_key, $overlay ?? 'null', 'aldus', HOUR_IN_SECONDS );
+	return $overlay;
+}
+
+// ---------------------------------------------------------------------------
+// Section styles (WP 6.6+)
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the registered block styles for `core/group` that qualify as
+ * section-level style variations (introduced in WordPress 6.6).
+ *
+ * Each entry is a minimal array with `name` (slug) and `label` (human-
+ * readable name) plus an optional `style_data` key when available.
+ *
+ * Guarded by `class_exists` + `method_exists` so it runs safely on older WP.
+ * Returns an empty array when the registry is unavailable.
+ *
+ * @return list<array{name:string, label:string}>
+ */
+function aldus_get_theme_section_styles(): array {
+	if (
+		! class_exists( 'WP_Block_Styles_Registry' )
+		|| ! method_exists( 'WP_Block_Styles_Registry', 'get_instance' )
+	) {
+		return array();
+	}
+
+	$registry = WP_Block_Styles_Registry::get_instance();
+	if ( ! method_exists( $registry, 'get_registered_styles_for_block' ) ) {
+		return array();
+	}
+
+	$raw = $registry->get_registered_styles_for_block( 'core/group' );
+	if ( ! is_array( $raw ) ) {
+		return array();
+	}
+
+	$styles = array();
+	foreach ( $raw as $style ) {
+		if ( empty( $style['name'] ) ) {
+			continue;
+		}
+		$entry = array(
+			'name'  => (string) $style['name'],
+			'label' => (string) ( $style['label'] ?? $style['name'] ),
+		);
+		if ( isset( $style['style_data'] ) && is_array( $style['style_data'] ) ) {
+			$entry['style_data'] = $style['style_data'];
+		}
+		$styles[] = $entry;
+	}
+	return $styles;
+}
+
+/**
+ * Picks the most appropriate section style name (slug) for a given intent.
+ *
+ * Matching strategy:
+ * - For 'dark': looks for styles whose label contains dark/contrast/inverse,
+ *   or whose style_data sets a dark color background.
+ * - For 'light': labels containing light/subtle/muted.
+ * - For 'accent': labels containing accent/vibrant/bold.
+ *
+ * Returns the matching style's `name` (slug), or `null` when no match is
+ * found.  Callers apply the slug as `is-style-{slug}` on the Group block.
+ *
+ * @param list<array{name:string, label:string}> $available_styles
+ * @param string                                 $intent 'dark' | 'light' | 'accent'
+ * @return string|null Section style slug or null.
+ */
+function aldus_pick_section_style( array $available_styles, string $intent = 'dark' ): ?string {
+	if ( empty( $available_styles ) ) {
+		return null;
+	}
+
+	$keywords = array(
+		'dark'   => array( 'dark', 'contrast', 'inverse', 'night', 'black' ),
+		'light'  => array( 'light', 'subtle', 'muted', 'soft', 'pale' ),
+		'accent' => array( 'accent', 'vibrant', 'bold', 'vivid', 'primary' ),
+	);
+
+	$targets = $keywords[ $intent ] ?? $keywords['dark'];
+
+	foreach ( $available_styles as $style ) {
+		$label_lower = strtolower( $style['label'] ?? '' );
+		$name_lower  = strtolower( $style['name'] ?? '' );
+		foreach ( $targets as $kw ) {
+			if ( str_contains( $label_lower, $kw ) || str_contains( $name_lower, $kw ) ) {
+				return (string) $style['name'];
+			}
+		}
+	}
+	return null;
+}
+
+// ---------------------------------------------------------------------------
 // Video renderers
 // ---------------------------------------------------------------------------
 
@@ -508,10 +902,22 @@ function aldus_pick_gradient( array $gradients ): string {
  * font sizes, and gradient entries are re-read after any theme change.
  */
 function aldus_flush_theme_cache(): void {
+	// Use group flush when the object cache backend supports it (Redis, Memcached
+	// with grouping); otherwise fall back to individual key deletes so every
+	// known key is explicitly invalidated.
+	if ( function_exists( 'wp_cache_flush_group' ) ) {
+		wp_cache_flush_group( 'aldus' );
+		return;
+	}
+
 	$v = ALDUS_VERSION;
 	wp_cache_delete( 'aldus_palette_' . $v, 'aldus' );
 	wp_cache_delete( 'aldus_font_sizes_' . $v, 'aldus' );
 	wp_cache_delete( 'aldus_gradients_' . $v, 'aldus' );
+	wp_cache_delete( 'aldus_shadows_' . $v, 'aldus' );
+	wp_cache_delete( 'aldus_font_families_' . $v, 'aldus' );
+	wp_cache_delete( 'aldus_heading_font_' . $v, 'aldus' );
+	wp_cache_delete( 'aldus_cover_overlay_' . $v, 'aldus' );
 	wp_cache_delete( 'aldus_content_size_' . $v, 'aldus' );
 	wp_cache_delete( 'aldus_wide_size_' . $v, 'aldus' );
 	wp_cache_delete( 'aldus_spacing_map_' . $v, 'aldus' );

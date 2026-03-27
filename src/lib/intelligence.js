@@ -359,20 +359,19 @@ Respond with valid JSON only: {"label": "..."}`;
 // ---------------------------------------------------------------------------
 
 /**
- * Flags content issues that may reduce layout quality, by asking the model to
- * select applicable rules from a fixed list (not invent new ones).
+ * Flags content issues that may reduce layout quality using deterministic rules.
  *
- * Rules are provided verbatim in the prompt. The model selects by index which
- * rules apply to the current manifest. This keeps output to a small integer
- * array, which 360M handles reliably, and the actual hint text is then
- * reconstructed client-side from the fixed rule list.
+ * Each rule is a condition evaluated directly against the manifest and item word
+ * counts — no LLM call is made. All applicable rules are returned as hint strings
+ * for immediate display.
  *
- * @param {Object} engine   WebLLM engine instance.
+ * @param {Object} _engine  Unused. Kept for API compatibility with callers that
+ *                          pass the engine as the first argument.
  * @param {Object} manifest Map of content type → count.
  * @param {Array}  items    Content item objects (used for word counts).
- * @return {Promise<{hints: string[]}>}  hints is [] on failure.
+ * @return {Promise<{hints: string[]}>}  Resolves immediately; hints is [] when none apply.
  */
-export async function analyzeContentHints( engine, manifest, items ) {
+export async function analyzeContentHints( _engine, manifest, items ) {
 	// Compute word counts for manifest entries that have text.
 	const wordCounts = {};
 	for ( const item of items ) {
@@ -394,8 +393,10 @@ export async function analyzeContentHints( engine, manifest, items ) {
 		);
 	};
 
-	// Build the rules list. Each rule is a plain string; the model returns
-	// the indices of rules that apply.
+	// Build the rules list deterministically — each condition maps directly
+	// to a hint string. All applicable rules are returned without any LLM
+	// filtering pass, which is faster and more reliable than asking the model
+	// to re-classify conditions it cannot improve upon.
 	const rules = [
 		manifest.headline && avgWords( 'headline' ) > 10
 			? 'Headline is over 10 words — cover blocks work best with 5–10'
@@ -414,30 +415,5 @@ export async function analyzeContentHints( engine, manifest, items ) {
 			: null,
 	].filter( Boolean );
 
-	// If no rules are applicable, skip the inference call.
-	if ( rules.length === 0 ) {
-		return { hints: [] };
-	}
-
-	const rulesText = rules.map( ( r, i ) => `${ i }: ${ r }` ).join( '\n' );
-
-	const prompt = `Content manifest: ${ formatManifest( manifest ) }
-Possible content improvement suggestions:
-${ rulesText }
-Which suggestion indices apply to this content? Return only indices from the list above.
-Respond with valid JSON only: {"apply": [0, 2]}`;
-
-	const result = await runInference( engine, prompt, 0.3, 32 );
-	const hints = Array.isArray( result.apply )
-		? result.apply
-				.filter(
-					( i ) =>
-						typeof i === 'number' &&
-						Number.isInteger( i ) &&
-						i >= 0 &&
-						i < rules.length
-				)
-				.map( ( i ) => rules[ i ] )
-		: [];
-	return { hints };
+	return { hints: rules };
 }

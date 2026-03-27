@@ -28,7 +28,9 @@ test.beforeAll( async ( { browser } ) => {
 	await page.waitForSelector( '.editor-post-title', { timeout: 30000 } );
 
 	const welcomeClose = page.getByRole( 'button', { name: 'Close' } ).first();
-	if ( await welcomeClose.isVisible( { timeout: 3000 } ).catch( () => false ) ) {
+	if (
+		await welcomeClose.isVisible( { timeout: 3000 } ).catch( () => false )
+	) {
 		await welcomeClose.click();
 	}
 } );
@@ -78,7 +80,9 @@ test( 'Aldus block inserts and shows the build screen', async () => {
 		.filter( { hasText: /aldus/i } )
 		.first();
 
-	if ( await suggestion.isVisible( { timeout: 5000 } ).catch( () => false ) ) {
+	if (
+		await suggestion.isVisible( { timeout: 5000 } ).catch( () => false )
+	) {
 		await suggestion.click();
 	} else {
 		// Fallback: insert via inserter button click.
@@ -122,7 +126,9 @@ test( 'adding a headline item reveals the generate button', async () => {
 		.first();
 
 	// If the button isn't visible the block may be in a post-add state already.
-	if ( await headlineBtn.isVisible( { timeout: 3000 } ).catch( () => false ) ) {
+	if (
+		await headlineBtn.isVisible( { timeout: 3000 } ).catch( () => false )
+	) {
 		await headlineBtn.click();
 	}
 

@@ -117,6 +117,12 @@ if ( ! function_exists( 'wp_get_global_settings' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_get_global_styles' ) ) {
+	function wp_get_global_styles( array $path = [], array $context = [] ): mixed {
+		return [];
+	}
+}
+
 if ( ! function_exists( 'esc_html' ) ) {
 	function esc_html( string $text ): string {
 		return htmlspecialchars( $text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8' );
@@ -262,6 +268,34 @@ if ( ! class_exists( 'WP_REST_Server' ) ) {
 		const EDITABLE   = 'POST, PUT, PATCH';
 		const DELETABLE  = 'DELETE';
 		const ALLMETHODS = 'GET, POST, PUT, PATCH, DELETE';
+	}
+}
+
+if ( ! class_exists( 'WP_Block_Styles_Registry' ) ) {
+	class WP_Block_Styles_Registry {
+		private static ?self $instance = null;
+		private array $registered      = [];
+
+		public static function get_instance(): self {
+			if ( null === self::$instance ) {
+				self::$instance = new self();
+			}
+			return self::$instance;
+		}
+
+		public function register( string $block_name, array $style ): bool {
+			$this->registered[ $block_name ][] = $style;
+			return true;
+		}
+
+		/** @return list<array{name:string,label:string}> */
+		public function get_registered_styles_for_block( string $block_name ): array {
+			return $this->registered[ $block_name ] ?? [];
+		}
+
+		public function reset(): void {
+			$this->registered = [];
+		}
 	}
 }
 

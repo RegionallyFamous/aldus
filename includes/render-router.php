@@ -47,11 +47,14 @@ function aldus_render_block_token(
 	$use_bindings  = (bool) ( $context['use_bindings'] ?? false );
 	$section_label = isset( $context['section_label'] ) ? (string) $context['section_label'] : '';
 
-	$dark     = $theme['dark'] ?? aldus_pick_dark( $palette );
-	$light    = $theme['light'] ?? aldus_pick_light( $palette );
-	$accent   = $theme['accent'] ?? aldus_pick_accent( $palette );
-	$large    = $theme['large'] ?? aldus_pick_large_font( $font_sizes );
-	$gradient = $theme['gradient'] ?? aldus_pick_gradient( aldus_get_theme_gradients() );
+	$dark           = $theme['dark'] ?? aldus_pick_dark( $palette );
+	$light          = $theme['light'] ?? aldus_pick_light( $palette );
+	$accent         = $theme['accent'] ?? aldus_pick_accent( $palette );
+	$large          = $theme['large'] ?? aldus_pick_large_font( $font_sizes );
+	$gradient       = $theme['gradient'] ?? aldus_pick_gradient( aldus_get_theme_gradients() );
+	$heading_font   = $theme['heading_font'] ?? null;
+	$cover_overlay  = $theme['cover_overlay'] ?? null;
+	$section_styles = $theme['section_styles'] ?? array();
 
 	$s_align         = $style['align'] ?? 'left';
 	$s_density       = $style['density'] ?? 'balanced';
@@ -145,7 +148,9 @@ function aldus_render_block_token(
 				$cv,
 				$post_id,
 				$ia_parallax,
-				$s_radius
+				$s_radius,
+				$heading_font,
+				$cover_overlay
 			);
 
 		case 'cover:light':
@@ -161,14 +166,16 @@ function aldus_render_block_token(
 				$cv,
 				$post_id,
 				$ia_parallax,
-				$s_radius
+				$s_radius,
+				$heading_font,
+				null
 			);
 
 		case 'cover:minimal':
-			return aldus_block_cover_minimal( $dist, $dark, $large, 'Minimal Cover' );
+			return aldus_block_cover_minimal( $dist, $dark, $large, 'Minimal Cover', $heading_font );
 
 		case 'cover:split':
-			return aldus_block_cover_split( $dist, $large, 'Split Cover' );
+			return aldus_block_cover_split( $dist, $large, 'Split Cover', $heading_font );
 
 		// ---- Columns ----
 
@@ -202,6 +209,7 @@ function aldus_render_block_token(
 		// ---- Group wrappers ----
 
 		case 'group:dark-full':
+			$dark_section_style = aldus_pick_section_style( $section_styles, 'dark' );
 			return aldus_block_group(
 				$dist,
 				$dark,
@@ -211,10 +219,12 @@ function aldus_render_block_token(
 				$variant3,
 				$s_block_gap,
 				$ia_reveal,
-				$s_radius
+				$s_radius,
+				$dark_section_style
 			);
 
 		case 'group:accent-full':
+			$accent_section_style = aldus_pick_section_style( $section_styles, 'accent' );
 			return aldus_block_group(
 				$dist,
 				$accent,
@@ -224,10 +234,12 @@ function aldus_render_block_token(
 				$variant3,
 				$s_block_gap,
 				$ia_reveal,
-				$s_radius
+				$s_radius,
+				$accent_section_style
 			);
 
 		case 'group:light-full':
+			$light_section_style = aldus_pick_section_style( $section_styles, 'light' );
 			return aldus_block_group(
 				$dist,
 				$light,
@@ -237,20 +249,21 @@ function aldus_render_block_token(
 				$variant3,
 				$s_block_gap,
 				$ia_reveal,
-				$s_radius
+				$s_radius,
+				$light_section_style
 			);
 
 		case 'group:border-box':
 			// Personality density: dense personalities prefer the CTA/list variant (1).
 			$bv     = ( 'dense' === $s_density ) ? max( $variant2, 1 ) : $variant2;
-			$shadow = 'var(--wp--preset--shadow--natural, 0 2px 8px rgba(0,0,0,0.12))';
+			$shadow = $theme['shadow_soft'] ?? '';
 			return aldus_block_group_border( $dist, 'Border Section', $bv, $s_block_gap, $shadow );
 
 		case 'group:gradient-full':
 			// Pronounced-accent personalities prefer the testimonial variant (1).
 			$gv            = ( 'pronounced' === $s_accent && $has_quote ) ? 1 : $variant2;
 			$gradient_shad = ( 'high' === $s_contrast && 'pronounced' === $s_accent )
-				? 'var(--wp--preset--shadow--deep, 0 4px 20px rgba(0,0,0,0.25))'
+				? ( $theme['shadow_deep'] ?? '' )
 				: '';
 			return aldus_block_group_gradient( $dist, $gradient, 'Gradient Section', $gv, $s_block_gap, $gradient_shad );
 
@@ -276,21 +289,21 @@ function aldus_render_block_token(
 		// ---- Headings ----
 
 		case 'heading:h1':
-			return aldus_block_heading( $dist, 1, 'headline', $use_bindings );
+			return aldus_block_heading( $dist, 1, 'headline', $use_bindings, '', $heading_font );
 
 		case 'heading:h2':
 			// High-contrast personalities get the theme's large font size on H2s for more drama.
 			$h2_size = ( 'high' === $s_contrast ) ? ( $theme['large'] ?? '' ) : '';
-			return aldus_block_heading( $dist, 2, 'subheading', $use_bindings, $h2_size );
+			return aldus_block_heading( $dist, 2, 'subheading', $use_bindings, $h2_size, $heading_font );
 
 		case 'heading:h3':
-			return aldus_block_heading( $dist, 3, 'subheading', $use_bindings );
+			return aldus_block_heading( $dist, 3, 'subheading', $use_bindings, '', $heading_font );
 
 		case 'heading:display':
-			return aldus_block_heading_display( $dist, $large );
+			return aldus_block_heading_display( $dist, $large, '', $heading_font );
 
 		case 'heading:kicker':
-			return aldus_block_heading_kicker( $dist, $large );
+			return aldus_block_heading_kicker( $dist, $large, '', $heading_font );
 
 		// ---- Paragraphs ----
 

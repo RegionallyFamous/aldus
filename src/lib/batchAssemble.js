@@ -18,6 +18,10 @@
  *                                     for each failed job so callers can distinguish
  *                                     rate-limit (429), auth (401/403), server error
  *                                     (500), and timeout from genuine empty results.
+ * @param {Function} [onResult]        Optional. Called immediately when each successful
+ *                                     response arrives, before the full batch completes.
+ *                                     Enables streaming results to the UI as they land.
+ *                                     Called with the raw assemble response object.
  * @return {Promise<Array>} Resolved assemble response objects (failures omitted).
  */
 
@@ -28,7 +32,8 @@ export async function batchAssemble(
 	onProgress,
 	concurrency = 4,
 	timeoutMs = 15_000,
-	onError = null
+	onError = null,
+	onResult = null
 ) {
 	const total = jobs.length;
 	let done = 0;
@@ -63,6 +68,7 @@ export async function batchAssemble(
 					);
 				}
 				results[ idx ] = response;
+				onResult?.( response );
 			} catch ( err ) {
 				// Failures are not blocking — the caller filters non-null results.
 				// Notify the optional error callback with enough context for the

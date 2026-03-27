@@ -237,10 +237,27 @@ class Aldus_REST_Controller extends WP_REST_Controller {
 					if ( ! is_array( $val ) ) {
 						return array();
 					}
+					// Only accept block types that Aldus renderers actually use.
+					// This prevents an attacker from sending a large map of fake
+					// block types, and caps style entries per block at 10 to bound
+					// array size through the render pipeline.
+					$known_block_types = array(
+						'pullquote',
+						'image',
+						'button',
+						'quote',
+						'heading',
+						'paragraph',
+						'cover',
+						'columns',
+						'separator',
+						'spacer',
+					);
 					$out = array();
 					foreach ( $val as $block_type => $styles ) {
-						if ( is_array( $styles ) ) {
-							$out[ sanitize_key( $block_type ) ] = array_map( 'sanitize_key', $styles );
+						$safe_type = sanitize_key( $block_type );
+						if ( in_array( $safe_type, $known_block_types, true ) && is_array( $styles ) ) {
+							$out[ $safe_type ] = array_map( 'sanitize_key', array_slice( $styles, 0, 10 ) );
 						}
 					}
 					return $out;

@@ -5,33 +5,35 @@
  *   1. Lazy-initialise the WebLLM engine (delegated to useAldusEngine)
  *   2. Pre-generation: style direction, personality recommendation, content hints
  *   3. Run token inference in parallel for all active personalities
- *   4. Post-generation: coverage scoring, layout description, section labels
- *   5. POST each token sequence to /aldus/v1/assemble
- *   6. Return the assembled layouts array
+ *   4. Post-generation: coverage scoring + section labels (descriptions deferred)
+ *   5. POST each token sequence to /aldus/v1/assemble, streaming cards as they arrive
+ *   6. Fill in layout descriptions in the background after first card is shown
  *
  * Extracted from the monolithic Edit component so the generation flow can be
  * reasoned about and eventually integration-tested with mocked API responses.
  *
  * @param {Object}   options
- * @param {Function} options.initEngine             From useAldusEngine.
- * @param {Function} options.destroyEngine          From useAldusEngine.
- * @param {Function} options.inferTokens            Pure function: engine × personality × manifest → tokens.
- * @param {Function} options.enforceAnchors         Pure function: personality × tokens → tokens.
- * @param {Function} options.inferStyleDirection    Intelligence: manifest → style string.
- * @param {Function} options.scoreCoverage          Intelligence: manifest × tokens → unused types.
- * @param {Function} options.inferLayoutDescription Intelligence: personality × tokens → description.
- * @param {Function} options.inferSectionLabel      Intelligence: engine × preview → section label.
- * @param {Function} options.recommendPersonalities Intelligence: manifest × personalities → top 3 names.
- * @param {Function} options.analyzeContentHints    Intelligence: manifest × items → hint strings.
- * @param {Array}    options.activePersonalities    Filtered personality objects.
- * @param {Function} options.onScreenChange         setScreen callback.
- * @param {Function} options.onLayoutsReady         Called with the assembled layouts array.
- * @param {Function} options.onProgress             Called with { done, total, lastLabel }.
- * @param {Function} options.onError                Called with an error code string.
- * @param {Function} options.onErrorDetail          Called with the raw Error for technical details panel.
- * @param {Function} options.onStyleDetected        Called with the inferred style string.
- * @param {Function} options.onRecommendationsReady Called with string[] of recommended names.
- * @param {Function} options.onHintsReady           Called with string[] of content hints.
+ * @param {Function} options.initEngine              From useAldusEngine.
+ * @param {Function} options.destroyEngine           From useAldusEngine.
+ * @param {Function} options.inferTokens             Pure function: engine × personality × manifest → tokens.
+ * @param {Function} options.enforceAnchors          Pure function: personality × tokens → tokens.
+ * @param {Function} options.inferStyleDirection     Intelligence: manifest → style string.
+ * @param {Function} options.scoreCoverage           Intelligence: manifest × tokens → unused types.
+ * @param {Function} options.inferLayoutDescription  Intelligence: personality × tokens → description.
+ * @param {Function} options.inferSectionLabel       Intelligence: engine × preview → section label.
+ * @param {Function} options.recommendPersonalities  Intelligence: manifest × personalities → top 3 names.
+ * @param {Function} options.analyzeContentHints     Intelligence: manifest × items → hint strings.
+ * @param {Array}    options.activePersonalities     Filtered personality objects.
+ * @param {Function} options.onScreenChange          setScreen callback.
+ * @param {Function} options.onLayoutsReady          Called with the assembled layouts array.
+ * @param {Function} options.onProgress              Called with { done, total, lastLabel }.
+ * @param {Function} options.onError                 Called with an error code string.
+ * @param {Function} options.onErrorDetail           Called with the raw Error for technical details panel.
+ * @param {Function} options.onStyleDetected         Called with the inferred style string.
+ * @param {Function} options.onRecommendationsReady  Called with string[] of recommended names.
+ * @param {Function} options.onHintsReady            Called with string[] of content hints.
+ * @param {Function} options.onPersonalitiesFiltered Called with the count of personalities
+ *                                                   hidden by content-match filtering.
  * @return {{ runGenerate: Function, isGenerating: boolean, incrementRerollCount: Function }}
  */
 
@@ -43,7 +45,7 @@ import apiFetch from '@wordpress/api-fetch';
 import { batchAssemble } from '../lib/batchAssemble.js';
 import { isValidAssembleResponse } from '../lib/api-utils.js';
 import { SCREEN } from '../constants.js';
-import { computeCoverage } from '../data/tokens.js';
+import { computeCoverage, TOKEN_CONTENT_TYPES } from '../data/tokens.js';
 
 /**
  * Creates a server-side AI engine shim that delegates `chat.completions.create`
@@ -81,7 +83,11 @@ function createServerEngineShim() {
 						method: 'POST',
 						data: {
 							prompt,
-							schema: params.response_format?.schema ?? null,
+							// Send schema by name; the server resolves the full
+							// schema object so the client never passes arbitrary
+							// schema structures to the AI provider.
+							schema_name:
+								params.response_format?.schema_name ?? null,
 						},
 					} );
 
@@ -114,6 +120,7 @@ function jaccard( a, b ) {
 export function useAldusGeneration( {
 	initEngine,
 	destroyEngine,
+	abortRef,
 	inferTokens,
 	enforceAnchors,
 	inferStyleDirection,
@@ -130,6 +137,7 @@ export function useAldusGeneration( {
 	onStyleDetected,
 	onRecommendationsReady,
 	onHintsReady,
+	onPersonalitiesFiltered = null,
 } ) {
 	const [ isGenerating, setIsGenerating ] = useState( false );
 	// Ref-based guard prevents re-entrant calls even when the state setter has
@@ -171,6 +179,7 @@ export function useAldusGeneration( {
 			useBindings = false,
 			customStyles = {},
 			postId = 0,
+			disableContentFilter = false,
 		} ) => {
 			if ( isGeneratingRef.current ) {
 				return;
@@ -178,6 +187,9 @@ export function useAldusGeneration( {
 			isGeneratingRef.current = true;
 			setIsGenerating( true );
 			let retrying = false;
+			// Safety net: cleared in finally. Assigned after the engine guard passes.
+			// eslint-disable-next-line prefer-const
+			let masterTimeout = null;
 
 			// Build the content manifest (type → count).
 			const manifest = {};
@@ -203,6 +215,37 @@ export function useAldusGeneration( {
 				}
 			}
 
+			// Content-match filtering: drop personalities whose anchors require content
+			// types that the user hasn't provided (more than 1 unmet requirement).
+			// Skipped when the user explicitly requests the full set ("Show all styles").
+			const allPersonalities = personalities;
+			if ( ! disableContentFilter ) {
+				const filtered = personalities.filter( ( p ) => {
+					const needed = ( p.anchors ?? [] ).flatMap(
+						( a ) => TOKEN_CONTENT_TYPES[ a ] ?? []
+					);
+					const unmet = needed.filter(
+						( req ) => ! ( manifest[ req ] > 0 )
+					);
+					return unmet.length <= 1;
+				} );
+				// Only apply the filter when it meaningfully reduces the set.
+				// Keep at least 4 personalities to ensure a useful result grid.
+				if (
+					filtered.length >= 4 &&
+					filtered.length < personalities.length
+				) {
+					const hiddenCount = personalities.length - filtered.length;
+					personalities = filtered;
+					onPersonalitiesFiltered?.( hiddenCount );
+				} else {
+					onPersonalitiesFiltered?.( 0 );
+				}
+			} else {
+				personalities = allPersonalities;
+				onPersonalitiesFiltered?.( 0 );
+			}
+
 			// Tracks whether the engine was successfully initialised before any error.
 			// Kept outside the try so it is accessible in the catch block.
 			let engineWasReady = false;
@@ -223,6 +266,17 @@ export function useAldusGeneration( {
 				}
 				engineWasReady = true;
 				onScreenChange( SCREEN.LOADING );
+
+				// Start the master timeout now that the engine is up and inference is
+				// about to begin. 90 seconds covers 16 personalities × inference + API.
+				masterTimeout = setTimeout( () => {
+					if ( isGeneratingRef.current ) {
+						abortRef?.current?.();
+						destroyEngine();
+						onError( 'timeout' );
+						onScreenChange( SCREEN.ERROR );
+					}
+				}, 90_000 );
 
 				// Step 2: pre-generation intelligence.
 				// Phase 2a — style + tone (single call, tone feeds recommendation).
@@ -335,53 +389,41 @@ export function useAldusGeneration( {
 				}
 				const finalTokenResults = diversified;
 
-				// Step 4: post-generation intelligence — coverage, descriptions, and
-				// the columns:28-72 section label (Folio's narrow label column).
-				// All run in parallel; results are indexed by personality.
-				// Coverage is computed deterministically — no LLM call needed.
+				// Step 4: post-generation intelligence — coverage and section labels.
+				// Coverage is deterministic (no LLM). Section labels are mostly
+				// immediate (only fire for personalities with columns:28-72 token).
+				// Layout descriptions are intentionally deferred: they run in the
+				// background after the first assemble result arrives so the card
+				// grid can appear without waiting for all 16 LLM description calls.
 				const coverageResults = finalTokenResults.map( ( tokens ) =>
 					computeCoverage( manifest, tokens )
 				);
 
-				const [ descriptionSettled, labelSettled ] = await Promise.all(
-					[
-						Promise.allSettled(
-							finalTokenResults.map( ( tokens, i ) =>
-								inferLayoutDescription(
-									engine,
-									personalities[ i ],
-									tokens
-								)
-							)
-						),
-						// Section label only fired when columns:28-72 is present and
-						// a paragraph exists; resolves immediately with '' otherwise.
-						Promise.allSettled(
-							finalTokenResults.map( ( tokens ) => {
-								if (
-									! tokens.includes( 'columns:28-72' ) ||
-									! inferSectionLabel
-								) {
-									return Promise.resolve( { label: '' } );
-								}
-								const firstPara = items.find(
-									( it ) => it.type === 'paragraph'
-								);
-								if ( ! firstPara ) {
-									return Promise.resolve( { label: '' } );
-								}
-								const preview = ( firstPara.content ?? '' )
-									.trim()
-									.split( /\s+/ )
-									.slice( 0, 10 )
-									.join( ' ' );
-								return inferSectionLabel( engine, preview );
-							} )
-						),
-					]
+				const labelSettled = await Promise.allSettled(
+					finalTokenResults.map( ( tokens ) => {
+						if (
+							! tokens.includes( 'columns:28-72' ) ||
+							! inferSectionLabel
+						) {
+							return Promise.resolve( { label: '' } );
+						}
+						const firstPara = items.find(
+							( it ) => it.type === 'paragraph'
+						);
+						if ( ! firstPara ) {
+							return Promise.resolve( { label: '' } );
+						}
+						const preview = ( firstPara.content ?? '' )
+							.trim()
+							.split( /\s+/ )
+							.slice( 0, 10 )
+							.join( ' ' );
+						return inferSectionLabel( engine, preview );
+					} )
 				);
 
-				// Step 5: assemble block markup for each token sequence.
+				// Step 5: assemble block markup for each token sequence, streaming
+				// results to the card grid as each response arrives.
 				onProgress( {
 					done: 0,
 					total: personalities.length,
@@ -409,39 +451,60 @@ export function useAldusGeneration( {
 					};
 				} );
 
-				const assembleResponses = await batchAssemble(
+				// Accumulated layouts — updated in-place as each response lands.
+				// Using a plain array (not state) so the onResult closure always
+				// sees the latest value without stale-closure issues.
+				let streamingLayouts = [];
+				let resultsScreenShown = false;
+
+				const buildCard = ( r ) => {
+					const personalityIdx = personalities.findIndex(
+						( p ) => p.name === r.label
+					);
+					return {
+						label: r.label,
+						blocks: r.blocks,
+						tokens: r.tokens ?? [],
+						sections: r.sections ?? [],
+						unusedTypes:
+							personalityIdx >= 0
+								? coverageResults[ personalityIdx ]?.unused ??
+								  []
+								: [],
+						// Description starts empty; filled in by background pass below.
+						description: '',
+					};
+				};
+
+				await batchAssemble(
 					assembleJobs,
 					( done, total, lastLabel ) =>
-						onProgress( { done, total, lastLabel } )
+						onProgress( { done, total, lastLabel } ),
+					4,
+					15_000,
+					null,
+					( response ) => {
+						if ( ! isValidAssembleResponse( response ) ) {
+							return;
+						}
+						const card = buildCard( response );
+						streamingLayouts = [ ...streamingLayouts, card ];
+						if ( ! resultsScreenShown ) {
+							resultsScreenShown = true;
+							onScreenChange( SCREEN.RESULTS );
+							speak(
+								__(
+									'First layout ready. More are loading.',
+									'aldus'
+								),
+								'assertive'
+							);
+						}
+						onLayoutsReady( streamingLayouts );
+					}
 				);
 
-				const assembled = assembleResponses
-					.filter( isValidAssembleResponse )
-					.map( ( r ) => {
-						const personalityIdx = personalities.findIndex(
-							( p ) => p.name === r.label
-						);
-						return {
-							label: r.label,
-							blocks: r.blocks,
-							tokens: r.tokens ?? [],
-							sections: r.sections ?? [],
-							unusedTypes:
-								personalityIdx >= 0
-									? coverageResults[ personalityIdx ]
-											?.unused ?? []
-									: [],
-							description:
-								personalityIdx >= 0 &&
-								descriptionSettled[ personalityIdx ]?.status ===
-									'fulfilled'
-									? descriptionSettled[ personalityIdx ].value
-											?.description ?? ''
-									: '',
-						};
-					} );
-
-				if ( assembled.length === 0 ) {
+				if ( streamingLayouts.length === 0 ) {
 					onError( 'no_layouts' );
 					speak(
 						__(
@@ -453,13 +516,33 @@ export function useAldusGeneration( {
 					return;
 				}
 
-				onLayoutsReady( assembled );
-				onScreenChange( SCREEN.RESULTS );
+				// Step 6: fill in descriptions in the background — one per personality,
+				// updating the card in place as each resolves. Users see the fallback
+				// tagline immediately and descriptions appear as the LLM finishes.
+				finalTokenResults.forEach( ( tokens, i ) => {
+					inferLayoutDescription( engine, personalities[ i ], tokens )
+						.then( ( result ) => {
+							const desc = result?.description ?? '';
+							if ( ! desc ) {
+								return;
+							}
+							// Merge the description into the matching card by label.
+							streamingLayouts = streamingLayouts.map(
+								( card ) =>
+									card.label === personalities[ i ].name
+										? { ...card, description: desc }
+										: card
+							);
+							onLayoutsReady( streamingLayouts );
+						} )
+						.catch( () => {} );
+				} );
+
 				speak(
 					sprintf(
 						/* translators: %d: number of generated layouts */
 						__( '%d layouts ready.', 'aldus' ),
-						assembled.length
+						streamingLayouts.length
 					),
 					'assertive'
 				);
@@ -551,6 +634,7 @@ export function useAldusGeneration( {
 					);
 				}
 			} finally {
+				clearTimeout( masterTimeout );
 				// Skip cleanup when we are about to self-retry — the retry call
 				// manages its own isGenerating lifecycle.
 				if ( ! retrying ) {
@@ -562,6 +646,7 @@ export function useAldusGeneration( {
 		[
 			initEngine,
 			destroyEngine,
+			abortRef,
 			inferTokens,
 			enforceAnchors,
 			inferStyleDirection,

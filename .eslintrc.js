@@ -41,8 +41,7 @@ module.exports = {
 			},
 			// WP 6.9: select('core').getAuthors() → getEntityRecords('root','user',…)
 			{
-				selector:
-					"CallExpression[callee.property.name='getAuthors']",
+				selector: "CallExpression[callee.property.name='getAuthors']",
 				message:
 					"getAuthors() is removed in WP 6.9. Use getEntityRecords('root', 'user', { … }) instead.",
 			},

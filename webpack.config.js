@@ -17,18 +17,46 @@ const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
  * Without this, webpack only emits a warning and the import silently becomes
  * undefined at runtime, which can crash React components.
  */
+/**
+ * Removes 0-byte .js sidecar files that webpack emits for CSS-only entry points
+ * (e.g. admin: './src/admin.css' and frontend: './src/frontend.scss').
+ * Without this, the build directory accumulates empty admin.js / frontend.js
+ * files that are never enqueued and only cause confusion.
+ */
+class FilterEmptyJsPlugin {
+	apply( compiler ) {
+		compiler.hooks.emit.tapAsync(
+			'FilterEmptyJsPlugin',
+			( compilation, cb ) => {
+				for ( const key of Object.keys( compilation.assets ) ) {
+					if (
+						key.endsWith( '.js' ) &&
+						compilation.assets[ key ].size() === 0
+					) {
+						delete compilation.assets[ key ];
+					}
+				}
+				cb();
+			}
+		);
+	}
+}
+
 class PromoteMissingExportsPlugin {
 	apply( compiler ) {
 		compiler.hooks.afterCompile.tap(
 			'PromoteMissingExportsPlugin',
 			( compilation ) => {
 				const missing = compilation.warnings.filter(
-					( w ) => w.message && w.message.includes( 'was not found in' )
+					( w ) =>
+						w.message && w.message.includes( 'was not found in' )
 				);
 				missing.forEach( ( w ) => {
 					compilation.errors.push( w );
 					const i = compilation.warnings.indexOf( w );
-					if ( i !== -1 ) compilation.warnings.splice( i, 1 );
+					if ( i !== -1 ) {
+						compilation.warnings.splice( i, 1 );
+					}
 				} );
 			}
 		);
@@ -71,5 +99,6 @@ module.exports = {
 	plugins: [
 		...( defaultConfig.plugins ?? [] ),
 		new PromoteMissingExportsPlugin(),
+		new FilterEmptyJsPlugin(),
 	],
 };

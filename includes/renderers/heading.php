@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-function aldus_block_heading( Aldus_Content_Distributor $dist, int $level, string $type, bool $use_bindings = false, string $font_size = '' ): string {
+function aldus_block_heading( Aldus_Content_Distributor $dist, int $level, string $type, bool $use_bindings = false, string $font_size = '', ?string $heading_font = null ): string {
 	$item = $dist->consume( $type );
 	if ( ! $item ) {
 		$fallback = 'headline' === $type ? 'subheading' : 'headline';
@@ -18,6 +18,9 @@ function aldus_block_heading( Aldus_Content_Distributor $dist, int $level, strin
 		return '';
 	}
 	$extra_attrs = $font_size ? array( 'fontSize' => $font_size ) : array();
+	if ( $heading_font ) {
+		$extra_attrs['fontFamily'] = $heading_font;
+	}
 	return aldus_serialize_heading( esc_html( $item['content'] ), $level, $extra_attrs, $use_bindings ? ( $item['id'] ?? '' ) : '' );
 }
 
@@ -28,22 +31,26 @@ function aldus_block_heading( Aldus_Content_Distributor $dist, int $level, strin
  * @param string                    $font_size  Font size slug to apply.
  * @param string                    $name       Optional block name.
  */
-function aldus_block_heading_display( Aldus_Content_Distributor $dist, string $font_size, string $name = '' ): string {
+function aldus_block_heading_display( Aldus_Content_Distributor $dist, string $font_size, string $name = '', ?string $heading_font = null ): string {
 	$item = $dist->consume( 'headline' ) ?? $dist->consume( 'subheading' );
 	if ( ! $item ) {
 		return '';
 	}
 
-	$text = esc_html( $item['content'] );
+	$text  = esc_html( $item['content'] );
+	$attrs = array(
+		'level'     => 1,
+		'fontSize'  => $font_size,
+		'textAlign' => 'center',
+	);
+	if ( $heading_font ) {
+		$attrs['fontFamily'] = $heading_font;
+	}
 
 	return serialize_block(
 		array(
 			'blockName'    => 'core/heading',
-			'attrs'        => array(
-				'level'     => 1,
-				'fontSize'  => $font_size,
-				'textAlign' => 'center',
-			),
+			'attrs'        => $attrs,
 			'innerBlocks'  => array(),
 			'innerContent' => array( "<h1 class=\"wp-block-heading has-text-align-center has-{$font_size}-font-size\">{$text}</h1>" ),
 		)
@@ -59,7 +66,7 @@ function aldus_block_heading_display( Aldus_Content_Distributor $dist, string $f
  * @param string                    $name       Optional block name.
  */
 
-function aldus_block_heading_kicker( Aldus_Content_Distributor $dist, string $font_size, string $name = '' ): string {
+function aldus_block_heading_kicker( Aldus_Content_Distributor $dist, string $font_size, string $name = '', ?string $heading_font = null ): string {
 	$kicker = $dist->consume( 'subheading' );
 	$main   = $dist->consume( 'headline' ) ?? $dist->consume( 'subheading' );
 
@@ -88,13 +95,17 @@ function aldus_block_heading_kicker( Aldus_Content_Distributor $dist, string $fo
 	}
 	if ( $main ) {
 		$font_size_safe = sanitize_html_class( $font_size );
-		$markup        .= serialize_block(
+		$h1_attrs       = array(
+			'level'    => 1,
+			'fontSize' => $font_size,
+		);
+		if ( $heading_font ) {
+			$h1_attrs['fontFamily'] = $heading_font;
+		}
+		$markup .= serialize_block(
 			array(
 				'blockName'    => 'core/heading',
-				'attrs'        => array(
-					'level'    => 1,
-					'fontSize' => $font_size,
-				),
+				'attrs'        => $h1_attrs,
 				'innerBlocks'  => array(),
 				'innerContent' => array( "<h1 class=\"wp-block-heading has-{$font_size_safe}-font-size\">" . esc_html( $main['content'] ) . '</h1>' ),
 			)

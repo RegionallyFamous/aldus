@@ -28,10 +28,9 @@ test.describe( 'Aldus REST API', () => {
 	test( '/assemble endpoint returns 400 on an empty payload', async ( {
 		request,
 	} ) => {
-		const response = await request.post(
-			'/wp-json/aldus/v1/assemble',
-			{ data: {} }
-		);
+		const response = await request.post( '/wp-json/aldus/v1/assemble', {
+			data: {},
+		} );
 		// The endpoint requires content; an empty body should be rejected.
 		expect( [ 400, 422 ] ).toContain( response.status() );
 	} );
@@ -75,9 +74,7 @@ test.describe( 'Aldus inspector controls', () => {
 		const close = editorPage
 			.getByRole( 'button', { name: 'Close' } )
 			.first();
-		if (
-			await close.isVisible( { timeout: 3000 } ).catch( () => false )
-		) {
+		if ( await close.isVisible( { timeout: 3000 } ).catch( () => false ) ) {
 			await close.click();
 		}
 
@@ -94,18 +91,15 @@ test.describe( 'Aldus inspector controls', () => {
 			.filter( { hasText: /aldus/i } )
 			.first();
 		if (
-			await suggestion
-				.isVisible( { timeout: 5000 } )
-				.catch( () => false )
+			await suggestion.isVisible( { timeout: 5000 } ).catch( () => false )
 		) {
 			await suggestion.click();
 		}
 
 		// Make sure the block is present before running any inspector tests.
-		await editorPage.waitForSelector(
-			'.wp-block-aldus-layout-generator',
-			{ timeout: 15000 }
-		);
+		await editorPage.waitForSelector( '.wp-block-aldus-layout-generator', {
+			timeout: 15000,
+		} );
 	} );
 
 	test.afterAll( async () => {
@@ -135,9 +129,7 @@ test.describe( 'Aldus inspector controls', () => {
 		}
 
 		// The block inspector should show at least one panel.
-		const inspector = editorPage.locator(
-			'.block-editor-block-inspector'
-		);
+		const inspector = editorPage.locator( '.block-editor-block-inspector' );
 		await expect( inspector ).toBeVisible( { timeout: 10000 } );
 	} );
 } );

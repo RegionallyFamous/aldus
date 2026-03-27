@@ -1,9 +1,9 @@
 === Aldus — Layout Explorer ===
 Contributors: regionallyfamous
-Tags: blocks, gutenberg, layout, design, composer
+Tags: blocks, layout, design, ai, gutenberg
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 1.18.0
+Stable tag: 1.19.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -68,7 +68,7 @@ All output is standard core WordPress blocks — Cover, Columns, Media & Text, G
 
 **Style notes.** Add an optional free-text instruction — "lead with the image", "minimal", "bold CTA" — and the layout model steers toward it.
 
-**Mix & match.** Combine sections from different personalities into a single custom layout.
+**Mix & match.** Combine sections from different styles into a single custom layout.
 
 **Per-card re-roll.** Not feeling one card? Regenerate just that slot without losing the rest.
 
@@ -86,7 +86,7 @@ Aldus is named after Aldus Manutius — the 15th-century Venetian printer who in
 4. Insert the **Aldus** block from the block inserter.
 5. Add what the page needs and click **Make it happen**.
 
-The first time you generate layouts, the browser downloads the layout model (~200 MB). This is a one-time download — it's cached and reused on every subsequent generation. To skip the download and explore layouts instantly, use a themed Pack Preview instead.
+The first time you run Aldus, the browser downloads the layout model (~200 MB). This is a one-time download — it's cached and reused every time. To skip the download and explore layouts instantly, use a themed Pack Preview instead.
 
 == Frequently Asked Questions ==
 
@@ -96,7 +96,7 @@ No. Aldus runs entirely in the browser. No accounts, no API keys, no external se
 
 = Does it need an internet connection? =
 
-Only for the first-time model download. After that, generation works fully offline. Pack Previews also work offline once the plugin is installed.
+Only for the first-time model download. After that, Aldus works fully offline. Pack Previews also work offline once the plugin is installed.
 
 = Does Aldus rewrite my content? =
 
@@ -116,7 +116,7 @@ No — one at a time (`"multiple": false`). Aldus is a composition tool, not a r
 
 = Where is my content saved? =
 
-Your content is saved in the block's attributes and in post meta, so it survives page reloads and editor sessions. When you pick a layout, the content items are also stored in post meta — this is what powers the "Redesign" feature, letting you regenerate layouts without re-entering your content.
+Your content is saved in the block's attributes and in post meta, so it survives page reloads and editor sessions. When you pick a layout, the content items are also stored in post meta — this is what powers the "Redesign" feature, letting you try new layouts without re-entering your content.
 
 = What are Pack Previews? =
 

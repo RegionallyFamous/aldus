@@ -15,7 +15,10 @@ const ERROR_MESSAGES = {
 	},
 	timeout: {
 		headline: __( 'That took way too long.', 'aldus' ),
-		detail: __( 'Try trimming your content a bit.', 'aldus' ),
+		detail: __(
+			'The AI model may be struggling with this content. Try simplifying your items or using fewer styles.',
+			'aldus'
+		),
 	},
 	parse_failed: {
 		headline: __( 'Something got scrambled.', 'aldus' ),
@@ -74,6 +77,27 @@ const ERROR_MESSAGES = {
 		headline: __( 'Not enough browser storage.', 'aldus' ),
 		detail: __(
 			'The AI model needs ~200 MB of browser storage. Try clearing your browser cache or closing other tabs, then try again.',
+			'aldus'
+		),
+	},
+	unexpected_error: {
+		headline: __( 'Something unexpected happened.', 'aldus' ),
+		detail: __(
+			'Try again — if it keeps happening, reload the editor.',
+			'aldus'
+		),
+	},
+	insert_failed: {
+		headline: __( "Couldn't insert the layout.", 'aldus' ),
+		detail: __(
+			'This can happen if another plugin is modifying the editor. Try undoing and regenerating.',
+			'aldus'
+		),
+	},
+	corrupt_markup: {
+		headline: __( 'The layout came back garbled.', 'aldus' ),
+		detail: __(
+			'This usually means the server response was interrupted. Try regenerating.',
 			'aldus'
 		),
 	},

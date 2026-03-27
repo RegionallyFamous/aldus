@@ -93,6 +93,27 @@ import { ALDUS_JS_VERSION, SCREEN } from './constants.js';
 import './editor.scss';
 
 // ---------------------------------------------------------------------------
+// Telemetry
+// ---------------------------------------------------------------------------
+
+/**
+ * Fire-and-forget client error reporter.
+ *
+ * Posts the error code to /aldus/v1/telemetry so the /health endpoint can
+ * surface client-side error rates alongside PHP assembly errors.  Never
+ * blocks or throws — failures are silently ignored.
+ *
+ * @param {string} code Error code string (matches ErrorScreen ERROR_MESSAGES keys).
+ */
+function reportError( code ) {
+	apiFetch( {
+		path: '/aldus/v1/telemetry',
+		method: 'POST',
+		data: { event: 'client_error', code },
+	} ).catch( () => {} );
+}
+
+// ---------------------------------------------------------------------------
 // Strings
 // ---------------------------------------------------------------------------
 
@@ -296,20 +317,83 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 
 	// Warn once if the PHP plugin version and the JS build version are out of
 	// sync — this usually means the browser is serving a stale cached bundle
-	// after a plugin update. Console-only; no UI disruption.
+	// after a plugin update. Shows a dismissible editor notice so the user
+	// knows to hard-refresh rather than filing a bug report.
 	useEffect( () => {
 		const phpVer = window.__aldusPhpVersion;
 		if ( phpVer && phpVer !== ALDUS_JS_VERSION ) {
-			// eslint-disable-next-line no-console
-			console.warn(
-				`[Aldus] Version mismatch: PHP=${ phpVer }, JS=${ ALDUS_JS_VERSION }. ` +
-					'Try clearing your browser cache (Ctrl+Shift+R / Cmd+Shift+R).'
+			wpDispatch( 'core/notices' ).createWarningNotice(
+				sprintf(
+					/* translators: 1: PHP plugin version, 2: JS bundle version */
+					__(
+						'Aldus version mismatch (PHP %1$s, JS %2$s). Try a hard refresh (Ctrl+Shift+R / Cmd+Shift+R).',
+						'aldus'
+					),
+					phpVer,
+					ALDUS_JS_VERSION
+				),
+				{ id: 'aldus-version-mismatch', isDismissible: true }
 			);
 		}
 	}, [] ); // eslint-disable-line react-hooks/exhaustive-deps
 
+	// Valid transitions for the state machine — used by the guarded setScreen
+	// wrapper below to log impossible transitions in debug mode.
+	const VALID_TRANSITIONS = {
+		[ SCREEN.BUILDING ]: [
+			SCREEN.DOWNLOADING,
+			SCREEN.LOADING,
+			SCREEN.NO_GPU,
+		],
+		[ SCREEN.DOWNLOADING ]: [
+			SCREEN.LOADING,
+			SCREEN.BUILDING,
+			SCREEN.ERROR,
+		],
+		[ SCREEN.LOADING ]: [ SCREEN.RESULTS, SCREEN.BUILDING, SCREEN.ERROR ],
+		[ SCREEN.RESULTS ]: [
+			SCREEN.CONFIRMING,
+			SCREEN.MIXING,
+			SCREEN.BUILDING,
+			SCREEN.LOADING,
+			SCREEN.ERROR,
+		],
+		[ SCREEN.CONFIRMING ]: [
+			SCREEN.INSERTED,
+			SCREEN.RESULTS,
+			SCREEN.ERROR,
+		],
+		[ SCREEN.MIXING ]: [ SCREEN.RESULTS, SCREEN.INSERTED, SCREEN.ERROR ],
+		[ SCREEN.INSERTED ]: [ SCREEN.RESULTS, SCREEN.BUILDING ],
+		[ SCREEN.ERROR ]: [ SCREEN.BUILDING, SCREEN.LOADING ],
+		[ SCREEN.NO_GPU ]: [ SCREEN.BUILDING ],
+	};
+
 	// State machine: 'building' | 'downloading' | 'loading' | 'results' | 'confirming' | 'mixing' | 'inserted' | 'error' | 'no-gpu'
-	const [ screen, setScreen ] = useState( 'building' );
+	const [ screen, _setScreen ] = useState( SCREEN.BUILDING );
+	// screenRef mirrors screen so async callbacks (runPreview, rerollLayout) can
+	// read the current screen without capturing a stale closure value.
+	const screenRef = useRef( SCREEN.BUILDING );
+	// Guarded setScreen: keeps screenRef in sync and logs invalid transitions in
+	// debug mode so impossible state paths surface immediately during development.
+	const setScreen = useCallback( ( next ) => {
+		if ( window?.aldusDebug ) {
+			const prev = screenRef.current;
+			// eslint-disable-next-line no-console
+			console.log( `[Aldus] ${ prev } → ${ next }` );
+			if (
+				VALID_TRANSITIONS[ prev ] &&
+				! VALID_TRANSITIONS[ prev ].includes( next )
+			) {
+				// eslint-disable-next-line no-console
+				console.error(
+					`[Aldus] INVALID TRANSITION: ${ prev } → ${ next }`
+				);
+			}
+		}
+		screenRef.current = next;
+		_setScreen( next );
+	}, [] ); // eslint-disable-line react-hooks/exhaustive-deps
 	const [ layouts, setLayouts ] = useState( [] );
 	const [ errorCode, setErrorCode ] = useState( '' );
 	const [ errorDetail, setErrorDetail ] = useState( null ); // raw error for technical details
@@ -326,6 +410,10 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 	const [ genProgress, setGenProgress ] = useState( { done: 0, total: 0 } );
 	const [ confirmAction, setConfirmAction ] = useState( null ); // null | 'startOver' | 'regenerate'
 	const [ showHelp, setShowHelp ] = useState( false );
+	// Number of personalities hidden by content-match filtering in the last run.
+	// When > 0, ResultsScreen shows a "Show all styles" button.
+	const [ filteredPersonalitiesCount, setFilteredPersonalitiesCount ] =
+		useState( 0 );
 	// When the user clicks "Try with my content" from a pack preview card, we
 	// pin that personality so generation leads with it.
 	const [ pinnedPersonality, setPinnedPersonality ] = useState( null );
@@ -364,6 +452,29 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		[]
 	);
 	const [ onboardingStep, setOnboardingStep ] = useState( null );
+
+	// Catch any unhandled promise rejection that mentions Aldus and transition
+	// to the error screen rather than leaving the block frozen in a loading state.
+	useEffect( () => {
+		const handler = ( event ) => {
+			if (
+				event.reason?.message?.includes?.( 'aldus' ) ||
+				event.reason?.message?.includes?.( 'Aldus' ) ||
+				event.reason?.code?.startsWith?.( 'aldus' )
+			) {
+				// eslint-disable-next-line no-console
+				console.error( '[Aldus] Unhandled rejection:', event.reason );
+				setErrorCode( 'unexpected_error' );
+				reportError( 'unexpected_error' );
+				setScreen( SCREEN.ERROR );
+				event.preventDefault();
+			}
+		};
+		window.addEventListener( 'unhandledrejection', handler );
+		return () =>
+			window.removeEventListener( 'unhandledrejection', handler );
+	}, [] ); // eslint-disable-line react-hooks/exhaustive-deps
+
 	useEffect( () => {
 		if ( ! hasOnboarded ) {
 			setOnboardingStep( 0 );
@@ -386,7 +497,6 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 	const lastPackRef = useRef( null ); // stores last pack used for preview re-roll
 	// Always-current refs so the confirming useEffect reads the latest values even
 	// when it runs inside a stale closure (deps = [screen]).
-	const rerollErrorTimersRef = useRef( {} ); // label → timer id, so stale timers are cleared
 	const {
 		replaceBlocks,
 		replaceInnerBlocks,
@@ -492,6 +602,14 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		lastFocusRef,
 	} );
 
+	// Ref mirror for styleNote — keeps async callbacks (rerollLayout) from
+	// reading a stale closure value if the user edits the style note while a
+	// reroll API call is in flight.
+	const styleNoteRef = useRef( styleNote );
+	useEffect( () => {
+		styleNoteRef.current = styleNote;
+	}, [ styleNote ] );
+
 	// Wrap the hook's loadPreset to also transition back to the building screen.
 	const loadPreset = useCallback(
 		( preset ) => {
@@ -566,10 +684,15 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		( hints ) => setContentHints( hints ),
 		[]
 	);
+	const onPersonalitiesFiltered = useCallback(
+		( count ) => setFilteredPersonalitiesCount( count ),
+		[]
+	);
 	const onErrorDetail = useCallback( ( err ) => setErrorDetail( err ), [] );
 	const onGenerationError = useCallback( ( code ) => {
 		setErrorCode( code );
 		setRetryCount( ( c ) => c + 1 );
+		reportError( code );
 		setScreen( SCREEN.ERROR );
 	}, [] );
 
@@ -625,6 +748,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		useAldusGeneration( {
 			initEngine,
 			destroyEngine: destroyEngineAndReset,
+			abortRef,
 			inferTokens,
 			enforceAnchors,
 			inferStyleDirection,
@@ -641,6 +765,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 			onStyleDetected,
 			onRecommendationsReady,
 			onHintsReady,
+			onPersonalitiesFiltered,
 		} );
 
 	const setStyleNote = useCallback(
@@ -648,13 +773,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		[ setAttributes ]
 	);
 
-	// Clear transient UI timers on unmount.
-	useEffect( () => {
-		const rerollTimers = rerollErrorTimersRef;
-		return () => {
-			Object.values( rerollTimers.current ).forEach( clearTimeout );
-		};
-	}, [] );
+	// (No reroll error timers to clear — errors persist until next successful reroll.)
 
 	// Cycle loading messages with fade transition
 	useEffect( () => {
@@ -700,109 +819,140 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 				validationWarnings
 			);
 		}
+		// Guard against corrupt or truncated server responses — require at least
+		// one recognisable core block, otherwise a partial parse would silently
+		// insert raw HTML wrapped in a freeform block.
+		const hasCoreBlocks = newBlocks.some( ( b ) =>
+			b.name?.startsWith( 'core/' )
+		);
+		if ( newBlocks.length === 0 || ! hasCoreBlocks ) {
+			setErrorCode( 'corrupt_markup' );
+			setRetryCount( ( c ) => c + 1 );
+			reportError( 'corrupt_markup' );
+			setScreen( SCREEN.ERROR );
+			return;
+		}
 		if ( newBlocks.length > 0 ) {
 			const timerId = setTimeout( () => {
-				// Always save items to meta so the user can redesign later.
 				try {
-					setMeta( {
-						_aldus_items: JSON.stringify( itemsRef.current ),
-					} );
-				} catch ( metaErr ) {
-					if ( window?.aldusDebug ) {
+					// Always save items to meta so the user can redesign later.
+					try {
+						setMeta( {
+							_aldus_items: JSON.stringify( itemsRef.current ),
+						} );
+					} catch ( metaErr ) {
 						// eslint-disable-next-line no-console
 						console.error( '[Aldus] setMeta failed:', metaErr );
-					}
-				}
-
-				// Always insert as inner blocks — the Aldus block stays in the
-				// tree so the user can redesign without losing their content.
-				replaceInnerBlocks( clientId, newBlocks, false );
-				setAttributes( { insertedPersonality: chosen.label } );
-
-				// Lock container structure so users edit content, not layout.
-				const lockContainers = ( blocks ) => {
-					for ( const block of blocks ) {
-						if ( LOCKABLE_CONTAINER_TYPES.has( block.name ) ) {
-							setBlockEditingMode(
-								block.clientId,
-								'contentOnly'
-							);
-						}
-						if ( block.innerBlocks?.length ) {
-							lockContainers( block.innerBlocks );
-						}
-					}
-				};
-				lockContainers( newBlocks );
-
-				// Feature 4: Append to layout history (capped at 20 entries).
-				try {
-					const historyEntry = {
-						personality: chosen.label,
-						tokens: chosen.tokens ?? [],
-						timestamp: Date.now(),
-						sectionCount: newBlocks.length,
-					};
-					setLayoutHistory( ( prev ) => {
-						const updated = [ historyEntry, ...prev ].slice(
-							0,
-							20
-						);
-						try {
-							setMeta( {
-								_aldus_layout_history:
-									JSON.stringify( updated ),
-							} );
-						} catch {
-							// Non-fatal — history display degrades gracefully.
-						}
-						return updated;
-					} );
-				} catch {
-					// Non-fatal.
-				}
-
-				setScreen( SCREEN.INSERTED );
-
-				wpDispatch( 'core/notices' ).createSuccessNotice(
-					__(
-						'Layout applied. Edit content — click Redesign anytime to try a different style.',
-						'aldus'
-					),
-					{
-						actions: [
+						wpDispatch( 'core/notices' ).createWarningNotice(
+							__(
+								"Aldus couldn't save your content to this post. Redesign may not remember your items after reload.",
+								'aldus'
+							),
 							{
-								label: __( 'Undo', 'aldus' ),
-								onClick: () =>
-									wpDispatch( 'core/editor' ).undo(),
-							},
-						],
-						type: 'snackbar',
-						id: 'aldus-insert-success',
+								id: 'aldus-meta-save-warning',
+								isDismissible: true,
+								type: 'snackbar',
+							}
+						);
 					}
-				);
 
-				/**
-				 * Fires after an Aldus layout has been inserted into the editor.
-				 *
-				 * Action: 'aldus.layoutInserted'
-				 *
-				 * @param {Object}   data
-				 * @param {string}   data.label  Personality name.
-				 * @param {string[]} data.tokens Token sequence used.
-				 * @param {Object[]} data.blocks Parsed block objects.
-				 */
-				doAction( 'aldus.layoutInserted', {
-					label: chosen.label,
-					tokens: chosen.tokens ?? [],
-					blocks: newBlocks,
-				} );
+					// Always insert as inner blocks — the Aldus block stays in the
+					// tree so the user can redesign without losing their content.
+					replaceInnerBlocks( clientId, newBlocks, false );
+					setAttributes( { insertedPersonality: chosen.label } );
+
+					// Lock container structure so users edit content, not layout.
+					const lockContainers = ( blocks ) => {
+						for ( const block of blocks ) {
+							if ( LOCKABLE_CONTAINER_TYPES.has( block.name ) ) {
+								setBlockEditingMode(
+									block.clientId,
+									'contentOnly'
+								);
+							}
+							if ( block.innerBlocks?.length ) {
+								lockContainers( block.innerBlocks );
+							}
+						}
+					};
+					lockContainers( newBlocks );
+
+					// Feature 4: Append to layout history (capped at 20 entries).
+					try {
+						const historyEntry = {
+							personality: chosen.label,
+							tokens: chosen.tokens ?? [],
+							timestamp: Date.now(),
+							sectionCount: newBlocks.length,
+						};
+						setLayoutHistory( ( prev ) => {
+							const updated = [ historyEntry, ...prev ].slice(
+								0,
+								20
+							);
+							try {
+								setMeta( {
+									_aldus_layout_history:
+										JSON.stringify( updated ),
+								} );
+							} catch {
+								// Non-fatal — history display degrades gracefully.
+							}
+							return updated;
+						} );
+					} catch {
+						// Non-fatal.
+					}
+
+					setScreen( SCREEN.INSERTED );
+
+					wpDispatch( 'core/notices' ).createSuccessNotice(
+						__(
+							'Layout applied. Edit content — click Redesign anytime to try a different style.',
+							'aldus'
+						),
+						{
+							actions: [
+								{
+									label: __( 'Undo', 'aldus' ),
+									onClick: () =>
+										wpDispatch( 'core/editor' ).undo(),
+								},
+							],
+							type: 'snackbar',
+							id: 'aldus-insert-success',
+						}
+					);
+
+					/**
+					 * Fires after an Aldus layout has been inserted into the editor.
+					 *
+					 * Action: 'aldus.layoutInserted'
+					 *
+					 * @param {Object}   data
+					 * @param {string}   data.label  Personality name.
+					 * @param {string[]} data.tokens Token sequence used.
+					 * @param {Object[]} data.blocks Parsed block objects.
+					 */
+					doAction( 'aldus.layoutInserted', {
+						label: chosen.label,
+						tokens: chosen.tokens ?? [],
+						blocks: newBlocks,
+					} );
+				} catch ( insertError ) {
+					// eslint-disable-next-line no-console
+					console.error(
+						'[Aldus] Block insertion failed:',
+						insertError
+					);
+					setErrorCode( 'insert_failed' );
+					setRetryCount( ( n ) => n + 1 );
+					reportError( 'insert_failed' );
+					setScreen( SCREEN.ERROR );
+				}
 			}, 400 );
 			return () => clearTimeout( timerId );
 		}
-		setErrorCode( 'api_error' );
-		setRetryCount( ( c ) => c + 1 );
-		setScreen( SCREEN.ERROR );
 	}, [ screen ] ); // eslint-disable-line react-hooks/exhaustive-deps
 
 	// Preview path — skips LLM entirely; uses personality.fullSequence directly.
@@ -823,6 +973,19 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 				// Lazily load the full pack content (dynamically imported chunk),
 				// then flatten once — all personality requests share the same items array.
 				const fullPack = await loadPackContent( pack.id );
+				if ( ! fullPack ) {
+					wpDispatch( 'core/notices' ).createWarningNotice(
+						__(
+							"Couldn't load that content pack. Previewing with reduced samples.",
+							'aldus'
+						),
+						{
+							id: 'aldus-pack-load-warn',
+							isDismissible: true,
+							type: 'snackbar',
+						}
+					);
+				}
 				lastPackRef.current = fullPack ?? pack; // update ref with full content for re-roll
 				const packItems = packToItems( fullPack ?? pack );
 
@@ -869,6 +1032,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 				if ( assembled.length === 0 ) {
 					setErrorCode( 'no_layouts' );
 					setRetryCount( ( c ) => c + 1 );
+					reportError( 'no_layouts' );
 					setScreen( SCREEN.ERROR );
 					speak(
 						__(
@@ -880,6 +1044,13 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 					return;
 				}
 
+				// Guard against yanking the user back to results if they
+				// navigated away (e.g. clicked "Start over") while batchAssemble
+				// was still running.  screenRef is always current; a captured
+				// `screen` closure value would be stale here.
+				if ( screenRef.current !== SCREEN.LOADING ) {
+					return;
+				}
 				setActivePreviewPack( pack );
 				setIsPreview( true );
 				setLayouts( assembled );
@@ -896,6 +1067,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 				// loadPackContent or a network error before allSettled — reset to error screen.
 				setErrorCode( 'api_error' );
 				setRetryCount( ( c ) => c + 1 );
+				reportError( 'api_error' );
 				setScreen( SCREEN.ERROR );
 				if ( window?.aldusDebug ) {
 					// eslint-disable-next-line no-console
@@ -948,26 +1120,14 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							...prev,
 							[ label ]: true,
 						} ) );
-						if ( rerollErrorTimersRef.current[ label ] ) {
-							clearTimeout(
-								rerollErrorTimersRef.current[ label ]
-							);
-						}
-						rerollErrorTimersRef.current[ label ] = setTimeout(
-							() => {
-								delete rerollErrorTimersRef.current[ label ];
-								setRerollErrors( ( prev ) => {
-									const next = { ...prev };
-									delete next[ label ];
-									return next;
-								} );
-							},
-							3000
-						);
 						return;
 					}
+					// Use refs so we always read the latest items/styleNote even if
+					// the user edits content while this async call is in flight.
+					const currentItems = itemsRef.current;
+					const currentStyleNote = styleNoteRef.current;
 					const manifest = {};
-					for ( const item of items ) {
+					for ( const item of currentItems ) {
 						manifest[ item.type ] =
 							( manifest[ item.type ] ?? 0 ) + 1;
 					}
@@ -975,15 +1135,15 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 						engineRef.current,
 						personality,
 						manifest,
-						styleNote,
+						currentStyleNote,
 						null,
-						items
+						currentItems
 					);
 					result = await apiFetch( {
 						path: '/aldus/v1/assemble',
 						method: 'POST',
 						data: {
-							items,
+							items: currentItems,
 							personality: personality.name,
 							tokens,
 							reroll_count: rerollCount,
@@ -1006,28 +1166,29 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 								: l
 						)
 					);
+					// Clear any persistent error indicator on this card now that the
+					// reroll succeeded. Error stays visible until a retry succeeds.
+					setRerollErrors( ( prev ) => {
+						const next = { ...prev };
+						delete next[ label ];
+						return next;
+					} );
 				}
 			} catch ( err ) {
 				if ( window?.aldusDebug ) {
 					// eslint-disable-next-line no-console
 					console.error( '[Aldus] rerollLayout failed:', err );
 				}
+				// Error stays visible until the next successful reroll or screen
+				// change — no auto-clear timeout so the user has time to read it.
 				setRerollErrors( ( prev ) => ( { ...prev, [ label ]: true } ) );
-				if ( rerollErrorTimersRef.current[ label ] ) {
-					clearTimeout( rerollErrorTimersRef.current[ label ] );
-				}
-				rerollErrorTimersRef.current[ label ] = setTimeout( () => {
-					delete rerollErrorTimersRef.current[ label ];
-					setRerollErrors( ( prev ) => ( {
-						...prev,
-						[ label ]: false,
-					} ) );
-				}, 3000 );
 			} finally {
 				setRerollingLabel( null );
 			}
 		},
-		[ isPreview, items, styleNote, postId, incrementRerollCount ] // eslint-disable-line react-hooks/exhaustive-deps
+		// items/styleNote removed from deps — read via itemsRef/styleNoteRef inside
+		// the callback so in-flight requests always use the latest values.
+		[ isPreview, postId, incrementRerollCount ] // eslint-disable-line react-hooks/exhaustive-deps
 	);
 
 	const generate = useCallback( () => {
@@ -1100,6 +1261,39 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 	] );
 
 	const regenerate = generate;
+
+	// Re-run generation with all personalities, bypassing content-match filtering.
+	const showAllStyles = useCallback( () => {
+		const siteName = window.__aldusSite?.name ?? '';
+		const siteDesc = window.__aldusSite?.description ?? '';
+		const siteCtx = siteName
+			? `Site: ${ siteName }${ siteDesc ? ` — ${ siteDesc }` : '' }`
+			: '';
+		const postCtx = postTitle
+			? `Post titled "${ postTitle }" (post type: ${ postType })`
+			: '';
+		const context =
+			[ siteCtx, postCtx ].filter( Boolean ).join( '. ' ) || null;
+		runGenerate( {
+			items,
+			styleNote,
+			postContext: context,
+			enabledLabels: enabledPersonalities,
+			useBindings: true,
+			customStyles: customBlockStyles,
+			postId: postId || 0,
+			disableContentFilter: true,
+		} );
+	}, [
+		items,
+		enabledPersonalities,
+		styleNote,
+		postTitle,
+		postType,
+		customBlockStyles,
+		postId,
+		runGenerate,
+	] );
 
 	// Auto-trigger generation when the block was created via a block transform.
 	// When the user selects blocks and uses "Transform to Aldus", the resulting
@@ -1210,10 +1404,23 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 					}
 				}
 			} catch ( err ) {
-				if ( window?.aldusDebug ) {
-					// eslint-disable-next-line no-console
-					console.error( '[Aldus] restoreVersion failed:', err );
-				}
+				const isTokenError = err?.code === 'invalid_token';
+				wpDispatch( 'core/notices' ).createErrorNotice(
+					isTokenError
+						? __(
+								"That layout used tokens from an older version and can't be restored. Try regenerating instead.",
+								'aldus'
+						  )
+						: __(
+								"Couldn't restore that layout. Try regenerating.",
+								'aldus'
+						  ),
+					{
+						id: 'aldus-restore-error',
+						isDismissible: true,
+						type: 'snackbar',
+					}
+				);
 			}
 		},
 		[
@@ -1288,11 +1495,19 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 					screen !== SCREEN.DOWNLOADING &&
 					screen !== SCREEN.LOADING &&
 					screen !== SCREEN.RESULTS &&
-					screen !== SCREEN.ERROR
+					screen !== SCREEN.ERROR &&
+					screen !== SCREEN.CONFIRMING
 				) {
 					return;
 				}
 				event.preventDefault();
+				// Escape during confirming navigates back to results.
+				// Changing screen away from CONFIRMING triggers the useEffect
+				// cleanup, which calls clearTimeout on the 400ms insertion timer.
+				if ( screen === SCREEN.CONFIRMING ) {
+					backToResults();
+					return;
+				}
 				if (
 					screen === SCREEN.DOWNLOADING ||
 					screen === SCREEN.LOADING
@@ -1302,7 +1517,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 					startOver();
 				}
 			},
-			[ screen, startOver, abortGenerate ]
+			[ screen, startOver, abortGenerate, backToResults ]
 		)
 	);
 	useShortcut(
@@ -1390,6 +1605,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 			} else {
 				setErrorCode( 'api_error' );
 				setRetryCount( ( c ) => c + 1 );
+				reportError( 'api_error' );
 				setScreen( SCREEN.ERROR );
 			}
 		},
@@ -1678,6 +1894,10 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 							onSwitchPack={ runPreview }
 							autoStyle={ autoStyle }
 							beforeBlocks={ beforeBlocks }
+							filteredPersonalitiesCount={
+								filteredPersonalitiesCount
+							}
+							showAllStyles={ showAllStyles }
 						/>
 					</div>
 				) }

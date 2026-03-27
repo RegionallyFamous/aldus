@@ -4,6 +4,7 @@
  * Provides passthrough implementations of the i18n functions so modules
  * that call __(), _n(), sprintf(), etc. work correctly in tests without
  * requiring the actual @wordpress/i18n package to be a direct dependency.
+ * @param text
  */
 const __ = ( text ) => text;
 const _n = ( single, plural, number ) => ( number === 1 ? single : plural );

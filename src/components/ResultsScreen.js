@@ -57,6 +57,8 @@ export function ResultsScreen( {
 	onSwitchPack,
 	autoStyle = '',
 	beforeBlocks = [],
+	filteredPersonalitiesCount = 0,
+	showAllStyles = null,
 } ) {
 	const hasSections = layouts.some( ( l ) => l.sections?.length > 0 );
 	const [ isCompact, setIsCompact ] = useState( layouts.length >= 8 );
@@ -275,6 +277,23 @@ export function ResultsScreen( {
 									{ __( 'Mix sections', 'aldus' ) }
 								</Button>
 							) }
+							{ filteredPersonalitiesCount > 0 &&
+								showAllStyles && (
+									<Button
+										variant="tertiary"
+										size="small"
+										onClick={ showAllStyles }
+									>
+										{ sprintf(
+											/* translators: %d: number of hidden styles */
+											__(
+												'Show %d more styles',
+												'aldus'
+											),
+											filteredPersonalitiesCount
+										) }
+									</Button>
+								) }
 							{ ! isPreview && (
 								<Button
 									variant="secondary"
