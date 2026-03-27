@@ -72,3 +72,25 @@ The auto-insertion behaviour proved too aggressive: Aldus was silently added to 
 | 8 | wp_enqueue_block_style | 6.1 | ✅ Shipped 1.9.0 |
 
 Item 6 (Block Bindings) is the strongest remaining candidate: completing it would allow Aldus-generated content to stay live-synced with the original item values without re-running generation.
+
+---
+
+## Item 9 — Block Context: `aldus/layoutStyle`
+
+**WordPress version:** 6.0+  
+**API surface:** `providesContext` / `usesContext` in `block.json`.
+
+### Intent
+
+The Aldus block could provide its `insertedPersonality` value as a Block Context key (`aldus/layoutStyle`) so that inner blocks can conditionally adapt their appearance based on which personality generated the surrounding layout (e.g., a Nocturne-generated layout might style inner headings differently than a Broadside layout).
+
+### Current status
+
+The `providesContext` entry was removed in v1.20.0 because nothing consumed it — no inner block declared `"usesContext": ["aldus/layoutStyle"]` — adding overhead on every block render for zero benefit.
+
+### What would complete the implementation
+
+- Re-add `"providesContext": { "aldus/layoutStyle": "insertedPersonality" }` to `block.json`.
+- Add `"usesContext": ["aldus/layoutStyle"]` to any block variation or inner block that should adapt to the personality.
+- In `edit.js`, read the context via `useSelect` or pass it as a prop to child blocks.
+- On the PHP side, `render.php` can read `$block->context['aldus/layoutStyle']` to apply personality-specific wrapper classes.

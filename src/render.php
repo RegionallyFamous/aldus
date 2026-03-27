@@ -14,8 +14,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  * enables per-personality CSS and the Interactivity API store to target it
  * without class-name collisions.
  *
+ * get_block_wrapper_attributes() is called so that every block support the
+ * user configures in the editor — margin, padding, background colour, border,
+ * shadow, min-height — is applied on the frontend.  It also adds the canonical
+ * wp-block-aldus-layout-generator class, keeping it in sync with the
+ * selectors.root entry in block.json.
+ *
  * If the block has no inner blocks yet (user is still in the building state),
- * $content is empty and we return nothing on the front end.
+ * $content is empty and we render nothing on the front end.
  *
  * @param array<string, mixed> $attributes Block attributes.
  * @param string               $content    Inner block content (empty while building).
@@ -28,19 +34,24 @@ $aldus_content = trim( $content );
 if ( '' === $aldus_content ) {
 	// Editor-only fallback: if the JS edit UI fails to mount for any reason,
 	// avoid rendering an entirely invisible block in the editor canvas.
+	// Note: use printf() not return sprintf() — WP captures this file via
+	// ob_start()/ob_get_clean(), so only printed output is captured.
 	if ( is_admin() ) {
-		return sprintf(
+		printf(
 			'<div class="wp-block-aldus-layout-generator"><p>%s</p></div>',
 			esc_html__( 'Aldus block inserted. If the full editor UI does not appear, refresh the editor.', 'aldus' )
 		);
 	}
-	return '';
+	return;
 }
 
-$aldus_personality = sanitize_html_class( $attributes['insertedPersonality'] ?? '' );
+$aldus_personality    = sanitize_html_class( $attributes['insertedPersonality'] ?? '' );
+$wrapper_attributes   = get_block_wrapper_attributes( array( 'class' => 'aldus-layout' ) );
 
 printf(
-	'<div class="aldus-layout" data-personality="%s">%s</div>',
+	'<div %s data-personality="%s">%s</div>',
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns pre-escaped HTML attribute string.
+	$wrapper_attributes,
 	esc_attr( $aldus_personality ),
 	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $aldus_content is WP-rendered inner block HTML, already safe.
 	$aldus_content

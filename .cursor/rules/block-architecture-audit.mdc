@@ -1,0 +1,65 @@
+---
+description: WordPress block architecture audit checklist — catches editor/frontend divergence bugs in render.php, save.js, and block.json
+globs: src/render.php,src/save.js,src/block.json,src/edit.js,src/index.js
+alwaysApply: false
+---
+
+# Block Architecture Audit
+
+A bug exists anywhere a feature is **declared** in `block.json` or **visible** in `edit.js` but never makes it through to `save.js → database → render.php`.
+
+## 1. Inner blocks must be serialized
+
+If the block uses `replaceInnerBlocks` or `<InnerBlocks>` in `edit.js`, `save.js` **must** return `<InnerBlocks.Content />` (not `null`). Returning `null` silently discards inner blocks on every save — they exist in the editor's in-memory state but are never written to the database, so `render.php` always receives `$content = ''`.
+
+```js
+// BAD — inner blocks are lost on save
+export default function save() { return null; }
+
+// GOOD
+export default function save() { return <InnerBlocks.Content />; }
+```
+
+When changing from `null` to `<InnerBlocks.Content />`, add a deprecation entry so existing posts auto-recover.
+
+## 2. render.php must call `get_block_wrapper_attributes()`
+
+Without this call, every block support the user configures in the editor — `spacing.margin`, `spacing.padding`, `color.background`, `border.*`, `shadow`, `dimensions.minHeight` — is silently discarded on the frontend.
+
+```php
+// BAD — supports are ignored on the frontend
+printf( '<div class="aldus-layout">%s</div>', $content );
+
+// GOOD — supports applied; wp-block-{name} class added automatically
+printf(
+    '<div %s>%s</div>',
+    get_block_wrapper_attributes( [ 'class' => 'aldus-layout' ] ),
+    $content
+);
+```
+
+## 3. render.php early exits must use printf/echo, not return
+
+WordPress includes `render.php` via `ob_start()`/`ob_get_clean()`. A `return` value is discarded; only printed output is captured.
+
+```php
+// BAD — message is silently dropped
+if ( $empty ) { return sprintf( '<div>%s</div>', $msg ); }
+
+// GOOD
+if ( $empty ) { printf( '<div>%s</div>', $msg ); return; }
+```
+
+## 4. selectors.root must match the actual root element class
+
+If `block.json` has `"selectors": { "root": ".wp-block-foo" }` but `render.php` outputs `<div class="foo-wrapper">`, block-level CSS selectors will miss the element. Use `get_block_wrapper_attributes()` — it adds `wp-block-{name}` automatically, keeping selectors in sync.
+
+## 5. providesContext keys must be consumed
+
+Every key in `providesContext` must have at least one inner block with a matching `usesContext` entry. Unused context keys waste a read on every block render. Remove them or annotate them as planned future features.
+
+## 6. Block supports audit
+
+For each `supports` entry in `block.json`, confirm it is wired in **both** directions:
+- **PHP (frontend):** `get_block_wrapper_attributes()` in `render.php`
+- **JS (editor save):** `useBlockProps.save()` in `save.js` (if the block has a static wrapper)

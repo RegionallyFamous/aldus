@@ -3,7 +3,7 @@ Contributors: regionallyfamous
 Tags: blocks, layout, design, ai, gutenberg
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 1.20.0
+Stable tag: 1.21.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -128,12 +128,12 @@ An optional free-text field on the building screen that steers the layout model 
 
 == Changelog ==
 
-= 1.20.0 =
+= 1.21.0 =
 * Fixed six block validation bugs that caused "invalid block" warnings in the editor: column asymmetric layouts had a flex-basis mismatch when the column order was flipped; group blocks were missing border-radius and box-shadow in the serialised HTML even when those values were set in attributes; media-text blocks were missing the `is-vertically-aligned-center` class; cover blocks were missing border-radius in the serialised HTML across all cover variants; and media-text and cover-split variants were including spurious `wp-image-0 size-full` classes on `<img>` tags without a media ID, which diverged from what WordPress's save function generates.
 * Fixed a non-fatal `AbortError: Failed to execute 'mapAsync' on 'GPUBuffer'` console error that appeared when navigating away from a post while the AI model was still loaded. The error originated inside WebLLM's internal GPU cleanup routine; it is now silenced during engine disposal so it no longer appears as an uncaught rejection.
 * The PHP integration CI job now builds plugin assets before running `BlockRegistrationTest`, fixing an intermittent failure on clean runners where `build/block.json` was absent.
 
-= 1.20.0 =
+= 1.21.0 =
 * Layout cards now stream into the results grid as each response arrives instead of waiting for all styles to finish — the first card typically appears within 1–2 seconds of starting generation.
 * Layout descriptions are now generated lazily in the background after the initial cards appear, so the grid is interactive immediately and descriptions fill in as the model catches up.
 * Content hint analysis is now fully deterministic (headline length, missing image, missing CTA, long paragraphs, missing quote) — the previous AI model call for this step has been removed, shaving one LLM inference from every generation.
