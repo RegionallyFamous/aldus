@@ -3,7 +3,7 @@ Contributors: regionallyfamous
 Tags: blocks, layout, design, ai, gutenberg
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 1.21.0
+Stable tag: 1.21.1
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -127,6 +127,10 @@ Nine themed content packs (Roast — specialty coffee; Meridian — B2B SaaS; He
 An optional free-text field on the building screen that steers the layout model — for example "lead with the image", "keep it minimal", or "bold CTA up top". It's passed directly into the model prompt.
 
 == Changelog ==
+
+= 1.21.1 =
+* Fixed a bug where the REST API rate limiter double-counted requests because WordPress calls the permission callback twice per request. The limiter is now enforced inside the request callback so each API call increments the counter exactly once.
+* Improved E2E test reliability: block insertion in the inspector-controls spec now falls back to the Block Inserter toolbar when the slash-command autocomplete doesn't appear, and a brief Escape keypress dismisses block-preview popovers before clicking content-type buttons.
 
 = 1.21.0 =
 * Fixed six block validation bugs that caused "invalid block" warnings in the editor: column asymmetric layouts had a flex-basis mismatch when the column order was flipped; group blocks were missing border-radius and box-shadow in the serialised HTML even when those values were set in attributes; media-text blocks were missing the `is-vertically-aligned-center` class; cover blocks were missing border-radius in the serialised HTML across all cover variants; and media-text and cover-split variants were including spurious `wp-image-0 size-full` classes on `<img>` tags without a media ID, which diverged from what WordPress's save function generates.

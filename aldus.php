@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Plugin Name:       Aldus — Layout Explorer
  * Plugin URI:        https://github.com/RegionallyFamous/aldus
  * Description:       You write it. Aldus designs it. Layout styles for your content — pick the one that fits, and it becomes real WordPress blocks.
- * Version:           1.21.0
+ * Version:           1.21.1
  * Requires at least: 6.4
  * Requires PHP:      8.0
  * Author:            Regionally Famous
@@ -21,13 +21,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-defined( 'ALDUS_VERSION' ) || define( 'ALDUS_VERSION', '1.21.0' );
+defined( 'ALDUS_VERSION' ) || define( 'ALDUS_VERSION', '1.21.1' );
 defined( 'ALDUS_PATH' ) || define( 'ALDUS_PATH', plugin_dir_path( __FILE__ ) );
 defined( 'ALDUS_URL' ) || define( 'ALDUS_URL', plugin_dir_url( __FILE__ ) );
 // Injected by the build script (bin/inject-build-hash.js) from the webpack
 // content hash.  An empty string is safe: the cache key falls back to version
 // + request params, which is correct for manual/dev builds.
-defined( 'ALDUS_BUILD_HASH' ) || define( 'ALDUS_BUILD_HASH', 'c59c2aa1075b2404f344' );
+defined( 'ALDUS_BUILD_HASH' ) || define( 'ALDUS_BUILD_HASH', '3e4ccfdfbfa69d2ad644' );
 
 register_activation_hook( __FILE__, 'aldus_activate' );
 register_deactivation_hook( __FILE__, 'aldus_deactivate' );
@@ -135,13 +135,21 @@ function aldus_init(): void {
 	// theme.json data so generated layouts render consistently regardless of theme.
 	add_filter( 'wp_theme_json_data_theme', 'aldus_inject_theme_json' );
 
-	// Register the Aldus block pattern category for future pattern library integration.
-	register_block_pattern_category(
-		'aldus',
-		array(
-			'label'       => __( 'Aldus', 'aldus' ),
-			'description' => __( 'Layout styles from Aldus.', 'aldus' ),
-		)
+	// Register the Aldus block pattern category inside init so the text domain
+	// is loaded before __() is called (avoids _load_textdomain_just_in_time notice
+	// in WordPress 6.7+).
+	add_action(
+		'init',
+		static function (): void {
+			register_block_pattern_category(
+				'aldus',
+				array(
+					'label'       => __( 'Aldus', 'aldus' ),
+					'description' => __( 'Layout styles from Aldus.', 'aldus' ),
+				)
+			);
+		},
+		2
 	);
 
 	// Register a custom block inserter category so Aldus appears in its own section.

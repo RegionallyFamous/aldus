@@ -15,6 +15,7 @@ const AUTH_FILE = path.join( __dirname, 'tests/e2e/.auth.json' );
 
 module.exports = defineConfig( {
 	testDir: './tests/e2e',
+	globalSetup: './tests/e2e/global.setup.js',
 	fullyParallel: false,
 	forbidOnly: !! process.env.CI,
 	retries: process.env.CI ? 1 : 0,

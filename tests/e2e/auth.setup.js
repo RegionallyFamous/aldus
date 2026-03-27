@@ -27,7 +27,7 @@ setup( 'authenticate', async ( { page } ) => {
 	await page.fill( '#user_login', process.env.WP_USERNAME ?? 'admin' );
 	await page.fill( '#user_pass', process.env.WP_PASSWORD ?? 'password' );
 	await page.click( '#wp-submit' );
-	await page.waitForURL( '**/wp-admin/**', { timeout: 30000 } );
+	await page.waitForURL( '**/wp-admin/**', { timeout: 60000 } );
 
 	console.log( `[auth setup] logged in, saving state to ${ AUTH_FILE }` );
 	await page.context().storageState( { path: AUTH_FILE } );

@@ -84,8 +84,13 @@ class Aldus_REST_Controller extends WP_REST_Controller {
 	}
 
 	/**
-	 * Permission check for the assemble endpoint — requires edit_posts capability
-	 * and enforces a per-user rate limit of 60 requests per minute.
+	 * Permission check for the assemble endpoint — requires edit_posts capability.
+	 *
+	 * NOTE: Rate limiting is intentionally NOT done here. WordPress may call the
+	 * permission callback more than once per request (e.g. during route matching
+	 * and again during dispatch).  Incrementing a counter in a function that runs
+	 * multiple times per request would cause the effective limit to be lower than
+	 * intended.  The rate limiter lives in assemble() instead.
 	 *
 	 * @param WP_REST_Request $request Full request object.
 	 * @return true|WP_Error
@@ -99,32 +104,6 @@ class Aldus_REST_Controller extends WP_REST_Controller {
 			);
 		}
 
-		// Per-user rate limiter: 60 requests per minute.
-		// Uses atomic wp_cache_incr() when an external object cache (memcached/redis)
-		// is available to prevent race-condition bypasses. Falls back to transients
-		// on single-server installs where the non-atomic window is negligible.
-		$user_id = get_current_user_id();
-		$tk      = "aldus_rl_{$user_id}";
-		if ( wp_using_ext_object_cache() ) {
-			$count = wp_cache_incr( $tk, 1, 'aldus' );
-			if ( false === $count ) {
-				// Key did not exist yet — prime it with a TTL.
-				wp_cache_set( $tk, 1, 'aldus', MINUTE_IN_SECONDS );
-				$count = 1;
-			}
-		} else {
-			$count = (int) get_transient( $tk );
-			// Always increment so the count is accurate; set TTL only on first write.
-			set_transient( $tk, $count + 1, MINUTE_IN_SECONDS );
-		}
-		if ( $count >= 60 ) {
-			return new WP_Error(
-				'rate_limited',
-				__( 'Too many requests. Wait a moment and try again.', 'aldus' ),
-				array( 'status' => 429 )
-			);
-		}
-
 		// Reject requests that are not JSON-encoded. WordPress's REST layer
 		// accepts both application/json and form-encoded bodies; an explicit
 		// check here prevents edge cases where a misconfigured client submits
@@ -135,6 +114,66 @@ class Aldus_REST_Controller extends WP_REST_Controller {
 				'invalid_content_type',
 				__( 'Request must use application/json content type.', 'aldus' ),
 				array( 'status' => 415 )
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Increments and checks the per-user rate limit.
+	 *
+	 * Must only be called from the request callback (not the permission callback)
+	 * to avoid double-counting.
+	 *
+	 * Per-user rate limiter: 60 requests per 60-second fixed window.
+	 *
+	 * "Fixed window" means the 60-second clock starts on the FIRST request and
+	 * does not reset with each subsequent request.  This prevents the accumulation
+	 * that occurs when set_transient() resets the TTL on every write.
+	 *
+	 * External object cache (memcached/redis): wp_cache_incr() is atomic and
+	 * naturally supports fixed windows — the key is created with a TTL on the
+	 * first call and incremented without touching the TTL thereafter.
+	 *
+	 * Transient fallback: we store { count, window_start } together so we can
+	 * compute the remaining TTL and never extend the window past its original
+	 * 60-second boundary.
+	 *
+	 * @return true|WP_Error  true if within limit; WP_Error 429 if exceeded.
+	 */
+	private function check_rate_limit(): true|WP_Error {
+		$user_id = get_current_user_id();
+		$tk      = "aldus_rl_{$user_id}";
+
+		if ( wp_using_ext_object_cache() ) {
+			$count = wp_cache_incr( $tk, 1, 'aldus' );
+			if ( false === $count ) {
+				// Key did not exist yet — prime it with a TTL.
+				wp_cache_set( $tk, 1, 'aldus', MINUTE_IN_SECONDS );
+				$count = 1;
+			}
+		} else {
+			$stored = get_transient( $tk );
+			if ( false === $stored ) {
+				// New window: record the start time and initialise count to 1.
+				$count = 1;
+				set_transient( $tk, array( 'c' => $count, 's' => time() ), MINUTE_IN_SECONDS );
+			} else {
+				// Existing window: increment count; re-save with the REMAINING TTL
+				// so the window closes at exactly start + 60 s, never later.
+				$count     = (int) ( $stored['c'] ?? (int) $stored ) + 1;
+				$start     = (int) ( $stored['s'] ?? ( time() - MINUTE_IN_SECONDS ) );
+				$remaining = max( 1, $start + MINUTE_IN_SECONDS - time() );
+				set_transient( $tk, array( 'c' => $count, 's' => $start ), $remaining );
+			}
+		}
+
+		if ( $count > 60 ) {
+			return new WP_Error(
+				'rate_limited',
+				__( 'Too many requests. Wait a moment and try again.', 'aldus' ),
+				array( 'status' => 429 )
 			);
 		}
 
@@ -373,6 +412,10 @@ class Aldus_REST_Controller extends WP_REST_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function assemble( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$rate_check = $this->check_rate_limit();
+		if ( is_wp_error( $rate_check ) ) {
+			return $rate_check;
+		}
 		return aldus_handle_assemble( $request );
 	}
 
