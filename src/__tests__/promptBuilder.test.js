@@ -31,7 +31,7 @@ const DISPATCH = {
 const NOCTURNE = {
 	name: 'Nocturne',
 	description: 'Dark cinematic.',
-	anchors: [ 'cover:dark', 'image:full' ],
+	anchors: [ 'cover:split', 'image:full' ],
 	creativity: 1,
 };
 

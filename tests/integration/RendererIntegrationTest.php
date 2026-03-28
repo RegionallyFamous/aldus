@@ -53,7 +53,7 @@ class RendererIntegrationTest extends WP_UnitTestCase {
 			'Stratum'    => [ 'Stratum',     [ 'cover:minimal', 'group:dark-full', 'paragraph', 'separator' ] ],
 			'Broadside'  => [ 'Broadside',   [ 'cover:light', 'columns:2-equal', 'heading:h2', 'paragraph' ] ],
 			'Manifesto'  => [ 'Manifesto',   [ 'cover:dark', 'group:gradient-full', 'pullquote:centered', 'paragraph' ] ],
-			'Nocturne'   => [ 'Nocturne',    [ 'cover:dark', 'image:full', 'paragraph', 'separator' ] ],
+			'Nocturne'   => [ 'Nocturne',    [ 'cover:split', 'image:full', 'paragraph', 'separator' ] ],
 			'Tribune'    => [ 'Tribune',     [ 'media-text:left', 'heading:h1', 'paragraph', 'heading:h2' ] ],
 			'Overture'   => [ 'Overture',    [ 'cover:split', 'pullquote:wide', 'columns:2-equal', 'paragraph' ] ],
 			'Codex'      => [ 'Codex',       [ 'cover:minimal', 'group:border-box', 'paragraph', 'separator' ] ],
@@ -148,6 +148,39 @@ class RendererIntegrationTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Aldus project markup rules (render-time classes, style shape, etc.) must
+	 * pass for every personality — mirrors editor-facing invalid-block causes.
+	 *
+	 * @dataProvider personality_token_provider
+	 */
+	public function test_assemble_output_passes_aldus_markup_validation( string $personality, array $tokens ): void {
+		wp_set_current_user( $this->editor_id );
+
+		$request = new WP_REST_Request( 'POST', '/aldus/v1/assemble' );
+		$request->set_body_params( [
+			'items'       => self::$fixture_items,
+			'personality' => $personality,
+			'tokens'      => $tokens,
+		] );
+
+		$response = rest_do_request( $request );
+		$data     = $response->get_data();
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertNotEmpty( $data['blocks'] );
+
+		if ( ! function_exists( 'aldus_validate_assembled_markup' ) ) {
+			require_once ALDUS_PATH . 'includes/validate-blocks.php';
+		}
+
+		$errors = aldus_validate_assembled_markup( (string) $data['blocks'] );
+		$this->assertEmpty(
+			$errors,
+			"Personality '{$personality}' assembled markup failed aldus_validate_assembled_markup:\n" . implode( "\n", $errors )
+		);
+	}
+
+	/**
 	 * @dataProvider personality_token_provider
 	 */
 	public function test_assemble_output_has_balanced_block_comments( string $personality, array $tokens ): void {
@@ -236,5 +269,36 @@ class RendererIntegrationTest extends WP_UnitTestCase {
 			$data['blocks'],
 			'columns:4-equal should set isStackedOnMobile on core/columns'
 		);
+	}
+
+	/**
+	 * Dispatch (high contrast, restrained accent) vs Nocturne (high, pronounced)
+	 * should produce different cover dimRatio / overlay roles for the same token.
+	 */
+	public function test_cover_dark_differs_between_dispatch_and_nocturne(): void {
+		wp_set_current_user( $this->editor_id );
+
+		$tokens = [ 'cover:dark', 'paragraph' ];
+		$items  = self::$fixture_items;
+
+		$req_d = new WP_REST_Request( 'POST', '/aldus/v1/assemble' );
+		$req_d->set_body_params( [
+			'items'       => $items,
+			'personality' => 'Dispatch',
+			'tokens'      => $tokens,
+		] );
+		$req_n = new WP_REST_Request( 'POST', '/aldus/v1/assemble' );
+		$req_n->set_body_params( [
+			'items'       => $items,
+			'personality' => 'Nocturne',
+			'tokens'      => $tokens,
+		] );
+
+		$blocks_d = rest_do_request( $req_d )->get_data()['blocks'] ?? '';
+		$blocks_n = rest_do_request( $req_n )->get_data()['blocks'] ?? '';
+
+		$this->assertNotSame( $blocks_d, $blocks_n, 'Cover markup should differ by personality style rules' );
+		$this->assertMatchesRegularExpression( '/"dimRatio":\d+/', $blocks_d );
+		$this->assertMatchesRegularExpression( '/"dimRatio":\d+/', $blocks_n );
 	}
 }

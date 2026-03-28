@@ -54,8 +54,7 @@ function aldus_block_group(
 	}
 	$attrs = array(
 		'layout' => array(
-			'type'        => 'constrained',
-			'contentSize' => aldus_theme_content_size(),
+			'type' => 'constrained',
 		),
 		'style'  => array( 'spacing' => $spacing ),
 	);
@@ -112,11 +111,8 @@ function aldus_block_group(
 		return '';
 	}
 
-	$pad       = $pad_top;
-	$style_str = "padding-top:{$pad};padding-bottom:{$pad_bottom}";
-	if ( $radius !== '' ) {
-		$style_str = "border-radius:{$radius};{$style_str}";
-	}
+	$style_str  = aldus_block_inline_style_from_style_attr( $attrs['style'] );
+	$style_attr = '' !== $style_str ? ' style="' . esc_attr( $style_str ) . '"' : '';
 	return serialize_block(
 		array(
 			'blockName'    => 'core/group',
@@ -125,7 +121,7 @@ function aldus_block_group(
 			'innerContent' => array(
 				'<div class="' . aldus_group_classes( 'constrained' )
 				. "{$align_class}{$style_class}{$color_class}\"{$ia_attrs}"
-				. " style=\"{$style_str}\">\n{$inner}</div>",
+				. "{$style_attr}>\n{$inner}</div>",
 			),
 		)
 	) . "\n\n";
@@ -347,8 +343,7 @@ function aldus_block_group_border( Aldus_Content_Distributor $dist, string $name
 	$attrs = array(
 		'style'  => $style_attrs,
 		'layout' => array(
-			'type'        => 'constrained',
-			'contentSize' => aldus_theme_content_size(),
+			'type' => 'constrained',
 		),
 	);
 	if ( $name ) {
@@ -378,17 +373,15 @@ function aldus_block_group_border( Aldus_Content_Distributor $dist, string $name
 		return '';
 	}
 
-	$border_style_str = "border-color:currentColor;border-style:solid;border-width:2px;padding-top:{$border_pad};padding-right:{$border_pad};padding-bottom:{$border_pad};padding-left:{$border_pad}";
-	if ( $shadow ) {
-		$border_style_str .= ";box-shadow:{$shadow}";
-	}
+	$border_style_str  = aldus_block_inline_style_from_style_attr( $attrs['style'] );
+	$border_style_attr = '' !== $border_style_str ? ' style="' . esc_attr( $border_style_str ) . '"' : '';
 	return serialize_block(
 		array(
 			'blockName'    => 'core/group',
 			'attrs'        => $attrs,
 			'innerBlocks'  => array(),
 			// phpcs:disable Generic.Files.LineLength.MaxExceeded -- serialize_block innerContent must be a single unbroken string.
-			'innerContent' => array( '<div class="' . aldus_group_classes() . " has-border-color\" style=\"{$border_style_str}\">\n{$inner}</div>" ),
+			'innerContent' => array( '<div class="' . aldus_group_classes() . " has-border-color\"{$border_style_attr}>\n{$inner}</div>" ),
 			// phpcs:enable Generic.Files.LineLength.MaxExceeded
 		)
 	) . "\n\n";
@@ -494,8 +487,7 @@ function aldus_block_group_gradient(
 		'gradient' => $gradient_slug,
 		'align'    => 'full',
 		'layout'   => array(
-			'type'        => 'constrained',
-			'contentSize' => aldus_theme_content_size(),
+			'type' => 'constrained',
 		),
 		'style'    => $style_attrs,
 	);
@@ -545,10 +537,8 @@ function aldus_block_group_gradient(
 		return '';
 	}
 
-	$gradient_style_str = "padding-top:{$gradient_pad};padding-bottom:{$gradient_pad}";
-	if ( $shadow ) {
-		$gradient_style_str .= ";box-shadow:{$shadow}";
-	}
+	$gradient_style_str  = aldus_block_inline_style_from_style_attr( $attrs['style'] );
+	$gradient_style_attr = '' !== $gradient_style_str ? ' style="' . esc_attr( $gradient_style_str ) . '"' : '';
 	return serialize_block(
 		array(
 			'blockName'    => 'core/group',
@@ -556,7 +546,7 @@ function aldus_block_group_gradient(
 			'innerBlocks'  => array(),
 			'innerContent' => array(
 				'<div class="' . aldus_group_classes( 'constrained', 'full', '', '', $gradient_slug )
-				. "\" style=\"{$gradient_style_str}\">\n{$inner}</div>",
+				. "\"{$gradient_style_attr}>\n{$inner}</div>",
 			),
 		)
 	) . "\n\n";
@@ -661,28 +651,32 @@ function aldus_block_group_grid( Aldus_Content_Distributor $dist ): string {
 		) . "\n";
 	}
 
+	$grid_attrs      = array(
+		'align'    => 'full',
+		'layout'   => array(
+			'type'        => 'grid',
+			'columnCount' => 3,
+		),
+		'style'    => array(
+			'spacing' => array(
+				'blockGap' => '1rem',
+				'padding'  => array(
+					'top'    => aldus_theme_spacing( 'lg' ),
+					'bottom' => aldus_theme_spacing( 'lg' ),
+				),
+			),
+		),
+		'metadata' => array( 'name' => 'Card Grid' ),
+	);
+	$grid_style_str  = aldus_block_inline_style_from_style_attr( $grid_attrs['style'] );
+	$grid_style_attr = '' !== $grid_style_str ? ' style="' . esc_attr( $grid_style_str ) . '"' : '';
+
 	return serialize_block(
 		array(
 			'blockName'    => 'core/group',
-			'attrs'        => array(
-				'align'    => 'full',
-				'layout'   => array(
-					'type'        => 'grid',
-					'columnCount' => 3,
-				),
-				'style'    => array(
-					'spacing' => array(
-						'blockGap' => '1rem',
-						'padding'  => array(
-							'top'    => aldus_theme_spacing( 'lg' ),
-							'bottom' => aldus_theme_spacing( 'lg' ),
-						),
-					),
-				),
-				'metadata' => array( 'name' => 'Card Grid' ),
-			),
+			'attrs'        => $grid_attrs,
 			'innerBlocks'  => array(),
-			'innerContent' => array( '<div class="' . aldus_group_classes( 'grid' ) . " alignfull\">\n{$inner}</div>" ),
+			'innerContent' => array( '<div class="' . aldus_group_classes( 'grid' ) . " alignfull\"{$grid_style_attr}>\n{$inner}</div>" ),
 		)
 	) . "\n\n";
 }

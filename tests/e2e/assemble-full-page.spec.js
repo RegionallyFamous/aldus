@@ -351,7 +351,7 @@ const PERSONALITIES = [
 	},
 	{
 		name: 'Nocturne',
-		tokens: [ 'cover:dark', 'image:full', 'paragraph' ],
+		tokens: [ 'cover:split', 'image:full', 'paragraph' ],
 	},
 	{
 		name: 'Tribune',

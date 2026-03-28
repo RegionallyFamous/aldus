@@ -67,11 +67,27 @@ function aldus_validate_block_markup( string $markup ): array {
 	}
 
 	// 3. Check for unpaired text color classes (skip separator which uses both).
-	if ( preg_match( '/has-[a-z0-9-]+-color(?!-)/', $markup )
-		&& ! str_contains( $markup, 'has-text-color' )
+	//
+	// WordPress uses has-{slug}-color for text presets (paired with has-text-color),
+	// has-{slug}-border-color for borders, and has-{slug}-background-color for fills.
+	// A naive /has-[a-z0-9-]+-color/ match incorrectly flags border presets because
+	// the slug segment can be e.g. "primary-border" before the final "-color".
+	if ( ! str_contains( $markup, 'has-text-color' )
 		&& ! str_contains( $markup, 'wp-block-separator' )
+		&& preg_match_all( '/\bhas-([a-z0-9-]+)-color\b/', $markup, $color_matches )
 	) {
-		$errors[] = "Has text color class without 'has-text-color' pair.";
+		foreach ( $color_matches[1] as $slug ) {
+			// Border / background preset slugs end with -border or -background before -color.
+			if ( preg_match( '/-(?:border|background)$/', $slug ) ) {
+				continue;
+			}
+			// has-border-color and has-background-color utilities (slug is literally "border" / "background").
+			if ( 'border' === $slug || 'background' === $slug ) {
+				continue;
+			}
+			$errors[] = "Has text color class without 'has-text-color' pair.";
+			break;
+		}
 	}
 
 	// 4. Check for spaces after colons in style attributes (WordPress uses minified CSS).

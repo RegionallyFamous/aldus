@@ -43,6 +43,7 @@ import { dispatch as wpDispatch } from '@wordpress/data';
 import apiFetch from '@wordpress/api-fetch';
 import { batchAssemble } from '../lib/batchAssemble.js';
 import { isValidAssembleResponse } from '../lib/api-utils.js';
+import { normalizeLayoutFromAssembleResponse } from '../lib/assembleLayoutFromResponse.js';
 import { SCREEN } from '../constants.js';
 import { computeCoverage, TOKEN_CONTENT_TYPES } from '../data/tokens.js';
 import { jaccard } from '../lib/similarity.js';
@@ -443,11 +444,13 @@ export function useAldusGeneration( {
 					const personalityIdx = personalities.findIndex(
 						( p ) => p.name === r.label
 					);
+					const normalized = normalizeLayoutFromAssembleResponse( r );
 					return {
-						label: r.label,
-						blocks: r.blocks,
-						tokens: r.tokens ?? [],
-						sections: r.sections ?? [],
+						label: normalized.label,
+						blocks: normalized.blocks,
+						blocks_tree: normalized.blocks_tree,
+						tokens: normalized.tokens,
+						sections: normalized.sections,
 						unusedTypes:
 							personalityIdx >= 0
 								? coverageResults[ personalityIdx ]?.unused ??

@@ -16,11 +16,23 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Returns the appropriate spacer block height for the given size, scaled to
  * the theme's block gap so Aldus layouts don't double up on whitespace.
  *
- * @param string $size 'small' | 'large' | 'xlarge'
+ * When $density is set (airy | balanced | dense), overrides the theme spacer
+ * scale so personality rhythm differs: airy uses larger explicit spacers,
+ * dense uses smaller ones (see map keys generous / normal / tight).
+ *
+ * @param string       $size    'small' | 'large' | 'xlarge'
+ * @param string|null  $density Optional personality density from style rules.
  * @return string Height value including unit, e.g. '32px'.
  */
-function aldus_spacer_height( string $size ): string {
+function aldus_spacer_height( string $size, ?string $density = null ): string {
 	$scale = aldus_theme_spacer_scale();
+	if ( null !== $density ) {
+		$scale = match ( $density ) {
+			'airy' => 'tight',
+			'dense' => 'generous',
+			default => 'normal',
+		};
+	}
 	$map   = array(
 		'generous' => array(
 			'small'  => '16px',
@@ -39,6 +51,60 @@ function aldus_spacer_height( string $size ): string {
 		),
 	);
 	return $map[ $scale ][ $size ] ?? '64px';
+}
+
+/**
+ * Cover overlay slug and dim ratio for dark hero blocks from personality rules.
+ *
+ * Pronounced-accent layouts use the accent palette role; restrained use dark.
+ * High contrast uses a heavier dim; medium is lighter. Density nudges dim
+ * slightly so identical contrast/accent pairs still diverge when density differs.
+ *
+ * @return array{slug:string,dim:int}
+ */
+function aldus_cover_art_direction_dark(
+	string $dark_slug,
+	string $accent_slug,
+	string $s_contrast,
+	string $s_accent,
+	string $s_density
+): array {
+	$slug = ( 'pronounced' === $s_accent ) ? $accent_slug : $dark_slug;
+	$dim  = ( 'high' === $s_contrast ) ? 70 : 40;
+	if ( 'airy' === $s_density ) {
+		$dim = min( 90, $dim + 5 );
+	} elseif ( 'dense' === $s_density ) {
+		$dim = max( 10, $dim - 5 );
+	}
+	return array(
+		'slug' => $slug,
+		'dim'  => $dim,
+	);
+}
+
+/**
+ * Cover overlay slug and dim ratio for light hero blocks from personality rules.
+ *
+ * @return array{slug:string,dim:int}
+ */
+function aldus_cover_art_direction_light(
+	string $light_slug,
+	string $accent_slug,
+	string $s_contrast,
+	string $s_accent,
+	string $s_density
+): array {
+	$slug = ( 'pronounced' === $s_accent ) ? $accent_slug : $light_slug;
+	$dim  = ( 'high' === $s_contrast ) ? 45 : 20;
+	if ( 'airy' === $s_density ) {
+		$dim = min( 90, $dim + 8 );
+	} elseif ( 'dense' === $s_density ) {
+		$dim = max( 10, $dim - 8 );
+	}
+	return array(
+		'slug' => $slug,
+		'dim'  => $dim,
+	);
 }
 
 // ---------------------------------------------------------------------------

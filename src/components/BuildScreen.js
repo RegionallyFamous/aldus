@@ -22,7 +22,8 @@ import {
 import { BlockPreview } from '@wordpress/block-editor';
 import { useSelect, dispatch } from '@wordpress/data';
 import apiFetch from '@wordpress/api-fetch';
-import { parse as parseBlocks } from '@wordpress/blocks';
+import { isValidAssembleResponse } from '../lib/api-utils.js';
+import { blocksFromAssemblePayload } from '../lib/blocksFromAssemblePayload.js';
 import { __, sprintf, _n } from '@wordpress/i18n';
 import { close, lock, plus } from '@wordpress/icons';
 import { ACTIVE_PERSONALITIES } from '../data/personalities.js';
@@ -562,6 +563,12 @@ function EmptyState( {
 			image: 0,
 			quote: 0,
 			list: 0,
+			embed: 0,
+			table: 0,
+			gallery: 0,
+			link: 0,
+			code: 0,
+			details: 0,
 		};
 		const walk = ( blocks ) => {
 			for ( const b of blocks ) {
@@ -578,6 +585,29 @@ function EmptyState( {
 					counts.quote++;
 				} else if ( b.name === 'core/list' ) {
 					counts.list++;
+				} else if (
+					b.name === 'core/video' ||
+					b.name === 'core/audio' ||
+					b.name === 'core/embed'
+				) {
+					counts.embed++;
+				} else if ( b.name === 'core/table' ) {
+					counts.table++;
+				} else if ( b.name === 'core/gallery' ) {
+					counts.gallery++;
+				} else if (
+					b.name === 'core/button' ||
+					b.name === 'core/buttons' ||
+					b.name === 'core/file'
+				) {
+					counts.link++;
+				} else if (
+					b.name === 'core/code' ||
+					b.name === 'core/preformatted'
+				) {
+					counts.code++;
+				} else if ( b.name === 'core/details' ) {
+					counts.details++;
 				}
 				if ( b.innerBlocks?.length ) {
 					walk( b.innerBlocks );
@@ -863,7 +893,7 @@ function ScanAllWireframes() {
 
 function QuickPeek( { items } ) {
 	const [ peekPersonality, setPeekPersonality ] = useState( null );
-	const [ peekBlocks, setPeekBlocks ] = useState( null );
+	const [ peekAssemble, setPeekAssemble ] = useState( null );
 	const [ isPeeking, setIsPeeking ] = useState( false );
 	const [ showScanAll, setShowScanAll ] = useState( false );
 	const [ showAllPills, setShowAllPills ] = useState( false );
@@ -901,15 +931,15 @@ function QuickPeek( { items } ) {
 			if (
 				peekPersonality &&
 				peekPersonality.name === personality.name &&
-				peekBlocks
+				peekAssemble
 			) {
 				setPeekPersonality( null );
-				setPeekBlocks( null );
+				setPeekAssemble( null );
 				return;
 			}
 			const requestId = ++peekRequestIdRef.current;
 			setPeekPersonality( personality );
-			setPeekBlocks( null );
+			setPeekAssemble( null );
 			setIsPeeking( true );
 			try {
 				const seqs =
@@ -931,12 +961,12 @@ function QuickPeek( { items } ) {
 				if ( requestId !== peekRequestIdRef.current ) {
 					return;
 				}
-				if ( result?.success && result?.blocks ) {
-					setPeekBlocks( result.blocks );
+				if ( isValidAssembleResponse( result ) ) {
+					setPeekAssemble( result );
 				}
 			} catch {
 				if ( requestId === peekRequestIdRef.current ) {
-					setPeekBlocks( null );
+					setPeekAssemble( null );
 				}
 			} finally {
 				if ( requestId === peekRequestIdRef.current ) {
@@ -944,19 +974,15 @@ function QuickPeek( { items } ) {
 				}
 			}
 		},
-		[ isPeeking, peekPersonality, peekBlocks, items, customBlockStyles ]
+		[ isPeeking, peekPersonality, peekAssemble, items, customBlockStyles ]
 	);
 
 	const parsedBlocks = useMemo( () => {
-		if ( ! peekBlocks ) {
+		if ( ! peekAssemble ) {
 			return [];
 		}
-		try {
-			return parseBlocks( peekBlocks ).filter( ( b ) => b?.name );
-		} catch ( e ) {
-			return [];
-		}
-	}, [ peekBlocks ] );
+		return blocksFromAssemblePayload( peekAssemble );
+	}, [ peekAssemble ] );
 
 	const pillsToShow = showAllPills
 		? ACTIVE_PERSONALITIES
@@ -1039,7 +1065,7 @@ function QuickPeek( { items } ) {
 					</span>
 				</div>
 			) }
-			{ peekBlocks && parsedBlocks.length > 0 && (
+			{ peekAssemble && parsedBlocks.length > 0 && (
 				<div className="aldus-peek-preview">
 					<BlockPreview
 						blocks={ parsedBlocks }

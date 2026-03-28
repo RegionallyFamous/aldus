@@ -46,6 +46,10 @@ class AssembleEndpointTest extends WP_UnitTestCase {
 		$this->assertTrue( $data['success'] );
 		$this->assertNotEmpty( $data['blocks'] );
 		$this->assertSame( 'Dispatch', $data['label'] );
+		$this->assertArrayHasKey( 'blocks_tree', $data );
+		$this->assertIsArray( $data['blocks_tree'] );
+		$this->assertArrayHasKey( 'assemble_format', $data );
+		$this->assertSame( 2, $data['assemble_format'] );
 	}
 
 	public function test_output_blocks_are_parseable(): void {

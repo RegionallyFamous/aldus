@@ -361,13 +361,17 @@ function aldus_pick_aspect_ratio( string $preference ): string {
  * Border radius for Aldus personality "edges" (soft / sharp / default).
  *
  * Uses theme border.radiusSizes preset shorthand when available (WP 6.9+).
+ * Default edges use a visible 4px radius; sharp is 0; soft uses theme presets or 8px.
  *
  * @param string $edges 'soft' | 'sharp' | 'default'.
- * @return string Empty string means no radius attribute; otherwise CSS or var:preset|border-radius|{slug}.
+ * @return string CSS length, var:preset|border-radius|{slug}, or empty for unknown values.
  */
 function aldus_theme_border_radius_for_edges( string $edges ): string {
 	if ( 'sharp' === $edges ) {
 		return '0';
+	}
+	if ( 'default' === $edges ) {
+		return '4px';
 	}
 	if ( 'soft' !== $edges ) {
 		return '';
@@ -793,6 +797,27 @@ function aldus_pick_medium_font( array $font_sizes ): string {
 	// Fall back to the second-to-last (just below the largest).
 	$count = count( $font_sizes );
 	return sanitize_html_class( $font_sizes[ $count - 2 ]['slug'] ?? 'large' );
+}
+
+/**
+ * Smallest practical heading size slug for dense personalities.
+ *
+ * @param list<array{slug:string,size:string}> $font_sizes
+ */
+function aldus_pick_compact_heading_font( array $font_sizes ): string {
+	if ( empty( $font_sizes ) ) {
+		return 'small';
+	}
+	$small_hints = array( 'small', 'sm', 'xs', 'x-small', 'body', 'normal' );
+	foreach ( $small_hints as $hint ) {
+		foreach ( $font_sizes as $fs ) {
+			if ( str_contains( strtolower( $fs['slug'] ?? '' ), $hint ) ) {
+				return sanitize_html_class( $fs['slug'] );
+			}
+		}
+	}
+	$first = $font_sizes[0];
+	return sanitize_html_class( $first['slug'] ?? 'small' );
 }
 
 function aldus_get_theme_gradients(): array {

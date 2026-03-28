@@ -178,8 +178,7 @@ function aldus_register_pack_pattern( array $pack ): void {
 			),
 			'innerBlocks'  => array(),
 			'innerContent' => array(
-				'<div class="wp-block-cover alignfull has-custom-content-position'
-				. " is-position-center-center\" style=\"$cover_style_attr\">\n"
+				'<div class="' . aldus_cover_root_classes( 'full', 'center center' ) . "\" style=\"$cover_style_attr\">\n"
 				. '<span aria-hidden="true" class="wp-block-cover__background'
 				. " has-background-dim-80 has-background-dim\" style=\"background-color:{$color_attr}\"></span>\n"
 					. $cover_inner_html
@@ -222,7 +221,7 @@ function aldus_register_pack_pattern( array $pack ): void {
 			),
 			'innerBlocks'  => array(),
 			'innerContent' => array(
-				'<div class="wp-block-buttons is-layout-flex wp-block-buttons-is-layout-flex is-content-justification-center">' . "\n"
+				'<div class="' . aldus_buttons_classes() . "\">\n"
 				. $button_block
 				. "\n</div>",
 			),

@@ -14,6 +14,31 @@
 
 const path = require( 'path' );
 
+/**
+ * Asserts no Gutenberg invalid-block UI inside Aldus inserted content.
+ * Call after "Use this one" (or equivalent) when `.aldus-wrapper-inner` exists.
+ *
+ * @param {import('@playwright/test').FrameLocator} frame                   Editor canvas frame.
+ * @param {import('@playwright/test').Expect}       expectPlaywright        Playwright `expect` from the spec.
+ * @param {Object}                                  [options]
+ * @param {number}                                  [options.timeout=15000]
+ * @return {Promise<void>} Resolves when the inner wrapper is visible and has no validation warnings.
+ */
+async function assertNoInvalidBlocksInAldusInner(
+	frame,
+	expectPlaywright,
+	options = {}
+) {
+	const timeout = options.timeout ?? 15000;
+	const inner = frame.locator(
+		'.wp-block-aldus-layout-generator .aldus-wrapper-inner'
+	);
+	await inner.waitFor( { state: 'visible', timeout } );
+	await expectPlaywright(
+		inner.locator( '.block-editor-warning' )
+	).toHaveCount( 0, { timeout } );
+}
+
 /** Session from auth.setup.js — same path as playwright.config.js */
 const E2E_AUTH_FILE = path.join( __dirname, '.auth.json' );
 
@@ -34,7 +59,7 @@ async function newLoggedInContext( browser ) {
 
 /**
  * @param {import('@playwright/test').Browser} browser
- * @returns {Promise<{ context: import('@playwright/test').BrowserContext, page: import('@playwright/test').Page }>}
+ * @return {Promise<{ context: import('@playwright/test').BrowserContext, page: import('@playwright/test').Page }>} Logged-in context and new page.
  */
 async function newLoggedInPage( browser ) {
 	const context = await newLoggedInContext( browser );
@@ -46,7 +71,7 @@ async function newLoggedInPage( browser ) {
  * Returns a Playwright FrameLocator scoped to the editor canvas iframe.
  *
  * @param {import('@playwright/test').Page} page Playwright Page instance.
- * @return {import('@playwright/test').FrameLocator}
+ * @return {import('@playwright/test').FrameLocator} Locator for the editor-canvas iframe.
  */
 function getEditorFrame( page ) {
 	return page.frameLocator( 'iframe[name="editor-canvas"]' );
@@ -60,7 +85,7 @@ function getEditorFrame( page ) {
  * E2E stays stable across core upgrades.
  *
  * @param {import('@playwright/test').Page} page
- * @param {number} [timeout=45000]
+ * @param {number}                          [timeout=45000]
  */
 async function waitForPostEditorShell( page, timeout = 45000 ) {
 	await page
@@ -123,7 +148,9 @@ async function insertAldusBlock( page ) {
 	await aldusOption.waitFor( { timeout: 10000 } );
 	await aldusOption.click();
 
-	if ( await inserterBtn.isVisible( { timeout: 1000 } ).catch( () => false ) ) {
+	if (
+		await inserterBtn.isVisible( { timeout: 1000 } ).catch( () => false )
+	) {
 		await inserterBtn.click();
 	}
 
@@ -139,16 +166,15 @@ async function insertAldusBlock( page ) {
  *
  * Known-safe messages (e.g. WebLLM GPUBuffer AbortError) are filtered out.
  *
- * @param {import('@playwright/test').Page} page Playwright Page instance.
- * @param {Object}   [options]
- * @param {boolean}  [options.allowBlockValidation=true] When false, console
- *                 messages matching Block validation / block validation failed
- *                 are treated as errors (stricter — use in specs that should not
- *                 trigger save/parse mismatches).
+ * @param {import('@playwright/test').Page} page                                 Playwright Page instance.
+ * @param {Object}                          [options]
+ * @param {boolean}                         [options.allowBlockValidation=false] When true, console
+ *                                                                               messages matching Block validation / block validation failed
+ *                                                                               are ignored (escape hatch only — document why at each call site).
  * @return {{ getErrors: () => string[] }} Call `getErrors()` to retrieve captured errors.
  */
 function attachConsoleMonitor( page, options = {} ) {
-	const allowBlockValidation = options.allowBlockValidation !== false;
+	const allowBlockValidation = options.allowBlockValidation === true;
 
 	/** @type {string[]} */
 	const errors = [];
@@ -165,19 +191,17 @@ function attachConsoleMonitor( page, options = {} ) {
 		// limitation of the WP slot fill system and not an Aldus bug.
 		/Cannot update a component.*while rendering a different component/i,
 		/setstate-in-render/i,
+		// WP 7+ core: missing import-map entry for @wordpress/latex-to-mathml in some browsers.
+		/latex-to-mathml/i,
 	];
 
 	if ( allowBlockValidation ) {
 		// Block validation mismatches are expected after PHP assemble output
 		// differs from client save(); WordPress recovers — see pack-preview spec.
-		SAFE_PATTERNS.push(
-			/Block validation/i,
-			/block validation failed/i
-		);
+		SAFE_PATTERNS.push( /Block validation/i, /block validation failed/i );
 	}
 
-	const isSafe = ( msg ) =>
-		SAFE_PATTERNS.some( ( re ) => re.test( msg ) );
+	const isSafe = ( msg ) => SAFE_PATTERNS.some( ( re ) => re.test( msg ) );
 
 	page.on( 'pageerror', ( err ) => {
 		if ( ! isSafe( err.message ) ) {
@@ -204,4 +228,5 @@ module.exports = {
 	openNewPost,
 	insertAldusBlock,
 	attachConsoleMonitor,
+	assertNoInvalidBlocksInAldusInner,
 };

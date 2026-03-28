@@ -143,6 +143,26 @@ describe( 'extractItemFromBlock()', () => {
 		expect( result[ 0 ].content ).toBe( 'A great quote.' );
 	} );
 
+	it( 'maps core/quote with empty value but inner paragraphs to quote', () => {
+		const block = {
+			name: 'core/quote',
+			attributes: { value: '' },
+			innerBlocks: [
+				{
+					name: 'core/paragraph',
+					attributes: { content: 'Line one.' },
+				},
+				{
+					name: 'core/paragraph',
+					attributes: { content: 'Line two.' },
+				},
+			],
+		};
+		const result = extractItemFromBlock( block );
+		expect( result[ 0 ].type ).toBe( 'quote' );
+		expect( result[ 0 ].content ).toBe( 'Line one.\nLine two.' );
+	} );
+
 	// -----------------------------------------------------------------------
 	// core/list
 	// -----------------------------------------------------------------------
@@ -171,6 +191,144 @@ describe( 'extractItemFromBlock()', () => {
 	it( 'returns empty array for core/list with no inner blocks', () => {
 		const block = { name: 'core/list', attributes: {}, innerBlocks: [] };
 		expect( extractItemFromBlock( block ) ).toHaveLength( 0 );
+	} );
+
+	// -----------------------------------------------------------------------
+	// core/button
+	// -----------------------------------------------------------------------
+
+	it( 'maps standalone core/button to cta type', () => {
+		const block = {
+			name: 'core/button',
+			attributes: {
+				text: 'Solo',
+				url: 'https://example.org',
+			},
+			innerBlocks: [],
+		};
+		const result = extractItemFromBlock( block );
+		expect( result[ 0 ].type ).toBe( 'cta' );
+		expect( result[ 0 ].content ).toBe( 'Solo' );
+		expect( result[ 0 ].url ).toBe( 'https://example.org' );
+	} );
+
+	// -----------------------------------------------------------------------
+	// core/video / core/audio
+	// -----------------------------------------------------------------------
+
+	it( 'maps core/video with src to video type', () => {
+		const block = {
+			name: 'core/video',
+			attributes: { src: 'https://example.com/v.mp4' },
+			innerBlocks: [],
+		};
+		const result = extractItemFromBlock( block );
+		expect( result[ 0 ].type ).toBe( 'video' );
+		expect( result[ 0 ].url ).toBe( 'https://example.com/v.mp4' );
+	} );
+
+	it( 'normalises protocol-relative video src', () => {
+		const block = {
+			name: 'core/video',
+			attributes: { src: '//cdn.example.com/v.mp4' },
+			innerBlocks: [],
+		};
+		const result = extractItemFromBlock( block );
+		expect( result[ 0 ].url ).toBe( 'https://cdn.example.com/v.mp4' );
+	} );
+
+	it( 'maps core/audio to video item type', () => {
+		const block = {
+			name: 'core/audio',
+			attributes: { src: 'https://example.com/a.ogg' },
+			innerBlocks: [],
+		};
+		const result = extractItemFromBlock( block );
+		expect( result[ 0 ].type ).toBe( 'video' );
+		expect( result[ 0 ].url ).toBe( 'https://example.com/a.ogg' );
+	} );
+
+	// -----------------------------------------------------------------------
+	// core/file
+	// -----------------------------------------------------------------------
+
+	it( 'maps core/file to cta with href and fileName', () => {
+		const block = {
+			name: 'core/file',
+			attributes: {
+				href: 'https://example.com/doc.pdf',
+				fileName: 'Handbook.pdf',
+			},
+			innerBlocks: [],
+		};
+		const result = extractItemFromBlock( block );
+		expect( result[ 0 ].type ).toBe( 'cta' );
+		expect( result[ 0 ].content ).toBe( 'Handbook.pdf' );
+		expect( result[ 0 ].url ).toBe( 'https://example.com/doc.pdf' );
+	} );
+
+	// -----------------------------------------------------------------------
+	// core/html / core/freeform
+	// -----------------------------------------------------------------------
+
+	it( 'maps core/html to paragraph with flattened text', () => {
+		const block = {
+			name: 'core/html',
+			attributes: { content: '<div class="x"><p>Hello</p></div>' },
+			innerBlocks: [],
+		};
+		const result = extractItemFromBlock( block );
+		expect( result[ 0 ].type ).toBe( 'paragraph' );
+		expect( result[ 0 ].content ).toBe( 'Hello' );
+	} );
+
+	it( 'maps core/freeform to paragraph', () => {
+		const block = {
+			name: 'core/freeform',
+			attributes: { content: '<p>Classic</p>' },
+			innerBlocks: [],
+		};
+		const result = extractItemFromBlock( block );
+		expect( result[ 0 ].type ).toBe( 'paragraph' );
+		expect( result[ 0 ].content ).toBe( 'Classic' );
+	} );
+
+	// -----------------------------------------------------------------------
+	// core/cover (flatten)
+	// -----------------------------------------------------------------------
+
+	it( 'flattens core/cover inner blocks', () => {
+		const block = {
+			name: 'core/cover',
+			attributes: {},
+			innerBlocks: [
+				{
+					name: 'core/paragraph',
+					attributes: { content: 'Over media' },
+					innerBlocks: [],
+				},
+			],
+		};
+		const result = extractItemFromBlock( block );
+		expect( result[ 0 ].type ).toBe( 'paragraph' );
+		expect( result[ 0 ].content ).toBe( 'Over media' );
+	} );
+
+	it( 'flattens core/media-text inner blocks', () => {
+		const block = {
+			name: 'core/media-text',
+			attributes: {},
+			innerBlocks: [
+				{
+					name: 'core/paragraph',
+					attributes: { content: 'Beside image' },
+					innerBlocks: [],
+				},
+			],
+		};
+		const result = extractItemFromBlock( block );
+		expect( result[ 0 ].type ).toBe( 'paragraph' );
+		expect( result[ 0 ].content ).toBe( 'Beside image' );
 	} );
 
 	// -----------------------------------------------------------------------
@@ -211,10 +369,22 @@ describe( 'extractItemFromBlock()', () => {
 		expect( result[ 0 ].type ).toBe( 'video' );
 	} );
 
-	it( 'returns empty array for non-video core/embed', () => {
+	it( 'maps a non-YouTube core/embed to video when URL is http(s)', () => {
 		const block = {
 			name: 'core/embed',
 			attributes: { url: 'https://twitter.com/foo' },
+			innerBlocks: [],
+		};
+		const result = extractItemFromBlock( block );
+		expect( result ).toHaveLength( 1 );
+		expect( result[ 0 ].type ).toBe( 'video' );
+		expect( result[ 0 ].url ).toBe( 'https://twitter.com/foo' );
+	} );
+
+	it( 'returns empty array for core/embed without a usable URL', () => {
+		const block = {
+			name: 'core/embed',
+			attributes: { url: '' },
 			innerBlocks: [],
 		};
 		expect( extractItemFromBlock( block ) ).toHaveLength( 0 );
@@ -289,6 +459,27 @@ describe( 'extractItemFromBlock()', () => {
 		const result = extractItemFromBlock( block );
 		expect( result[ 0 ].type ).toBe( 'details' );
 		expect( result[ 0 ].content ).toBe( 'FAQ answer' );
+	} );
+
+	it( 'maps core/details with core/details-summary inner block', () => {
+		const block = {
+			name: 'core/details',
+			attributes: {},
+			innerBlocks: [
+				{
+					name: 'core/details-summary',
+					attributes: { content: 'Toggle me' },
+				},
+				{
+					name: 'core/details-content',
+					attributes: {},
+					innerBlocks: [],
+				},
+			],
+		};
+		const result = extractItemFromBlock( block );
+		expect( result[ 0 ].type ).toBe( 'details' );
+		expect( result[ 0 ].content ).toBe( 'Toggle me' );
 	} );
 
 	// -----------------------------------------------------------------------
@@ -375,6 +566,42 @@ describe( 'collectItemsFromEditorBlocks()', () => {
 		expect(
 			out.some( ( i ) => i.type === 'subheading' && i.content === 'T' )
 		).toBe( true );
+	} );
+
+	it( 'collects paragraphs inside core/cover via flatten', () => {
+		const blocks = [
+			{
+				name: 'core/cover',
+				attributes: {},
+				innerBlocks: [
+					{
+						name: 'core/paragraph',
+						attributes: { content: 'Inside cover' },
+						innerBlocks: [],
+					},
+				],
+			},
+		];
+		const out = collectItemsFromEditorBlocks( blocks );
+		expect(
+			out.some(
+				( i ) => i.type === 'paragraph' && i.content === 'Inside cover'
+			)
+		).toBe( true );
+	} );
+
+	it( 'includes URL-only video items from core/embed', () => {
+		const blocks = [
+			{
+				name: 'core/embed',
+				attributes: { url: 'https://maps.example.com/x' },
+				innerBlocks: [],
+			},
+		];
+		const out = collectItemsFromEditorBlocks( blocks );
+		expect( out.some( ( i ) => i.type === 'video' && i.url.includes( 'maps' ) ) ).toBe(
+			true
+		);
 	} );
 
 	it( 'drops empty paragraph payloads', () => {

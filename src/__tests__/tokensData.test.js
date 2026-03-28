@@ -34,7 +34,7 @@ const FOLIO = {
 
 const NOCTURNE = {
 	name: 'Nocturne',
-	anchors: [ 'cover:dark', 'image:full' ],
+	anchors: [ 'cover:split', 'image:full' ],
 	creativity: 1,
 };
 
@@ -108,7 +108,7 @@ describe( 'computeBestMatches()', () => {
 	it( 'returns Nocturne when image is present', () => {
 		const items = [ { type: 'image' } ];
 		const result = computeBestMatches( items, personalities );
-		// Nocturne anchors: cover:dark (needs image) + image:full (needs image)
+		// Nocturne anchors: cover:split (needs image) + image:full (needs image)
 		expect( result.has( 'Nocturne' ) ).toBe( true );
 	} );
 
@@ -213,9 +213,9 @@ describe( 'scorePersonalityFit()', () => {
 	} );
 
 	it( 'returns 1.0 for a personality whose all anchors are satisfied', () => {
-		// Nocturne anchors: cover:dark (needs image), image:full (needs image).
+		// Nocturne anchors: cover:split (needs image), image:full (needs image).
 		const layouts = [
-			{ label: 'Nocturne', tokens: [ 'cover:dark', 'image:full' ] },
+			{ label: 'Nocturne', tokens: [ 'cover:split', 'image:full' ] },
 		];
 		const manifest = { image: 1 };
 		const result = scorePersonalityFit( layouts, manifest, personalities );

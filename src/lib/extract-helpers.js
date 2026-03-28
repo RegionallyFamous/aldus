@@ -9,7 +9,19 @@
 
 import { uid as generateId } from './uid.js';
 
-const VIDEO_HOSTS = /youtube\.com|youtu\.be|vimeo\.com/i;
+/**
+ * Normalises a media URL (embed, video, audio) for storage.
+ *
+ * @param {string} raw Raw URL from block attributes.
+ * @return {string}
+ */
+function normalizeMediaUrl( raw ) {
+	if ( typeof raw !== 'string' || ! raw.trim() ) {
+		return '';
+	}
+	const t = raw.trim();
+	return t.startsWith( '//' ) ? 'https:' + t : t;
+}
 
 /**
  * Safely extracts a plain-text string from a block's content attribute.
@@ -82,19 +94,37 @@ export function extractItemFromBlock( block ) {
 		];
 	}
 	if ( block.name === 'core/quote' ) {
-		return [
-			{
-				id: generateId(),
-				type: 'quote',
-				content: block.attributes.value ?? '',
-				url: '',
-			},
-		];
+		const fromAttr = extractPlainText( block.attributes?.value ?? '' );
+		if ( fromAttr.trim() ) {
+			return [
+				{
+					id: generateId(),
+					type: 'quote',
+					content: fromAttr,
+					url: '',
+				},
+			];
+		}
+		const innerParas = ( block.innerBlocks ?? [] )
+			.filter( ( b ) => b.name === 'core/paragraph' )
+			.map( ( b ) => extractPlainText( b.attributes?.content ?? '' ) )
+			.filter( ( t ) => t.trim() );
+		if ( innerParas.length > 0 ) {
+			return [
+				{
+					id: generateId(),
+					type: 'quote',
+					content: innerParas.join( '\n' ),
+					url: '',
+				},
+			];
+		}
+		return [];
 	}
 	if ( block.name === 'core/list' ) {
 		const listText = ( block.innerBlocks ?? [] )
-			.map( ( li ) => li.attributes?.content ?? '' )
-			.filter( Boolean )
+			.map( ( li ) => extractPlainText( li.attributes?.content ?? '' ) )
+			.filter( ( t ) => t.trim() )
 			.join( '\n' );
 		if ( ! listText ) {
 			return [];
@@ -105,6 +135,16 @@ export function extractItemFromBlock( block ) {
 				type: 'list',
 				content: listText,
 				url: '',
+			},
+		];
+	}
+	if ( block.name === 'core/button' ) {
+		return [
+			{
+				id: generateId(),
+				type: 'cta',
+				content: block.attributes?.text ?? '',
+				url: block.attributes?.url ?? '',
 			},
 		];
 	}
@@ -124,10 +164,53 @@ export function extractItemFromBlock( block ) {
 			},
 		];
 	}
+	if ( block.name === 'core/video' || block.name === 'core/audio' ) {
+		const raw =
+			block.attributes?.src ??
+			block.attributes?.url ??
+			'';
+		const url = normalizeMediaUrl( typeof raw === 'string' ? raw : '' );
+		if ( ! url ) {
+			return [];
+		}
+		return [
+			{
+				id: generateId(),
+				type: 'video',
+				content: '',
+				url,
+			},
+		];
+	}
+	if ( block.name === 'core/file' ) {
+		const href = normalizeMediaUrl(
+			typeof block.attributes?.href === 'string'
+				? block.attributes.href
+				: ''
+		);
+		const label =
+			typeof block.attributes?.fileName === 'string'
+				? block.attributes.fileName
+				: typeof block.attributes?.text === 'string'
+					? block.attributes.text
+					: '';
+		if ( ! href && ! label.trim() ) {
+			return [];
+		}
+		return [
+			{
+				id: generateId(),
+				type: 'cta',
+				content: label,
+				url: href,
+			},
+		];
+	}
 	if ( block.name === 'core/embed' ) {
-		const rawUrl = block.attributes?.url ?? '';
-		const embedUrl = rawUrl.startsWith( '//' ) ? 'https:' + rawUrl : rawUrl;
-		if ( embedUrl && VIDEO_HOSTS.test( embedUrl ) ) {
+		const embedUrl = normalizeMediaUrl(
+			typeof block.attributes?.url === 'string' ? block.attributes.url : ''
+		);
+		if ( embedUrl && /^https?:\/\//i.test( embedUrl ) ) {
 			return [
 				{
 					id: generateId(),
@@ -138,6 +221,23 @@ export function extractItemFromBlock( block ) {
 			];
 		}
 		return [];
+	}
+	if ( block.name === 'core/html' || block.name === 'core/freeform' ) {
+		const raw = block.attributes?.content ?? '';
+		const text = extractPlainText(
+			typeof raw === 'string' ? raw : String( raw ?? '' )
+		);
+		if ( ! text.trim() ) {
+			return [];
+		}
+		return [
+			{
+				id: generateId(),
+				type: 'paragraph',
+				content: text,
+				url: '',
+			},
+		];
 	}
 	if ( block.name === 'core/table' ) {
 		const rows = [
@@ -183,11 +283,21 @@ export function extractItemFromBlock( block ) {
 		];
 	}
 	if ( block.name === 'core/details' ) {
-		const summaryBlock = ( block.innerBlocks ?? [] ).find(
-			( b ) => b.name === 'core/paragraph' || b.name === 'core/heading'
+		const inners = block.innerBlocks ?? [];
+		const summaryBlock = inners.find(
+			( b ) =>
+				b.name === 'core/details-summary' ||
+				b.name === 'core/paragraph' ||
+				b.name === 'core/heading'
 		);
-		const content = summaryBlock?.attributes?.content ?? '';
-		if ( ! content ) {
+		const raw =
+			summaryBlock?.attributes?.content ??
+			summaryBlock?.attributes?.value ??
+			'';
+		const content = extractPlainText(
+			typeof raw === 'string' ? raw : String( raw ?? '' )
+		);
+		if ( ! content.trim() ) {
 			return [];
 		}
 		return [
@@ -238,6 +348,14 @@ export function extractItemFromBlock( block ) {
 	if ( block.name === 'core/group' ) {
 		return ( block.innerBlocks ?? [] ).flatMap( extractItemFromBlock );
 	}
+	if (
+		block.name === 'core/cover' ||
+		block.name === 'core/media-text' ||
+		block.name === 'core/row' ||
+		block.name === 'core/stack'
+	) {
+		return ( block.innerBlocks ?? [] ).flatMap( extractItemFromBlock );
+	}
 	return [];
 }
 
@@ -264,6 +382,13 @@ function itemHasExtractablePayload( item ) {
 			( !! item.url &&
 				item.url !== '#' &&
 				String( item.url ).trim() !== '' )
+		);
+	}
+	if ( item.type === 'video' ) {
+		const u = String( item.url ?? '' ).trim();
+		return (
+			u.length > 0 ||
+			String( item.content ?? '' ).trim().length > 0
 		);
 	}
 	return String( item.content ?? '' ).trim().length > 0;

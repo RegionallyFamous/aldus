@@ -83,6 +83,19 @@ class BlockHtmlTest extends TestCase {
 	}
 
 	/** @test */
+	public function cover_dim_ratio_50_omits_numeric_dim_class(): void {
+		$result = aldus_cover_bg_classes( 'black', 50 );
+		$this->assertStringNotContainsString( 'has-background-dim-50', $result );
+		$this->assertStringContainsString( 'has-background-dim', $result );
+	}
+
+	/** @test */
+	public function cover_dim_ratio_45_matches_gutenberg_bucket(): void {
+		$result = aldus_cover_dim_ratio_class( 45 );
+		$this->assertSame( 'has-background-dim-50', $result );
+	}
+
+	/** @test */
 	public function cover_bg_classes_contains_color_slug(): void {
 		$result = aldus_cover_bg_classes( 'primary', 100 );
 		$this->assertStringContainsString( 'has-primary-background-color', $result );
@@ -164,6 +177,14 @@ class BlockHtmlTest extends TestCase {
 	}
 
 	/** @test */
+	public function cover_root_classes_center_omits_position_classes(): void {
+		$result = aldus_cover_root_classes( 'full', 'center center' );
+		$this->assertStringNotContainsString( 'has-custom-content-position', $result );
+		$this->assertStringNotContainsString( 'is-position-center-center', $result );
+		$this->assertStringContainsString( 'alignfull', $result );
+	}
+
+	/** @test */
 	public function cover_root_classes_wide_align(): void {
 		$result = aldus_cover_root_classes( 'wide' );
 		$this->assertStringContainsString( 'alignwide', $result );
@@ -231,5 +252,50 @@ class BlockHtmlTest extends TestCase {
 		$result = aldus_button_link_classes( 'has-primary-color has-text-color' );
 		$this->assertStringContainsString( 'has-primary-color', $result );
 		$this->assertStringEndsWith( 'wp-element-button', $result );
+	}
+
+	// -----------------------------------------------------------------------
+	// aldus_heading_font_family_class()
+	// -----------------------------------------------------------------------
+
+	/** @test */
+	public function heading_font_family_class_empty_when_no_slug(): void {
+		$this->assertSame( '', aldus_heading_font_family_class( null ) );
+		$this->assertSame( '', aldus_heading_font_family_class( '' ) );
+	}
+
+	/** @test */
+	public function heading_font_family_class_matches_preset_pattern(): void {
+		$result = aldus_heading_font_family_class( 'heading-font' );
+		$this->assertSame( ' has-heading-font-font-family', $result );
+	}
+
+	// -----------------------------------------------------------------------
+	// aldus_cover_background_span_html()
+	// -----------------------------------------------------------------------
+
+	/** @test */
+	public function cover_background_span_palette_includes_color_class(): void {
+		$html = aldus_cover_background_span_html(
+			array(
+				'overlayColor' => 'black',
+				'dimRatio'     => 60,
+			)
+		);
+		$this->assertStringContainsString( 'has-black-background-color', $html );
+		$this->assertStringNotContainsString( 'background-color:', $html );
+	}
+
+	/** @test */
+	public function cover_background_span_custom_overlay_uses_inline_style_not_palette_class(): void {
+		$html = aldus_cover_background_span_html(
+			array(
+				'customOverlayColor' => '#FFFFFF',
+				'dimRatio'           => 50,
+			)
+		);
+		$this->assertStringContainsString( 'background-color:#FFFFFF', $html );
+		$this->assertStringNotContainsString( 'has-black-background-color', $html );
+		$this->assertStringContainsString( 'has-background-dim', $html );
 	}
 }

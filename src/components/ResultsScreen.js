@@ -20,7 +20,7 @@ import {
 } from '@wordpress/components';
 import { BlockPreview } from '@wordpress/block-editor';
 import { dispatch as wpDispatch } from '@wordpress/data';
-import { parse as parseBlocks } from '@wordpress/blocks';
+import { blocksFromAssemblePayload } from '../lib/blocksFromAssemblePayload.js';
 import { __, sprintf, _n } from '@wordpress/i18n';
 import {
 	seen,
@@ -180,16 +180,10 @@ export function ResultsScreen( {
 	const [ compareLayout, setCompareLayout ] = useState( null );
 	const [ showBefore, setShowBefore ] = useState( false );
 	const compareBlocks = useMemo( () => {
-		if ( ! compareLayout?.blocks ) {
+		if ( ! compareLayout ) {
 			return [];
 		}
-		try {
-			return parseBlocks( compareLayout.blocks ).filter(
-				( b ) => b?.name
-			);
-		} catch {
-			return [];
-		}
+		return blocksFromAssemblePayload( compareLayout );
 	}, [ compareLayout ] );
 
 	// Track re-roll completion to flash the updated card.
@@ -706,12 +700,8 @@ export function LayoutCard( {
 		}
 	}, [ isExpanded, tryRequestLayoutDescription ] );
 	const blocks = useMemo( () => {
-		try {
-			return parseBlocks( layout.blocks ).filter( ( b ) => b?.name );
-		} catch ( e ) {
-			return [];
-		}
-	}, [ layout.blocks ] );
+		return blocksFromAssemblePayload( layout );
+	}, [ layout.blocks, layout.blocks_tree ] );
 	const tagline = layout.description || LAYOUT_TAGLINES[ layout.label ] || '';
 
 	// Compute which user items appear in this layout's blocks (item 11).

@@ -13,7 +13,7 @@
  * The Edit component checks window.__aldusPhpVersion against this value
  * and warns when they diverge (stale browser cache after an update).
  */
-export const ALDUS_JS_VERSION = '1.27.1';
+export const ALDUS_JS_VERSION = '1.28.0';
 
 /**
  * Screen state identifiers for the Edit component's state machine.

@@ -16,7 +16,7 @@
 'use strict';
 
 const { test, expect } = require( '@playwright/test' );
-const { openNewPost } = require( './helpers' );
+const { openNewPost, attachConsoleMonitor } = require( './helpers' );
 
 // ---------------------------------------------------------------------------
 // Helper: navigate to wp-admin and make an authenticated REST call via fetch
@@ -88,11 +88,7 @@ test.describe( 'Aldus block editor a11y', () => {
 	} );
 
 	test( 'Aldus block inserts without JS errors', async ( { page } ) => {
-		const errors = [];
-		page.on( 'pageerror', ( e ) => errors.push( e.message ) );
-		page.on( 'console', ( msg ) => {
-			if ( msg.type() === 'error' ) errors.push( msg.text() );
-		} );
+		const monitor = attachConsoleMonitor( page );
 
 		const frame = await openNewPost( page );
 
@@ -111,21 +107,12 @@ test.describe( 'Aldus block editor a11y', () => {
 		// Give the block a moment to settle.
 		await page.waitForTimeout( 2000 );
 
-		// No critical JS errors should have occurred.
-		// Suppress known WordPress-core noise that is not Aldus-related:
-		//   - GPUBuffer / WebGPU warnings
-		//   - Block validation mismatches (serialisation diff warnings)
-		//   - React concurrent-mode lifecycle warnings
-		//   - @wordpress/latex-to-mathml bare-specifier warning: WordPress 7.0
-		//     added this package but some browsers report a missing import-map
-		//     entry; it is a WP-core issue unrelated to Aldus.
-		const critical = errors.filter(
-			( e ) =>
-				! /GPUBuffer|Block validation|Cannot update a component|latex-to-mathml/i.test(
-					e
-				)
-		);
-		expect( critical ).toEqual( [] );
+		expect(
+			monitor.getErrors(),
+			`Unexpected console/page errors: ${ monitor
+				.getErrors()
+				.join( '\n' ) }`
+		).toEqual( [] );
 	} );
 } );
 
@@ -163,9 +150,12 @@ test.describe( 'Keyboard navigation', () => {
 		await page.keyboard.press( 'Tab' );
 		await page.keyboard.press( 'Tab' );
 
-		const focusedTag = await page.evaluate(
-			() => document.activeElement?.tagName ?? 'BODY'
-		);
+		const focusedTag = await page.evaluate( () => {
+			// Admin E2E: probe which element has focus after Tab (no node ref in this context).
+			// eslint-disable-next-line @wordpress/no-global-active-element -- intentional focus inspection
+			const el = document.activeElement;
+			return el?.tagName ?? 'BODY';
+		} );
 		// Focus should have moved to a focusable element (not body).
 		expect( focusedTag ).not.toBe( 'BODY' );
 	} );

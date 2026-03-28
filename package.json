@@ -1,6 +1,6 @@
 {
 	"name": "aldus",
-	"version": "1.27.1",
+	"version": "1.28.0",
 	"description": "AI Block Compositor for WordPress",
 	"scripts": {
 		"build": "wp-scripts build --blocks-manifest && node bin/inject-build-hash.js",
@@ -22,6 +22,7 @@
 		"test:php:validate": "php tests/validate-blocks.php",
 		"test:php:unit": "vendor/bin/phpunit --testsuite unit",
 		"test:php:integration": "vendor/bin/phpunit -c phpunit-integration.xml.dist",
+		"test:php:integration:dev": "WP_ENVIRONMENT_TYPE=development vendor/bin/phpunit -c phpunit-integration.xml.dist",
 		"test:php:wxr": "vendor/bin/phpunit -c phpunit-integration.xml.dist --filter WxrImportedPostsValidationTest",
 		"test:e2e": "playwright test",
 		"test:e2e:ui": "playwright test --ui",

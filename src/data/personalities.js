@@ -258,9 +258,10 @@ export const PERSONALITIES = [
 	{
 		name: 'Nocturne',
 		description:
-			'Dark cover bleeds into a full-bleed image, then the content surfaces into light — maximum chiaroscuro.',
-		anchors: [ 'cover:dark', 'image:full' ],
+			'Split cover and full-bleed image, then the content surfaces into light — maximum chiaroscuro.',
+		anchors: [ 'cover:split', 'image:full' ],
 		relevantTokens: [
+			'cover:split',
 			'cover:dark',
 			'image:full',
 			'group:dark-full',
@@ -276,7 +277,7 @@ export const PERSONALITIES = [
 		creativity: 1,
 		exampleSequences: [
 			[
-				'cover:dark',
+				'cover:split',
 				'image:full',
 				'group:light-full',
 				'paragraph:dropcap',
@@ -285,7 +286,7 @@ export const PERSONALITIES = [
 				'buttons:cta',
 			],
 			[
-				'cover:dark',
+				'cover:split',
 				'image:full',
 				'pullquote:wide',
 				'paragraph:dropcap',
@@ -293,7 +294,7 @@ export const PERSONALITIES = [
 				'buttons:cta',
 			],
 			[
-				'cover:dark',
+				'cover:split',
 				'group:dark-full',
 				'image:full',
 				'paragraph',

@@ -446,6 +446,7 @@ require_once ALDUS_PATH . 'includes/renderers/media.php';
 require_once ALDUS_PATH . 'includes/renderers/structure.php';
 require_once ALDUS_PATH . 'includes/renderers/layout.php';
 require_once ALDUS_PATH . 'includes/render-router.php';
+require_once ALDUS_PATH . 'includes/block-tree.php';
 // API layer
 require_once ALDUS_PATH . 'includes/class-rest-controller.php';
 require_once ALDUS_PATH . 'includes/api.php';

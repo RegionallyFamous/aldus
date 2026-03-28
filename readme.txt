@@ -3,7 +3,7 @@ Contributors: regionallyfamous
 Tags: blocks, layout, design, ai, gutenberg
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 1.27.1
+Stable tag: 1.28.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -132,6 +132,11 @@ An optional free-text field on the building screen that steers the layout model 
 
 == Changelog ==
 
+= 1.28.0 =
+* Cover and group block serialization matches WordPress core more closely — fewer “unexpected or invalid content” warnings after you pick a layout (especially when your theme sets a custom cover overlay color).
+* Assemble responses are easier for the editor to use: prefer server block markup when inserting layouts so previews match what PHP generated.
+* Headings with a theme font preset include the correct `font-family` class in saved HTML alongside block attributes.
+
 = 1.27.0 =
 * Layout descriptions load when you focus, hover, or expand a card — less work during generation so the grid stays responsive.
 * Visitors see faster ordinary pages when Aldus is not calling the server — assembly code loads only when the REST API runs.
@@ -256,6 +261,9 @@ An optional free-text field on the building screen that steers the layout model 
 * First release: add your content, see every layout style at once, pick the one that fits — no external services, no API keys, nothing leaves your browser.
 
 == Upgrade Notice ==
+
+= 1.28.0 =
+Stronger match between generated blocks and core save output — smoother editing after applying a layout. Safe to update.
 
 = 1.27.0 =
 Faster, lighter behavior for layout descriptions and front-end page loads; clearer error messages. Safe to update.

@@ -12,6 +12,9 @@
  * from it — prevents downstream crashes when the server returns unexpected
  * data or a partial response.
  *
+ * Accepts either `blocks` (legacy string) or non-empty `blocks_tree` for
+ * client-authoritative insertion.
+ *
  * @param {unknown} data Response value from apiFetch.
  * @return {boolean} True if the response is valid and safe to consume.
  */
@@ -22,10 +25,14 @@ export function isValidAssembleResponse( data ) {
 	if ( ! data.success ) {
 		return false;
 	}
-	if ( typeof data.blocks !== 'string' || data.blocks.trim() === '' ) {
+	if ( typeof data.label !== 'string' ) {
 		return false;
 	}
-	if ( typeof data.label !== 'string' ) {
+	const hasTree =
+		Array.isArray( data.blocks_tree ) && data.blocks_tree.length > 0;
+	const hasBlocks =
+		typeof data.blocks === 'string' && data.blocks.trim() !== '';
+	if ( ! hasTree && ! hasBlocks ) {
 		return false;
 	}
 	return true;

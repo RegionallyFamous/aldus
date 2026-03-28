@@ -173,9 +173,10 @@ check_contains( 'cover/root-full: base',  $cover_full, 'wp-block-cover' );
 check_contains( 'cover/root-full: align', $cover_full, 'alignfull' );
 check_not_contains( 'cover/root-full: no position', $cover_full, 'is-position' );
 
-$cover_positioned = aldus_cover_root_classes( 'full', 'center center' );
-check_contains( 'cover/root-positioned: has-custom', $cover_positioned, 'has-custom-content-position' );
-check_contains( 'cover/root-positioned: is-position', $cover_positioned, 'is-position-center-center' );
+$cover_center = aldus_cover_root_classes( 'full', 'center center' );
+// Gutenberg omits position classes for the default (center) content position.
+check_not_contains( 'cover/root-center: no custom position', $cover_center, 'has-custom-content-position' );
+check_not_contains( 'cover/root-center: no is-position', $cover_center, 'is-position-center-center' );
 
 $cover_bottom_left = aldus_cover_root_classes( 'full', 'bottom left' );
 check_contains( 'cover/root-bottomleft: slug', $cover_bottom_left, 'is-position-bottom-left' );
@@ -184,8 +185,12 @@ check_contains( 'cover/root-bottomleft: slug', $cover_bottom_left, 'is-position-
 $cover_bg = aldus_cover_bg_classes( 'black', 50 );
 check_contains( 'cover/bg: base class',       $cover_bg, 'wp-block-cover__background' );
 check_contains( 'cover/bg: color class',      $cover_bg, 'has-black-background-color' );
-check_contains( 'cover/bg: dim-ratio class',  $cover_bg, 'has-background-dim-50' );
+// Gutenberg dimRatioToClass(50) is null — no has-background-dim-50 slug.
+check_not_contains( 'cover/bg: dim50 omits numeric slug', $cover_bg, 'has-background-dim-50' );
 check_contains( 'cover/bg: dim class',        $cover_bg, 'has-background-dim' );
+
+$cover_bg_45 = aldus_cover_bg_classes( 'black', 45 );
+check_contains( 'cover/bg-45: buckets to dim-50', $cover_bg_45, 'has-background-dim-50' );
 
 $cover_bg_100 = aldus_cover_bg_classes( 'vivid-red', 100 );
 check_contains( 'cover/bg-100: dim-100',      $cover_bg_100, 'has-background-dim-100' );
@@ -316,6 +321,11 @@ check_equals( 'cover/height-style: short', aldus_cover_min_height_style( 'Hi' ),
 check_equals( 'cover/height-style: long',  aldus_cover_min_height_style( str_repeat( 'a', 90 ) ), 'min-height:360px' );
 // Px helper.
 check_equals( 'cover/height-px: medium',   aldus_cover_min_height_px( str_repeat( 'a', 60 ) ), '420px' );
+// Density shifts empty fallback and tier heights.
+check_equals( 'cover/height: airy empty', aldus_cover_min_height( '', 420, 'airy' ), 560 );
+check_equals( 'cover/height: dense empty', aldus_cover_min_height( '', 420, 'dense' ), 280 );
+check_equals( 'cover/height: short airy bias', aldus_cover_min_height( 'Hi', 420, 'airy' ), 560 );
+check_equals( 'cover/height: short dense bias', aldus_cover_min_height( 'Hi', 420, 'dense' ), 400 );
 
 // ===========================================================================
 // Summary

@@ -107,12 +107,13 @@ function aldus_block_heading_kicker( Aldus_Content_Distributor $dist, string $fo
 		if ( $heading_font ) {
 			$h1_attrs['fontFamily'] = $heading_font;
 		}
-		$markup .= serialize_block(
+		$heading_ff_cls = aldus_heading_font_family_class( $heading_font );
+		$markup        .= serialize_block(
 			array(
 				'blockName'    => 'core/heading',
 				'attrs'        => $h1_attrs,
 				'innerBlocks'  => array(),
-				'innerContent' => array( "<h1 class=\"wp-block-heading has-{$font_size_safe}-font-size\">" . esc_html( $main['content'] ) . '</h1>' ),
+				'innerContent' => array( "<h1 class=\"wp-block-heading has-{$font_size_safe}-font-size{$heading_ff_cls}\">" . esc_html( $main['content'] ) . '</h1>' ),
 			)
 		) . "\n";
 	}

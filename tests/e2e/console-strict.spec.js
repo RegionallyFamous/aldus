@@ -2,11 +2,10 @@
  * E2E — strict browser console monitoring (no Block validation allowlist).
  *
  * Inserts only the Aldus block on a fresh post and waits; any console.error
- * or pageerror that is not in the base safe list fails the test. Unlike
- * pack-preview.spec.js, "Block validation" messages are NOT ignored here, so
- * unexpected save/parse drift surfaces immediately on this quiet code path.
+ * or pageerror that is not in the base safe list fails the test. The shared
+ * helper defaults to strict block validation (same as pack-preview).
  *
- * @see tests/e2e/helpers.js — attachConsoleMonitor( page, { allowBlockValidation: false } )
+ * @see tests/e2e/helpers.js — attachConsoleMonitor defaults to strict validation
  * @see tests/e2e/pack-preview.spec.js
  */
 
@@ -23,9 +22,7 @@ test( 'no unexpected console errors after inserting Aldus (strict block validati
 	browser,
 } ) => {
 	const { context, page } = await newLoggedInPage( browser );
-	const monitor = attachConsoleMonitor( page, {
-		allowBlockValidation: false,
-	} );
+	const monitor = attachConsoleMonitor( page );
 
 	try {
 		const frame = await openNewPost( page );
@@ -45,7 +42,11 @@ test( 'no unexpected console errors after inserting Aldus (strict block validati
 		await aldusOption.waitFor( { timeout: 10000 } );
 		await aldusOption.click();
 
-		if ( await inserterBtn.isVisible( { timeout: 1000 } ).catch( () => false ) ) {
+		if (
+			await inserterBtn
+				.isVisible( { timeout: 1000 } )
+				.catch( () => false )
+		) {
 			await inserterBtn.click();
 		}
 
@@ -59,7 +60,9 @@ test( 'no unexpected console errors after inserting Aldus (strict block validati
 		const errors = monitor.getErrors();
 		expect(
 			errors,
-			`Unexpected console/page errors (strict mode): ${ errors.join( '\n' ) }`
+			`Unexpected console/page errors (strict mode): ${ errors.join(
+				'\n'
+			) }`
 		).toHaveLength( 0 );
 	} finally {
 		await context.close();

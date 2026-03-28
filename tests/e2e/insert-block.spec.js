@@ -38,10 +38,16 @@ let pageContext;
 /** @type {import('@playwright/test').FrameLocator} */
 let frame;
 
+/** @type {() => string[]} */
+let getSuiteConsoleErrors;
+
 test.beforeAll( async ( { browser } ) => {
 	const created = await newLoggedInPage( browser );
 	page = created.page;
 	pageContext = created.context;
+
+	const monitor = attachConsoleMonitor( page );
+	getSuiteConsoleErrors = monitor.getErrors;
 
 	// Navigate to a new post.
 	await page.goto( '/wp-admin/post-new.php' );
@@ -62,6 +68,12 @@ test.beforeAll( async ( { browser } ) => {
 } );
 
 test.afterAll( async () => {
+	expect(
+		getSuiteConsoleErrors(),
+		`Unexpected console/page errors: ${ getSuiteConsoleErrors().join(
+			'\n'
+		) }`
+	).toHaveLength( 0 );
 	await pageContext.close();
 } );
 
@@ -264,18 +276,14 @@ test.describe( 'Aldus import from editor (fresh post)', () => {
 	 * omit `.wp-block-paragraph` on the wrapper Playwright sees first; the
 	 * rich-text surface inside `.wp-block-post-content` is stable.
 	 *
-	 * @param {import('@playwright/test').FrameLocator} frame
-	 * @param {import('@playwright/test').Page} page
+	 * @param {import('@playwright/test').FrameLocator} edFrame Editor canvas frame.
+	 * @param {import('@playwright/test').Page}         edPage  Page for keyboard events.
 	 * @return {Promise<void>}
 	 */
-	async function focusDefaultPostBody( frame, page ) {
-		const inPostContent = frame
+	async function focusDefaultPostBody( edFrame, edPage ) {
+		const inPostContent = edFrame
 			.locator( '.wp-block-post-content' )
 			.locator( '.block-editor-rich-text__editable' )
-			.first();
-		// WP 7+ empty posts often show only the title + “Add default block” appender.
-		const addDefaultBlock = frame
-			.getByRole( 'button', { name: /add default block/i } )
 			.first();
 
 		if (
@@ -287,6 +295,10 @@ test.describe( 'Aldus import from editor (fresh post)', () => {
 			return;
 		}
 
+		// WP 7+ empty posts often show only the title + “Add default block” appender.
+		const addDefaultBlock = edFrame
+			.getByRole( 'button', { name: /add default block/i } )
+			.first();
 		if (
 			await addDefaultBlock
 				.isVisible( { timeout: 8000 } )
@@ -296,7 +308,9 @@ test.describe( 'Aldus import from editor (fresh post)', () => {
 			return;
 		}
 
-		const anyParagraph = frame.locator( '[data-type="core/paragraph"]' ).first();
+		const anyParagraph = edFrame
+			.locator( '[data-type="core/paragraph"]' )
+			.first();
 		if (
 			await anyParagraph
 				.isVisible( { timeout: 4000 } )
@@ -306,8 +320,8 @@ test.describe( 'Aldus import from editor (fresh post)', () => {
 			return;
 		}
 
-		await frame.locator( '.editor-post-title' ).click();
-		await page.keyboard.press( 'Tab' );
+		await edFrame.locator( '.editor-post-title' ).click();
+		await edPage.keyboard.press( 'Tab' );
 	}
 
 	test( 'empty-state control imports paragraph from the page', async () => {
@@ -330,56 +344,60 @@ test.describe( 'Aldus import from editor (fresh post)', () => {
 	// PluginDocumentSettingPanel is registered correctly, but WP 7 RC in wp-env
 	// does not expose `.aldus-doc-panel` in the accessibility/DOM snapshot for this
 	// flow; empty-state import above covers the same import pipeline.
-	test.fixme( 'document panel adds Aldus block and imports page content', async () => {
-		// Fresh editor on the same page object (new tab sometimes skips plugin slots).
-		await importPage.goto( '/wp-admin/post-new.php' );
-		await waitForPostEditorShell( importPage );
-		const welcomeClose = importPage
-			.getByRole( 'button', { name: 'Close' } )
-			.first();
-		if (
-			await welcomeClose
-				.isVisible( { timeout: 3000 } )
-				.catch( () => false )
-		) {
-			await welcomeClose.click();
+	test.fixme(
+		'document panel adds Aldus block and imports page content',
+		async () => {
+			// Fresh editor on the same page object (new tab sometimes skips plugin slots).
+			await importPage.goto( '/wp-admin/post-new.php' );
+			await waitForPostEditorShell( importPage );
+			const welcomeClose = importPage
+				.getByRole( 'button', { name: 'Close' } )
+				.first();
+			if (
+				await welcomeClose
+					.isVisible( { timeout: 3000 } )
+					.catch( () => false )
+			) {
+				await welcomeClose.click();
+			}
+			const docFrame = getEditorFrame( importPage );
+			await docFrame
+				.locator( '.editor-post-title' )
+				.waitFor( { timeout: 30000 } );
+
+			await focusDefaultPostBody( docFrame, importPage );
+			await importPage.keyboard.type( 'ALDUS_E2E_DOC_PANEL_IMPORT' );
+			await importPage.keyboard.press( 'Enter' );
+
+			await openPostDocumentSidebar( importPage );
+
+			const aldusPanelToggle = importPage
+				.locator( '.interface-complementary-area' )
+				.getByRole( 'button', { name: /^aldus ai$/i } );
+			if (
+				await aldusPanelToggle
+					.isVisible( { timeout: 4000 } )
+					.catch( () => false )
+			) {
+				await aldusPanelToggle.click();
+			}
+
+			await importPage
+				.locator( '.aldus-doc-panel' )
+				.waitFor( { state: 'visible', timeout: 30000 } );
+			await importPage
+				.locator( '.aldus-doc-panel__add-import-btn' )
+				.click();
+
+			await docFrame
+				.locator( '.wp-block-aldus-layout-generator' )
+				.waitFor( { timeout: 30000 } );
+
+			await expect(
+				docFrame.locator( '.aldus-item-list' )
+			).toContainText( 'ALDUS_E2E_DOC_PANEL_IMPORT', { timeout: 15000 } );
+
+			expect( getImportErrors() ).toHaveLength( 0 );
 		}
-		const docFrame = getEditorFrame( importPage );
-		await docFrame
-			.locator( '.editor-post-title' )
-			.waitFor( { timeout: 30000 } );
-
-		await focusDefaultPostBody( docFrame, importPage );
-		await importPage.keyboard.type( 'ALDUS_E2E_DOC_PANEL_IMPORT' );
-		await importPage.keyboard.press( 'Enter' );
-
-		await openPostDocumentSidebar( importPage );
-
-		const aldusPanelToggle = importPage
-			.locator( '.interface-complementary-area' )
-			.getByRole( 'button', { name: /^aldus ai$/i } );
-		if (
-			await aldusPanelToggle
-				.isVisible( { timeout: 4000 } )
-				.catch( () => false )
-		) {
-			await aldusPanelToggle.click();
-		}
-
-		await importPage
-			.locator( '.aldus-doc-panel' )
-			.waitFor( { state: 'visible', timeout: 30000 } );
-		await importPage.locator( '.aldus-doc-panel__add-import-btn' ).click();
-
-		await docFrame
-			.locator( '.wp-block-aldus-layout-generator' )
-			.waitFor( { timeout: 30000 } );
-
-		await expect( docFrame.locator( '.aldus-item-list' ) ).toContainText(
-			'ALDUS_E2E_DOC_PANEL_IMPORT',
-			{ timeout: 15000 }
-		);
-
-		expect( getImportErrors() ).toHaveLength( 0 );
-	} );
+	);
 } );

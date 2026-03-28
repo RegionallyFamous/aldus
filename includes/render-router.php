@@ -51,6 +51,8 @@ function aldus_render_block_token(
 	$light          = $theme['light'] ?? aldus_pick_light( $palette );
 	$accent         = $theme['accent'] ?? aldus_pick_accent( $palette );
 	$large          = $theme['large'] ?? aldus_pick_large_font( $font_sizes );
+	$medium         = $theme['medium'] ?? aldus_pick_medium_font( $font_sizes );
+	$compact        = aldus_pick_compact_heading_font( $font_sizes );
 	$gradient       = $theme['gradient'] ?? aldus_pick_gradient( aldus_get_theme_gradients() );
 	$heading_font   = $theme['heading_font'] ?? null;
 	$cover_overlay  = $theme['cover_overlay'] ?? null;
@@ -65,10 +67,23 @@ function aldus_render_block_token(
 	$s_separator     = $style['separator'] ?? 'wide';
 	$s_interactivity = $style['interactivity'] ?? '';
 
+	// Display / section heading scale from density (airy = large, balanced = medium, dense = compact).
+	$headline_display = match ( $s_density ) {
+		'airy' => $large,
+		'dense' => $compact,
+		default => $medium,
+	};
+
 	// Pre-compute Interactivity API data attribute strings.
 	// Gated so the attributes are never emitted on WP < 6.5 where the
 	// Interactivity API is not available.
-	$wp_interactive_available = function_exists( 'wp_interactivity_data_wp_context' );
+	// Omit when assembling layouts for the editor: data-wp-* on core block
+	// innerHTML does not match core save() output → invalid block UI.
+	// REST_REQUEST is not reliable (undefined in rest_do_request / some tests).
+	$omit_interactivity       = (bool) ( $context['omit_interactivity'] ?? false );
+	$wp_interactive_available = function_exists( 'wp_interactivity_data_wp_context' )
+		&& ! $omit_interactivity
+		&& ! ( defined( 'REST_REQUEST' ) && REST_REQUEST );
 
 	// Parallax: applied to cover blocks.
 	$ia_parallax = '';
@@ -131,13 +146,14 @@ function aldus_render_block_token(
 
 		case 'cover:dark':
 			// Content-aware: skip product-hero variant (3) if no CTA in manifest.
-			$cv      = ( ! $has_cta && $variant5 === 3 ) ? 0 : $variant5;
-			$post_id = (int) ( $context['post_id'] ?? 0 );
+			$cv       = ( ! $has_cta && $variant5 === 3 ) ? 0 : $variant5;
+			$post_id  = (int) ( $context['post_id'] ?? 0 );
+			$dark_art = aldus_cover_art_direction_dark( $dark, $accent, $s_contrast, $s_accent, $s_density );
 			return aldus_block_cover(
 				$dist,
-				$dark,
-				60,
-				$large,
+				$dark_art['slug'],
+				$dark_art['dim'],
+				$headline_display,
 				false,
 				'Hero',
 				$cv,
@@ -145,17 +161,19 @@ function aldus_render_block_token(
 				$ia_parallax,
 				$s_radius,
 				$heading_font,
-				$cover_overlay
+				$cover_overlay,
+				$s_density
 			);
 
 		case 'cover:light':
-			$cv      = ( ! $has_cta && $variant5 === 3 ) ? 1 : $variant5;
-			$post_id = (int) ( $context['post_id'] ?? 0 );
+			$cv        = ( ! $has_cta && $variant5 === 3 ) ? 1 : $variant5;
+			$post_id   = (int) ( $context['post_id'] ?? 0 );
+			$light_art = aldus_cover_art_direction_light( $light, $accent, $s_contrast, $s_accent, $s_density );
 			return aldus_block_cover(
 				$dist,
-				$light,
-				30,
-				$large,
+				$light_art['slug'],
+				$light_art['dim'],
+				$headline_display,
 				true,
 				'Feature Cover',
 				$cv,
@@ -163,7 +181,8 @@ function aldus_render_block_token(
 				$ia_parallax,
 				$s_radius,
 				$heading_font,
-				null
+				null,
+				$s_density
 			);
 
 		case 'cover:minimal':
@@ -175,10 +194,10 @@ function aldus_render_block_token(
 				}
 			}
 			$is_light_dark = aldus_hex_luminance( $dark_hex ) > 0.5;
-			return aldus_block_cover_minimal( $dist, $dark, $large, 'Minimal Cover', $heading_font, $is_light_dark );
+			return aldus_block_cover_minimal( $dist, $dark, $headline_display, 'Minimal Cover', $heading_font, $is_light_dark, $s_density );
 
 		case 'cover:split':
-			return aldus_block_cover_split( $dist, $large, 'Split Cover', $heading_font );
+			return aldus_block_cover_split( $dist, $headline_display, 'Split Cover', $heading_font );
 
 		// ---- Columns ----
 
@@ -295,18 +314,22 @@ function aldus_render_block_token(
 			return aldus_block_heading( $dist, 1, 'headline', $use_bindings, '', $heading_font );
 
 		case 'heading:h2':
-			// High-contrast personalities get the theme's large font size on H2s for more drama.
-			$h2_size = ( 'high' === $s_contrast ) ? ( $theme['large'] ?? '' ) : '';
+			// Contrast + density: airy sections read larger; dense use compact theme size.
+			$h2_size = match ( $s_density ) {
+				'airy' => $large,
+				'dense' => $compact,
+				default => ( 'high' === $s_contrast ) ? $large : '',
+			};
 			return aldus_block_heading( $dist, 2, 'subheading', $use_bindings, $h2_size, $heading_font );
 
 		case 'heading:h3':
 			return aldus_block_heading( $dist, 3, 'subheading', $use_bindings, '', $heading_font );
 
 		case 'heading:display':
-			return aldus_block_heading_display( $dist, $large, '', $heading_font );
+			return aldus_block_heading_display( $dist, $headline_display, '', $heading_font );
 
 		case 'heading:kicker':
-			return aldus_block_heading_kicker( $dist, $large, '', $heading_font );
+			return aldus_block_heading_kicker( $dist, $headline_display, '', $heading_font );
 
 		// ---- Paragraphs ----
 
@@ -346,7 +369,7 @@ function aldus_render_block_token(
 			return aldus_block_separator( $accent, $s_separator );
 
 		case 'spacer:small':
-			$h = aldus_spacer_height( 'small' );
+			$h = aldus_spacer_height( 'small', $s_density );
 			return serialize_block(
 				array(
 					'blockName'    => 'core/spacer',
@@ -357,7 +380,7 @@ function aldus_render_block_token(
 			) . "\n\n";
 
 		case 'spacer:large':
-			$h = aldus_spacer_height( 'large' );
+			$h = aldus_spacer_height( 'large', $s_density );
 			return serialize_block(
 				array(
 					'blockName'    => 'core/spacer',
@@ -368,7 +391,7 @@ function aldus_render_block_token(
 			) . "\n\n";
 
 		case 'spacer:xlarge':
-			$h = aldus_spacer_height( 'xlarge' );
+			$h = aldus_spacer_height( 'xlarge', $s_density );
 			return serialize_block(
 				array(
 					'blockName'    => 'core/spacer',

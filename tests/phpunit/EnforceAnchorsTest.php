@@ -57,10 +57,10 @@ class EnforceAnchorsTest extends TestCase {
 		$manifest = [ 'headline' => 1, 'paragraph' => 2, 'image' => 1 ];
 		$result   = aldus_enforce_anchors( 'Nocturne', $tokens, $manifest );
 
-		// Loose personalities have anchors appended — cover:dark and image:full
+		// Loose personalities have anchors appended — cover:split and image:full
 		// should follow the original tokens.
 		$first_original = array_search( 'paragraph', $result, true );
-		$cover_pos      = array_search( 'cover:dark', $result, true );
+		$cover_pos      = array_search( 'cover:split', $result, true );
 		$this->assertNotFalse( $cover_pos );
 		$this->assertGreaterThan( $first_original, $cover_pos );
 	}

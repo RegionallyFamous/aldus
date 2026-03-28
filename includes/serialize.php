@@ -28,10 +28,10 @@ function aldus_serialize_heading( string $text, int $level, array $extra_attrs =
 	// WordPress core only accepts heading levels 1–6; clamp to prevent invalid block output.
 	$level = max( 1, min( 6, $level ) );
 	$attrs = array_merge( array( 'level' => $level ), $extra_attrs );
-	$lh = aldus_theme_custom_line_height( 'heading' );
+	$lh    = aldus_theme_custom_line_height( 'heading' );
 	if ( $lh !== '' ) {
-		$style      = $attrs['style'] ?? array();
-		$typography = $style['typography'] ?? array();
+		$style                    = $attrs['style'] ?? array();
+		$typography               = $style['typography'] ?? array();
 		$typography['lineHeight'] = $lh;
 		$style['typography']      = $typography;
 		$attrs['style']           = $style;
@@ -106,21 +106,14 @@ function aldus_serialize_paragraph( string $text, bool $drop_cap = false, string
  * truth for button markup — call it from any renderer that needs a button
  * rather than repeating the serialize_block() chain.
  *
- * @param string $label       Escaped button label.
- * @param string $url         Escaped button URL.
- * @param string $color_slug  Background color slug for the filled variant.
- * @param string $variant     'filled' | 'outline' | 'ghost'.
- * @param string $dark_slug   Dark color slug used by the ghost variant.
- * @param string $item_id     When non-empty, binds the button text to _aldus_items meta.
- */
-/**
- * @param string $label      Button label text.
- * @param string $url        Button href URL.
- * @param string $color_slug Background color slug for filled/ghost variants.
+ * @param string $label      Escaped button label.
+ * @param string $url        Escaped button URL.
+ * @param string $color_slug Background color slug for filled/ghost/outline variants.
  * @param string $variant    'filled' | 'outline' | 'ghost' | 'plain'.
  * @param string $dark_slug  Dark color slug for ghost variant.
- * @param string $item_id    Item ID for block bindings.
+ * @param string $item_id    When non-empty, binds the button text to _aldus_items meta.
  * @param int    $width      Optional width percentage (25, 50, 75, 100); 0 = auto.
+ * @param string $text_align Optional text alignment for the link (e.g. 'center').
  */
 function aldus_serialize_button(
 	string $label,
@@ -129,45 +122,57 @@ function aldus_serialize_button(
 	string $variant = 'filled',
 	string $dark_slug = 'black',
 	string $item_id = '',
-	int $width = 0
+	int $width = 0,
+	string $text_align = ''
 ): string {
-	$color_safe = sanitize_html_class( $color_slug );
+	$color_safe  = sanitize_html_class( $color_slug );
+	$align_class = ( '' !== $text_align ) ? ' has-text-align-' . sanitize_html_class( $text_align ) : '';
+	$align_attr  = ( '' !== $text_align ) ? array( 'textAlign' => $text_align ) : array();
 
 	if ( 'outline' === $variant ) {
-		$btn_attrs   = array(
-			'textColor' => $color_slug,
-			'className' => 'is-style-outline',
-			'style'     => array( 'typography' => array( 'fontWeight' => '600' ) ),
+		$btn_attrs   = array_merge(
+			array(
+				'textColor' => $color_slug,
+				'className' => 'is-style-outline',
+				'style'     => array( 'typography' => array( 'fontWeight' => '600' ) ),
+			),
+			$align_attr
 		);
 		$btn_content = '<div class="wp-block-button is-style-outline">'
-			. "<a class=\"wp-block-button__link has-{$color_safe}-color has-text-color"
+			. "<a class=\"wp-block-button__link has-{$color_safe}-color has-text-color{$align_class}"
 			. " wp-element-button\" href=\"{$url}\" style=\"font-weight:600\">{$label}</a></div>";
 	} elseif ( 'ghost' === $variant ) {
 		$dark_safe   = sanitize_html_class( $dark_slug );
-		$btn_attrs   = array(
-			'backgroundColor' => 'white',
-			'textColor'       => $dark_slug,
-			'style'           => array( 'typography' => array( 'fontWeight' => '600' ) ),
+		$btn_attrs   = array_merge(
+			array(
+				'backgroundColor' => 'white',
+				'textColor'       => $dark_slug,
+				'style'           => array( 'typography' => array( 'fontWeight' => '600' ) ),
+			),
+			$align_attr
 		);
 		$btn_content = '<div class="wp-block-button">'
 			. "<a class=\"wp-block-button__link has-white-background-color has-{$dark_safe}-color"
-			. ' has-text-color has-background wp-element-button"'
+			. ' has-text-color has-background' . $align_class . ' wp-element-button"'
 			. " href=\"{$url}\" style=\"font-weight:600\">{$label}</a></div>";
 	} elseif ( 'plain' === $variant ) {
 		// No explicit color attrs — let the theme's global button styles apply.
-		$btn_attrs   = array();
+		$btn_attrs   = $align_attr;
 		$btn_content = '<div class="wp-block-button">'
-			. "<a class=\"wp-block-button__link wp-element-button\" href=\"{$url}\">{$label}</a></div>";
+			. "<a class=\"wp-block-button__link{$align_class} wp-element-button\" href=\"{$url}\">{$label}</a></div>";
 	} else {
 		// 'filled' (legacy)
-		$btn_attrs   = array(
-			'backgroundColor' => $color_slug,
-			'textColor'       => 'white',
-			'style'           => array( 'typography' => array( 'fontWeight' => '600' ) ),
+		$btn_attrs   = array_merge(
+			array(
+				'backgroundColor' => $color_slug,
+				'textColor'       => 'white',
+				'style'           => array( 'typography' => array( 'fontWeight' => '600' ) ),
+			),
+			$align_attr
 		);
 		$btn_content = '<div class="wp-block-button">'
 			. "<a class=\"wp-block-button__link has-{$color_safe}-background-color"
-			. ' has-white-color has-text-color has-background wp-element-button"'
+			. ' has-white-color has-text-color has-background' . $align_class . ' wp-element-button"'
 			. " href=\"{$url}\" style=\"font-weight:600\">{$label}</a></div>";
 	}
 

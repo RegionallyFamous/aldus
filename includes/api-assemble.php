@@ -289,13 +289,16 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 
 	// Build the static parts of context once; only rhythm changes per token.
 	$base_context = array(
-		'theme'         => $theme_ctx,
-		'style'         => $style_ctx,
-		'manifest'      => $manifest,
-		'use_bindings'  => $use_bindings,
-		'custom_styles' => $custom_styles,
-		'post_id'       => $post_id,
-		'section_label' => $section_label,
+		'theme'              => $theme_ctx,
+		'style'              => $style_ctx,
+		'manifest'           => $manifest,
+		'use_bindings'       => $use_bindings,
+		'custom_styles'      => $custom_styles,
+		'post_id'            => $post_id,
+		'section_label'      => $section_label,
+		// Serialized markup must round-trip through core blocks' save() — never
+		// emit data-wp-* / interactivity attrs here (see render-router.php).
+		'omit_interactivity' => true,
 	);
 
 	$markup     = '';
@@ -436,15 +439,41 @@ function aldus_handle_assemble( WP_REST_Request $request ): WP_REST_Response|WP_
 		'timing_ms' => round( ( microtime( true ) - $start_time ) * 1000, 1 ),
 	);
 
-	// In WP_DEBUG mode, validate the markup and log any issues before caching.
-	if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+	// Validate assembled markup: fail the request in local/development so wp-env
+	// and strict E2E surface issues immediately; elsewhere only log under WP_DEBUG.
+	$validation_errors = array();
+	$is_dev_env        = function_exists( 'wp_get_environment_type' ) && in_array(
+		wp_get_environment_type(),
+		array( 'local', 'development' ),
+		true
+	);
+	if ( $is_dev_env || ( defined( 'WP_DEBUG' ) && WP_DEBUG ) ) {
 		require_once ALDUS_PATH . 'includes/validate-blocks.php';
 		$validation_errors = aldus_validate_assembled_markup( $markup );
-		if ( ! empty( $validation_errors ) ) {
+	}
+	if ( ! empty( $validation_errors ) ) {
+		if ( $is_dev_env ) {
+			aldus_record_assembly_error( $personality );
+			return new WP_Error(
+				'invalid_assembled_markup',
+				__( 'Assembled layout failed internal markup validation.', 'aldus' ),
+				array(
+					'status'            => 422,
+					'validation_errors' => $validation_errors,
+					'personality'       => $personality,
+				)
+			);
+		}
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			error_log( 'Aldus block validation errors for ' . $personality . ":\n" . implode( "\n", $validation_errors ) );
 		}
 	}
+
+	// Client-authoritative insertion: plain block tree for createBlock() + serialize().
+	$blocks_tree                      = aldus_parse_markup_to_blocks_tree( $markup );
+	$response_data['blocks_tree']     = $blocks_tree;
+	$response_data['assemble_format'] = ! empty( $blocks_tree ) ? 2 : 1;
 
 	// Cache the assembled response for 5 minutes to serve repeat requests instantly.
 	// Rerolls are never stored in the assembled cache — each reroll generates fresh

@@ -21,6 +21,8 @@ import {
 import { robustParse } from './lib/robustParse.js';
 import { batchAssemble } from './lib/batchAssemble.js';
 import { isValidAssembleResponse } from './lib/api-utils.js';
+import { blocksFromAssemblePayload } from './lib/blocksFromAssemblePayload.js';
+import { normalizeLayoutFromAssembleResponse } from './lib/assembleLayoutFromResponse.js';
 import {
 	useBlockProps,
 	useInnerBlocksProps,
@@ -848,7 +850,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 		}
 		let newBlocks;
 		try {
-			newBlocks = parseBlocks( chosen.blocks ).filter( ( b ) => b?.name );
+			newBlocks = blocksFromAssemblePayload( chosen );
 		} catch ( e ) {
 			newBlocks = [];
 		}
@@ -1080,12 +1082,7 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 
 				const assembled = previewResponses
 					.filter( isValidAssembleResponse )
-					.map( ( r ) => ( {
-						label: r.label,
-						blocks: r.blocks,
-						tokens: r.tokens ?? [],
-						sections: r.sections ?? [],
-					} ) );
+					.map( normalizeLayoutFromAssembleResponse );
 
 				if ( assembled.length === 0 ) {
 					setErrorCode( 'no_layouts' );
@@ -1222,15 +1219,15 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 						},
 					} );
 				}
-				if ( result?.success && result?.blocks ) {
+				if ( result?.success && isValidAssembleResponse( result ) ) {
+					const normalized =
+						normalizeLayoutFromAssembleResponse( result );
 					setLayouts( ( prev ) =>
 						prev.map( ( l ) =>
 							l.label === label
 								? {
 										...l,
-										blocks: result.blocks,
-										tokens: result.tokens ?? l.tokens,
-										sections: result.sections ?? l.sections,
+										...normalized,
 								  }
 								: l
 						)
@@ -1462,10 +1459,15 @@ export default function Edit( { clientId, attributes, setAttributes } ) {
 						post_id: postId || 0,
 					},
 				} );
-				if ( result?.success && result?.blocks ) {
-					const restored = parseBlocks( result.blocks ).filter(
-						( b ) => b?.name
-					);
+				if ( result?.success && isValidAssembleResponse( result ) ) {
+					const normalized =
+						normalizeLayoutFromAssembleResponse( result );
+					let restored;
+					try {
+						restored = blocksFromAssemblePayload( normalized );
+					} catch {
+						restored = [];
+					}
 					if ( restored.length > 0 ) {
 						replaceInnerBlocks( clientId, restored, false );
 						setAttributes( {

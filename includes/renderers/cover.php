@@ -20,7 +20,8 @@ function aldus_block_cover(
 	string $ia_attrs = '',
 	string $radius = '',
 	?string $heading_font = null,
-	?string $cover_overlay = null
+	?string $cover_overlay = null,
+	?string $density = null
 ): string {
 	// Variant 2 (backdrop) is fully self-contained — exits before shared setup.
 	if ( $variant === 2 ) {
@@ -68,7 +69,7 @@ function aldus_block_cover(
 
 	$content_position = ( $variant === 1 ) ? 'center center' : 'bottom left';
 	$headline_raw     = $headline['content'] ?? '';
-	$cover_min_height = aldus_cover_min_height( $headline_raw );
+	$cover_min_height = aldus_cover_min_height( $headline_raw, 420, $density );
 
 	$attrs = array(
 		'dimRatio'        => $dim_ratio,
@@ -76,7 +77,7 @@ function aldus_block_cover(
 		'contentPosition' => $content_position,
 		'minHeight'       => $cover_min_height,
 		'minHeightUnit'   => 'px',
-		'layout'          => array( 'type' => 'constrained' ),
+		'isDark'          => ! $is_light,
 	);
 	// When the theme defines a cover overlay via theme.json, use the CSS value
 	// directly (customOverlayColor).  Otherwise fall back to a palette slug.
@@ -112,7 +113,8 @@ function aldus_block_cover(
 		'cover_min_height',
 		'attrs',
 		'dim_ratio',
-		'heading_font'
+		'heading_font',
+		'density'
 	);
 
 	if ( $variant === 3 ) {
@@ -139,11 +141,9 @@ function aldus_cover_backdrop(
 	if ( ! $dist->has( 'image' ) ) {
 		return '';
 	}
-	$image      = $dist->consume( 'image' );
-	$image_url  = esc_url( $image['url'] );
-	$color_safe = sanitize_html_class( $color_slug );
-	$dim_class  = "has-background-dim-{$dim_ratio}";
-	$attrs      = array(
+	$image     = $dist->consume( 'image' );
+	$image_url = esc_url( $image['url'] );
+	$attrs     = array(
 		'overlayColor'  => $color_slug,
 		'dimRatio'      => $dim_ratio,
 		'align'         => 'full',
@@ -165,11 +165,10 @@ function aldus_cover_backdrop(
 			'attrs'        => $attrs,
 			'innerBlocks'  => array(),
 			'innerContent' => array(
-				"<div class=\"wp-block-cover alignfull\" style=\"{$backdrop_style}\">\n"
-				. '<span aria-hidden="true" class="wp-block-cover__background'
-				. " has-{$color_safe}-background-color {$dim_class} has-background-dim\"></span>\n"
+				'<div class="wp-block-cover alignfull' . aldus_cover_is_light_class( $attrs ) . "\" style=\"{$backdrop_style}\">\n"
 				. "<img class=\"wp-block-cover__image-background\" src=\"{$image_url}\""
 				. " alt=\"\" data-object-fit=\"cover\"/>\n"
+				. aldus_cover_background_span_html( $attrs ) . "\n"
 				. '<div class="' . aldus_cover_inner_classes() . "\"></div>\n</div>",
 			),
 		)
@@ -186,20 +185,19 @@ function aldus_cover_backdrop(
 function aldus_cover_product_hero( Aldus_Content_Distributor $dist, array $ctx ): string {
 	$attrs                    = $ctx['attrs'];
 	$attrs['contentPosition'] = 'center center';
-	$cover_min_height         = aldus_cover_min_height( $ctx['headline_raw'], 520 );
+	$cover_min_height         = aldus_cover_min_height( $ctx['headline_raw'], 520, $ctx['density'] ?? null );
 	$attrs['minHeight']       = $cover_min_height;
 
-	$dim_class   = "has-background-dim-{$ctx['dim_ratio']}";
 	$hero_radius = $attrs['style']['border']['radius'] ?? '';
 	$image_html  = $ctx['image_url']
 		? "<img class=\"wp-block-cover__image-background\" src=\"{$ctx['image_url']}\" alt=\"\" data-object-fit=\"cover\"/>\n"
 		: '';
 
-	$color_safe      = $ctx['color_safe'];
 	$text_color      = $ctx['text_color'];
 	$text_color_safe = $ctx['text_color_safe'];
 	$font_size       = $ctx['font_size'];
 	$heading_font    = $ctx['heading_font'] ?? null;
+	$heading_ff_cls  = aldus_heading_font_family_class( $heading_font );
 
 	$inner = '';
 	if ( $ctx['text'] ) {
@@ -219,7 +217,7 @@ function aldus_cover_product_hero( Aldus_Content_Distributor $dist, array $ctx )
 				'innerBlocks'  => array(),
 				'innerContent' => array(
 					"<h1 class=\"wp-block-heading has-text-align-center has-{$text_color_safe}-color"
-					. " has-text-color has-{$font_size}-font-size\">{$ctx['text']}</h1>",
+					. " has-text-color has-{$font_size}-font-size{$heading_ff_cls}\">{$ctx['text']}</h1>",
 				),
 			)
 		) . "\n";
@@ -245,50 +243,30 @@ function aldus_cover_product_hero( Aldus_Content_Distributor $dist, array $ctx )
 	if ( $cta_item ) {
 		$cta_label  = esc_html( $cta_item['content'] );
 		$cta_url    = ! empty( $cta_item['url'] ) ? esc_url( $cta_item['url'] ) : '#';
-		$color_slug = $attrs['overlayColor'];
-		$btn        = serialize_block(
-			array(
-				'blockName'    => 'core/button',
-				'attrs'        => array(
-					'textColor'       => $ctx['is_light'] ? '' : $color_slug,
-					'backgroundColor' => $ctx['is_light'] ? $color_slug : '',
-					'textAlign'       => 'center',
-				),
-				'innerBlocks'  => array(),
-				'innerContent' => array(
-					'<div class="wp-block-button"><a class="wp-block-button__link'
-					. " wp-element-button\" href=\"{$cta_url}\">{$cta_label}</a></div>",
-				),
-			)
-		);
-		$inner     .= serialize_block(
-			array(
-				'blockName'    => 'core/buttons',
-				'attrs'        => array(
-					'layout' => array(
-						'type'           => 'flex',
-						'justifyContent' => 'center',
-					),
-				),
-				'innerBlocks'  => array(),
-				'innerContent' => array( '<div class="' . aldus_buttons_classes() . "\">{$btn}</div>" ),
-			)
-		) . "\n";
+		$color_slug = $attrs['overlayColor'] ?? '';
+		if ( '' !== $color_slug ) {
+			$button_variant = $ctx['is_light'] ? 'filled' : 'outline';
+			$inner         .= aldus_serialize_button( $cta_label, $cta_url, $color_slug, $button_variant, 'black', '', 0, 'center' );
+		} else {
+			$inner .= aldus_serialize_button( $cta_label, $cta_url, 'primary', 'plain', 'black', '', 0, 'center' );
+		}
 	}
 	if ( ! $inner ) {
 		return '';
 	}
+	$hero_pos = aldus_cover_position_extra_classes( (string) ( $attrs['contentPosition'] ?? 'center center' ) );
 	return serialize_block(
 		array(
 			'blockName'    => 'core/cover',
 			'attrs'        => $attrs,
 			'innerBlocks'  => array(),
 			'innerContent' => array(
-				'<div class="wp-block-cover alignfull has-custom-content-position'
-				. ' is-position-center-center" style="' . ( $hero_radius !== '' ? "border-radius:{$hero_radius};" : '' ) . "min-height:{$cover_min_height}px\">\n"
-				. '<span aria-hidden="true" class="wp-block-cover__background'
-				. " has-{$color_safe}-background-color {$dim_class} has-background-dim\"></span>\n"
+				'<div class="wp-block-cover alignfull'
+				. ( '' !== $hero_pos ? ' ' . $hero_pos : '' )
+				. aldus_cover_is_light_class( $attrs )
+				. '" style="' . ( $hero_radius !== '' ? "border-radius:{$hero_radius};" : '' ) . "min-height:{$cover_min_height}px\">\n"
 				. $image_html
+				. aldus_cover_background_span_html( $attrs ) . "\n"
 				. '<div class="' . aldus_cover_inner_classes() . "\">\n{$inner}</div>\n</div>",
 			),
 		)
@@ -304,16 +282,15 @@ function aldus_cover_product_hero( Aldus_Content_Distributor $dist, array $ctx )
 function aldus_cover_manifesto( array $ctx ): string {
 	$attrs                    = $ctx['attrs'];
 	$attrs['contentPosition'] = 'center center';
-	$cover_min_height         = aldus_cover_min_height( $ctx['headline_raw'], 360 );
+	$cover_min_height         = aldus_cover_min_height( $ctx['headline_raw'], 360, $ctx['density'] ?? null );
 	$attrs['minHeight']       = $cover_min_height;
 	unset( $attrs['url'], $attrs['hasParallax'], $attrs['useFeaturedImage'] );
 
-	$color_safe       = $ctx['color_safe'];
 	$text_color       = $ctx['text_color'];
 	$text_color_safe  = $ctx['text_color_safe'];
 	$font_size        = $ctx['font_size'];
-	$dim_class        = 'has-background-dim-20';
 	$heading_font     = $ctx['heading_font'] ?? null;
+	$heading_ff_cls   = aldus_heading_font_family_class( $heading_font );
 	$manifesto_radius = $attrs['style']['border']['radius'] ?? '';
 
 	$inner = '';
@@ -334,7 +311,7 @@ function aldus_cover_manifesto( array $ctx ): string {
 				'innerBlocks'  => array(),
 				'innerContent' => array(
 					"<h1 class=\"wp-block-heading has-text-align-center has-{$text_color_safe}-color"
-					. " has-text-color has-{$font_size}-font-size\">{$ctx['text']}</h1>",
+					. " has-text-color has-{$font_size}-font-size{$heading_ff_cls}\">{$ctx['text']}</h1>",
 				),
 			)
 		) . "\n";
@@ -342,16 +319,18 @@ function aldus_cover_manifesto( array $ctx ): string {
 	if ( ! $inner ) {
 		return '';
 	}
+	$manifesto_pos = aldus_cover_position_extra_classes( (string) ( $attrs['contentPosition'] ?? 'center center' ) );
 	return serialize_block(
 		array(
 			'blockName'    => 'core/cover',
 			'attrs'        => $attrs,
 			'innerBlocks'  => array(),
 			'innerContent' => array(
-				'<div class="wp-block-cover alignfull has-custom-content-position'
-				. ' is-position-center-center" style="' . ( $manifesto_radius !== '' ? "border-radius:{$manifesto_radius};" : '' ) . "min-height:{$cover_min_height}px\">\n"
-				. '<span aria-hidden="true" class="wp-block-cover__background'
-				. " has-{$color_safe}-background-color {$dim_class} has-background-dim\"></span>\n"
+				'<div class="wp-block-cover alignfull'
+				. ( '' !== $manifesto_pos ? ' ' . $manifesto_pos : '' )
+				. aldus_cover_is_light_class( $attrs )
+				. '" style="' . ( $manifesto_radius !== '' ? "border-radius:{$manifesto_radius};" : '' ) . "min-height:{$cover_min_height}px\">\n"
+				. aldus_cover_background_span_html( $attrs ) . "\n"
 				. '<div class="' . aldus_cover_inner_classes() . "\">\n{$inner}</div>\n</div>",
 			),
 		)
@@ -375,7 +354,6 @@ function aldus_cover_standard(
 ): string {
 	$attrs            = $ctx['attrs'];
 	$cover_min_height = $ctx['cover_min_height'];
-	$color_safe       = $ctx['color_safe'];
 	$text_color_safe  = $ctx['text_color_safe'];
 	$text_color       = $ctx['text_color'];
 	$font_size        = $ctx['font_size'];
@@ -383,11 +361,10 @@ function aldus_cover_standard(
 	$image_url        = $ctx['image_url'];
 	$sub_text         = $ctx['sub_text'];
 	$heading_font     = $ctx['heading_font'] ?? null;
+	$heading_ff_cls   = aldus_heading_font_family_class( $heading_font );
 
 	$content_position = $attrs['contentPosition'];
-	$position_slug    = str_replace( ' ', '-', $content_position );
-	$position_class   = "has-custom-content-position is-position-{$position_slug}";
-	$dim_class        = "has-background-dim-{$dim_ratio}";
+	$position_extra   = aldus_cover_position_extra_classes( $content_position );
 	$cover_radius     = $attrs['style']['border']['radius'] ?? '';
 
 	$image_html = $image_url
@@ -409,7 +386,7 @@ function aldus_cover_standard(
 				'blockName'    => 'core/heading',
 				'attrs'        => $h1_attrs,
 				'innerBlocks'  => array(),
-				'innerContent' => array( "<h1 class=\"wp-block-heading has-{$text_color_safe}-color has-text-color has-{$font_size}-font-size\">{$ctx['text']}</h1>" ),
+				'innerContent' => array( "<h1 class=\"wp-block-heading has-{$text_color_safe}-color has-text-color has-{$font_size}-font-size{$heading_ff_cls}\">{$ctx['text']}</h1>" ),
 			)
 		) . "\n";
 	}
@@ -435,10 +412,13 @@ function aldus_cover_standard(
 			'attrs'        => $attrs,
 			'innerBlocks'  => array(),
 			'innerContent' => array(
-				"<div class=\"wp-block-cover alignfull {$position_class}\"{$ia_attrs}"
+				'<div class="wp-block-cover alignfull'
+				. ( '' !== $position_extra ? ' ' . $position_extra : '' )
+				. aldus_cover_is_light_class( $attrs )
+				. '"' . $ia_attrs
 				. ' style="' . ( $cover_radius !== '' ? "border-radius:{$cover_radius};" : '' ) . "min-height:{$cover_min_height}px\">\n"
-				. "<span aria-hidden=\"true\" class=\"wp-block-cover__background has-{$color_safe}-background-color {$dim_class} has-background-dim\"></span>\n"
 				. $image_html
+				. aldus_cover_background_span_html( $attrs ) . "\n"
 				. $inner_container
 				. '</div>',
 			),
@@ -452,7 +432,8 @@ function aldus_block_cover_minimal(
 	string $font_size,
 	string $name = '',
 	?string $heading_font = null,
-	bool $is_light = false
+	bool $is_light = false,
+	?string $density = null
 ): string {
 	$headline = $dist->consume( 'headline' ) ?? $dist->consume( 'subheading' );
 	if ( ! $headline ) {
@@ -465,7 +446,7 @@ function aldus_block_cover_minimal(
 	$text_color      = $is_light ? 'black' : 'white';
 	$text_color_safe = sanitize_html_class( $text_color );
 
-	$cover_min_height = aldus_cover_min_height( $headline_raw, 380 );
+	$cover_min_height = aldus_cover_min_height( $headline_raw, 380, $density );
 	$attrs            = array(
 		'overlayColor'    => $color_slug,
 		'dimRatio'        => 100,
@@ -473,7 +454,7 @@ function aldus_block_cover_minimal(
 		'contentPosition' => 'center center',
 		'minHeight'       => $cover_min_height,
 		'minHeightUnit'   => 'px',
-		'layout'          => array( 'type' => 'constrained' ),
+		'isDark'          => ! $is_light,
 	);
 	if ( $name ) {
 		$attrs['metadata'] = array( 'name' => $name );
@@ -489,6 +470,8 @@ function aldus_block_cover_minimal(
 		$h1_attrs['fontFamily'] = $heading_font;
 	}
 
+	$heading_ff_cls = aldus_heading_font_family_class( $heading_font );
+
 	$heading_html = serialize_block(
 		array(
 			'blockName'    => 'core/heading',
@@ -496,21 +479,23 @@ function aldus_block_cover_minimal(
 			'innerBlocks'  => array(),
 			'innerContent' => array(
 				"<h1 class=\"wp-block-heading has-text-align-center has-{$text_color_safe}-color"
-				. " has-text-color has-{$font_size}-font-size\">{$text}</h1>",
+				. " has-text-color has-{$font_size}-font-size{$heading_ff_cls}\">{$text}</h1>",
 			),
 		)
 	);
 
+	$minimal_pos = aldus_cover_position_extra_classes( (string) ( $attrs['contentPosition'] ?? 'center center' ) );
 	return serialize_block(
 		array(
 			'blockName'    => 'core/cover',
 			'attrs'        => $attrs,
 			'innerBlocks'  => array(),
 			'innerContent' => array(
-				'<div class="wp-block-cover alignfull has-custom-content-position'
-				. " is-position-center-center\" style=\"min-height:{$cover_min_height}px\">\n"
-				. '<span aria-hidden="true" class="wp-block-cover__background'
-				. " has-{$color_safe}-background-color has-background-dim-100 has-background-dim\"></span>\n"
+				'<div class="wp-block-cover alignfull'
+				. ( '' !== $minimal_pos ? ' ' . $minimal_pos : '' )
+				. aldus_cover_is_light_class( $attrs )
+				. "\" style=\"min-height:{$cover_min_height}px\">\n"
+				. aldus_cover_background_span_html( $attrs ) . "\n"
 				. '<div class="' . aldus_cover_inner_classes() . "\">\n{$heading_html}\n</div>\n</div>",
 			),
 		)
@@ -573,12 +558,13 @@ function aldus_block_cover_split( Aldus_Content_Distributor $dist, string $font_
 		if ( $heading_font ) {
 			$h1_attrs['fontFamily'] = $heading_font;
 		}
+		$heading_ff_cls = aldus_heading_font_family_class( $heading_font );
 		$content_inner .= serialize_block(
 			array(
 				'blockName'    => 'core/heading',
 				'attrs'        => $h1_attrs,
 				'innerBlocks'  => array(),
-				'innerContent' => array( "<h1 class=\"wp-block-heading has-{$font_size_safe}-font-size\">" . esc_html( $headline['content'] ) . '</h1>' ),
+				'innerContent' => array( "<h1 class=\"wp-block-heading has-{$font_size_safe}-font-size{$heading_ff_cls}\">" . esc_html( $headline['content'] ) . '</h1>' ),
 			)
 		) . "\n";
 	}

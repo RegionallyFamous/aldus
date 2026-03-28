@@ -173,7 +173,7 @@ const PERSONALITIES = [
 	},
 	{
 		name: 'Nocturne',
-		tokens: [ 'cover:dark', 'image:full', 'paragraph' ],
+		tokens: [ 'cover:split', 'image:full', 'paragraph' ],
 	},
 	{
 		name: 'Tribune',
@@ -328,6 +328,11 @@ for ( const personality of PERSONALITIES ) {
 
 		// No recursive Aldus nesting.
 		expect( body.blocks ).not.toContain( '<!-- wp:aldus' );
+
+		// Client-authoritative block tree (createBlock + serialize in the editor).
+		expect( Array.isArray( body.blocks_tree ) ).toBe( true );
+		expect( body.blocks_tree.length ).toBeGreaterThan( 0 );
+		expect( body.assemble_format ).toBe( 2 );
 	} );
 }
 

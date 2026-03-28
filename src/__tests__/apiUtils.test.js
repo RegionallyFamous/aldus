@@ -130,8 +130,37 @@ describe( 'isValidAssembleResponse', () => {
 				success: true,
 				blocks: '<!-- wp:cover --><!-- /wp:cover -->',
 				label: 'Nocturne',
-				tokens: [ 'cover:dark', 'paragraph' ],
+				tokens: [ 'cover:split', 'paragraph' ],
 				sections: [],
+			} )
+		).toBe( true );
+	} );
+
+	it( 'returns true when blocks_tree is non-empty even if blocks is empty', () => {
+		expect(
+			isValidAssembleResponse( {
+				success: true,
+				blocks: '',
+				label: 'Dispatch',
+				blocks_tree: [
+					{
+						name: 'core/paragraph',
+						attributes: { content: 'Hi' },
+					},
+				],
+			} )
+		).toBe( true );
+	} );
+
+	it( 'returns true when both blocks and blocks_tree are present', () => {
+		expect(
+			isValidAssembleResponse( {
+				success: true,
+				blocks: '<!-- wp:paragraph --><p>x</p><!-- /wp:paragraph -->',
+				label: 'Dispatch',
+				blocks_tree: [
+					{ name: 'core/paragraph', attributes: { content: 'x' } },
+				],
 			} )
 		).toBe( true );
 	} );

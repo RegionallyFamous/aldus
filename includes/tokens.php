@@ -145,7 +145,7 @@ function aldus_anchor_tokens(): array {
 		'Stratum'    => array( 'group:dark-full', 'group:light-full', 'group:accent-full' ),
 		'Broadside'  => array( 'media-text:left', 'media-text:right', 'group:accent-full', 'row:stats' ),
 		'Manifesto'  => array( 'heading:h1', 'group:dark-full', 'columns:3-equal', 'paragraph:lead' ),
-		'Nocturne'   => array( 'cover:dark', 'image:full' ),
+		'Nocturne'   => array( 'cover:split', 'image:full' ),
 		'Tribune'    => array( 'columns:3-equal', 'pullquote:full-solid', 'group:grid', 'row:stats' ),
 		'Overture'   => array( 'cover:light', 'media-text:right', 'group:accent-full' ),
 		// Phase 1 additions

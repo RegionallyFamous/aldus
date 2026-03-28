@@ -209,6 +209,8 @@ class BlockMarkupTest extends TestCase {
 		$this->assertArrayHasKey( 'blocks', $data, 'Response must contain blocks markup' );
 		$markup = (string) $data['blocks'];
 		$this->assertNotEmpty( $markup, 'Assembled markup must not be empty' );
+		$this->assertArrayHasKey( 'blocks_tree', $data );
+		$this->assertIsArray( $data['blocks_tree'] );
 
 		$errors = aldus_validate_assembled_markup( $markup );
 		$this->assertEmpty(

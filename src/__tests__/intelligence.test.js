@@ -243,7 +243,7 @@ describe( 'recommendPersonalities()', () => {
 			name: 'Folio',
 			anchors: [ 'columns:28-72', 'heading:h2', 'separator' ],
 		},
-		{ name: 'Nocturne', anchors: [ 'cover:dark', 'image:full' ] },
+		{ name: 'Nocturne', anchors: [ 'cover:split', 'image:full' ] },
 		{
 			name: 'Solstice',
 			anchors: [ 'cover:minimal', 'columns:2-equal' ],

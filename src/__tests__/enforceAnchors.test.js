@@ -16,7 +16,7 @@ const DISPATCH = {
 
 const NOCTURNE = {
 	name: 'Nocturne',
-	anchors: [ 'cover:dark', 'image:full' ],
+	anchors: [ 'cover:split', 'image:full' ],
 	creativity: 1,
 };
 
@@ -66,12 +66,12 @@ describe( 'enforceAnchors() — loose (creativity: 1)', () => {
 	it( 'appends missing anchors at the end', () => {
 		const result = enforceAnchors( NOCTURNE, [ 'paragraph', 'separator' ] );
 		expect( result[ 0 ] ).toBe( 'paragraph' );
-		expect( result[ result.length - 2 ] ).toBe( 'cover:dark' );
+		expect( result[ result.length - 2 ] ).toBe( 'cover:split' );
 		expect( result[ result.length - 1 ] ).toBe( 'image:full' );
 	} );
 
 	it( 'does not move anchors that are already present', () => {
-		const tokens = [ 'cover:dark', 'paragraph', 'image:full' ];
+		const tokens = [ 'cover:split', 'paragraph', 'image:full' ];
 		const result = enforceAnchors( NOCTURNE, tokens );
 		expect( result ).toEqual( tokens );
 	} );
