@@ -76,18 +76,23 @@ function aldus_block_heading_kicker( Aldus_Content_Distributor $dist, string $fo
 
 	$markup = '';
 	if ( $kicker ) {
+		$kicker_attrs = array(
+			'level' => 6,
+			'style' => array(
+				'typography' => array(
+					'textTransform' => 'uppercase',
+					'letterSpacing' => '0.12em',
+				),
+			),
+		);
+		if ( aldus_typography_is_fluid() ) {
+			$sizes                    = aldus_get_theme_font_sizes();
+			$kicker_attrs['fontSize'] = (string) ( $sizes[0]['slug'] ?? 'small' );
+		}
 		$markup .= serialize_block(
 			array(
 				'blockName'    => 'core/heading',
-				'attrs'        => array(
-					'level' => 6,
-					'style' => array(
-						'typography' => array(
-							'textTransform' => 'uppercase',
-							'letterSpacing' => '0.12em',
-						),
-					),
-				),
+				'attrs'        => $kicker_attrs,
 				'innerBlocks'  => array(),
 				'innerContent' => array( '<h6 class="wp-block-heading">' . esc_html( $kicker['content'] ) . '</h6>' ),
 			)

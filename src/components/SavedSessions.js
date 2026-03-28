@@ -3,7 +3,7 @@
  * SavedSessions — panel for saving and loading generation sessions.
  */
 
-import { useState, useCallback, useRef } from '@wordpress/element';
+import { useState, useCallback } from '@wordpress/element';
 import {
 	Button,
 	TextControl,
@@ -129,7 +129,7 @@ export function StyleNoteField( {
 export function SavedSessions( { items, styleNote, onLoad } ) {
 	const [ isOpen, setIsOpen ] = useState( false );
 	const [ saveName, setSaveName ] = useState( '' );
-	const wrapRef = useRef( null );
+	const [ anchorEl, setAnchorEl ] = useState( null );
 
 	// Persist sessions in the WP preferences store — no raw localStorage access.
 	const sessions = useSelect(
@@ -189,7 +189,7 @@ export function SavedSessions( { items, styleNote, onLoad } ) {
 	);
 
 	return (
-		<div ref={ wrapRef } className="aldus-saved-sessions-wrap">
+		<div ref={ setAnchorEl } className="aldus-saved-sessions-wrap">
 			<Button
 				variant="tertiary"
 				size="small"
@@ -212,7 +212,7 @@ export function SavedSessions( { items, styleNote, onLoad } ) {
 			</Button>
 			{ isOpen && (
 				<Popover
-					anchor={ wrapRef.current }
+					anchor={ anchorEl }
 					placement="bottom-end"
 					onClose={ () => setIsOpen( false ) }
 					noArrow

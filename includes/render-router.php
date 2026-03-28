@@ -102,13 +102,8 @@ function aldus_render_block_token(
 			. ' data-wp-watch="callbacks.animateDetails"';
 	}
 
-	// Compute border-radius from edges setting.
-	$s_radius = '';
-	if ( 'soft' === $s_edges ) {
-		$s_radius = '8px';
-	} elseif ( 'sharp' === $s_edges ) {
-		$s_radius = '0';
-	}
+	// Border-radius from edges + theme preset shorthand when available.
+	$s_radius = aldus_theme_border_radius_for_edges( $s_edges );
 
 	$prev_heavy = $rhythm['prev_heavy'] ?? false;
 

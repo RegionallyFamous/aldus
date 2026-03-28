@@ -67,6 +67,20 @@ export function extractItemFromBlock( block ) {
 			},
 		];
 	}
+	if ( block.name === 'core/pullquote' ) {
+		const content = extractPlainText( block.attributes?.value ?? '' );
+		if ( ! content ) {
+			return [];
+		}
+		return [
+			{
+				id: generateId(),
+				type: 'quote',
+				content,
+				url: '',
+			},
+		];
+	}
 	if ( block.name === 'core/quote' ) {
 		return [
 			{
@@ -225,4 +239,69 @@ export function extractItemFromBlock( block ) {
 		return ( block.innerBlocks ?? [] ).flatMap( extractItemFromBlock );
 	}
 	return [];
+}
+
+/**
+ * Returns true if an extracted item carries enough data for Aldus to use.
+ *
+ * @param {{ type: string, content?: string, url?: string, urls?: string[] }} item Extracted item.
+ * @return {boolean} True when the item has non-empty text, media URLs, or a meaningful CTA link.
+ */
+function itemHasExtractablePayload( item ) {
+	if ( ! item || typeof item.type !== 'string' ) {
+		return false;
+	}
+	if ( item.type === 'image' || item.type === 'gallery' ) {
+		const hasUrl = !! ( item.url && String( item.url ).trim() );
+		const hasUrls =
+			Array.isArray( item.urls ) &&
+			item.urls.some( ( u ) => u && String( u ).trim() );
+		return hasUrl || hasUrls;
+	}
+	if ( item.type === 'cta' ) {
+		return (
+			!! String( item.content ?? '' ).trim() ||
+			( !! item.url &&
+				item.url !== '#' &&
+				String( item.url ).trim() !== '' )
+		);
+	}
+	return String( item.content ?? '' ).trim().length > 0;
+}
+
+/**
+ * Walks the editor block tree (top-level and nested containers) and collects
+ * Aldus content items, skipping the Aldus block itself. Uses the same rules as
+ * "Redesign with Aldus" ({@link extractItemFromBlock}).
+ *
+ * @param {Object[]} blocks Root list from `wp.data.select('core/block-editor').getBlocks()`.
+ * @return {Object[]} Items suitable for `savedItems` (each includes `id` from extract).
+ */
+export function collectItemsFromEditorBlocks( blocks ) {
+	if ( ! Array.isArray( blocks ) ) {
+		return [];
+	}
+	const out = [];
+	const walk = ( list ) => {
+		for ( const block of list ) {
+			if ( ! block?.name ) {
+				continue;
+			}
+			if ( block.name === 'aldus/layout-generator' ) {
+				continue;
+			}
+			const extracted = extractItemFromBlock( block );
+			if ( extracted.length > 0 ) {
+				for ( const item of extracted ) {
+					if ( itemHasExtractablePayload( item ) ) {
+						out.push( item );
+					}
+				}
+			} else if ( ( block.innerBlocks ?? [] ).length > 0 ) {
+				walk( block.innerBlocks );
+			}
+		}
+	};
+	walk( blocks );
+	return out;
 }

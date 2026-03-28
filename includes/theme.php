@@ -172,13 +172,14 @@ function aldus_theme_wide_size(): string {
  * the output feels native to any theme regardless of its specific values.
  *
  * @param string $role  One of 'sm' (≈1.5rem), 'md' (≈3rem), 'lg' (≈4rem), 'xl' (≈6rem).
- * @return string CSS value or var(--wp--preset--spacing--{slug}).
+ * @return string Raw CSS length, or var:preset|spacing|{slug} when theme spacing presets exist.
  */
 function aldus_theme_spacing( string $role ): string {
 	static $map = null;
 
 	if ( null === $map ) {
-		$cache_key = 'aldus_spacing_map_' . aldus_theme_cache_suffix();
+		// Cache key version: preset shorthand (var:preset|spacing|*) replaces long-form var(--wp--*).
+		$cache_key = 'aldus_spacing_map_ps_' . aldus_theme_cache_suffix();
 		$cached    = wp_cache_get( $cache_key, 'aldus' );
 
 		if ( false !== $cached ) {
@@ -211,7 +212,7 @@ function aldus_theme_spacing( string $role ): string {
 				foreach ( $percentiles as $r => $idx ) {
 					$idx       = max( 0, min( $idx, $n - 1 ) );
 					$slug      = $presets[ $idx ]['slug'] ?? '';
-					$map[ $r ] = $slug !== '' ? "var(--wp--preset--spacing--{$slug})" : $fallbacks[ $r ];
+					$map[ $r ] = $slug !== '' ? 'var:preset|spacing|' . $slug : $fallbacks[ $r ];
 				}
 			}
 
@@ -220,6 +221,228 @@ function aldus_theme_spacing( string $role ): string {
 	}
 
 	return $map[ $role ] ?? '1.5rem';
+}
+
+/**
+ * Whether the active theme enables fluid typography (theme.json typography.fluid).
+ */
+function aldus_typography_is_fluid(): bool {
+	static $fluid = null;
+	if ( null !== $fluid ) {
+		return $fluid;
+	}
+	$settings = wp_get_global_settings( array( 'typography', 'fluid' ) );
+	if ( is_wp_error( $settings ) ) {
+		$fluid = false;
+		return $fluid;
+	}
+	if ( true === $settings ) {
+		$fluid = true;
+		return $fluid;
+	}
+	if ( is_array( $settings ) && ! empty( $settings ) ) {
+		$fluid = true;
+		return $fluid;
+	}
+	$fluid = false;
+	return $fluid;
+}
+
+/**
+ * Theme aspect ratio presets (dimensions.aspectRatios).
+ *
+ * @return list<array{slug?:string,aspectRatio?:string,ratio?:string,name?:string}>
+ */
+function aldus_get_theme_aspect_ratios(): array {
+	$cache_key = 'aldus_aspect_ratios_' . aldus_theme_cache_suffix();
+	$cached    = wp_cache_get( $cache_key, 'aldus' );
+	if ( false !== $cached ) {
+		return (array) $cached;
+	}
+
+	$settings = wp_get_global_settings( array( 'dimensions', 'aspectRatios' ) );
+	$presets  = array();
+	if ( is_array( $settings ) ) {
+		$presets = $settings['theme'] ?? $settings['default'] ?? array();
+		if ( isset( $presets['slug'] ) || isset( $presets['aspectRatio'] ) ) {
+			$presets = array( $presets );
+		}
+	}
+
+	wp_cache_set( $cache_key, $presets, 'aldus', HOUR_IN_SECONDS );
+	return $presets;
+}
+
+/**
+ * Picks an aspectRatio string for image/cover blocks from the theme or fallbacks.
+ *
+ * @param string $preference 'wide' (≈16:9) or 'standard' (≈3:2 / 4:3).
+ */
+function aldus_pick_aspect_ratio( string $preference ): string {
+	$ratios = aldus_get_theme_aspect_ratios();
+	$want_wide = ( 'wide' === $preference );
+
+	if ( empty( $ratios ) ) {
+		return $want_wide ? '16/9' : '3/2';
+	}
+
+	$ratio_string = static function ( array $p ): string {
+		$r = $p['aspectRatio'] ?? $p['ratio'] ?? '';
+		return is_string( $r ) ? $r : '';
+	};
+
+	$numeric_ratio = static function ( string $r ): ?float {
+		$parts = explode( '/', $r );
+		if ( count( $parts ) !== 2 ) {
+			return null;
+		}
+		$den = (float) $parts[1];
+		if ( $den <= 0 ) {
+			return null;
+		}
+		return (float) $parts[0] / $den;
+	};
+
+	foreach ( $ratios as $p ) {
+		if ( ! is_array( $p ) ) {
+			continue;
+		}
+		$slug = strtolower( (string) ( $p['slug'] ?? '' ) );
+		if ( $want_wide && ( str_contains( $slug, '16' ) || str_contains( $slug, 'wide' ) || str_contains( $slug, 'video' ) ) ) {
+			$s = $ratio_string( $p );
+			if ( $s !== '' && 'auto' !== strtolower( $s ) ) {
+				return $s;
+			}
+		}
+	}
+
+	$best   = '';
+	$best_d = PHP_FLOAT_MAX;
+	foreach ( $ratios as $p ) {
+		if ( ! is_array( $p ) ) {
+			continue;
+		}
+		$s = $ratio_string( $p );
+		if ( $s === '' || 'auto' === strtolower( $s ) ) {
+			continue;
+		}
+		$n = $numeric_ratio( $s );
+		if ( null === $n ) {
+			continue;
+		}
+		if ( $want_wide ) {
+			if ( $n >= 1.5 ) {
+				$target = 16 / 9;
+				$d      = abs( $n - $target );
+				if ( $d < $best_d ) {
+					$best_d = $d;
+					$best   = $s;
+				}
+			}
+		} elseif ( $n >= 1.2 && $n <= 1.75 ) {
+			$target = 3 / 2;
+			$d      = abs( $n - $target );
+			if ( $d < $best_d ) {
+				$best_d = $d;
+				$best   = $s;
+			}
+		}
+	}
+
+	if ( $best !== '' ) {
+		return $best;
+	}
+
+	$first = $ratios[0];
+	return is_array( $first ) ? ( $ratio_string( $first ) ?: ( $want_wide ? '16/9' : '3/2' ) ) : ( $want_wide ? '16/9' : '3/2' );
+}
+
+/**
+ * Border radius for Aldus personality "edges" (soft / sharp / default).
+ *
+ * Uses theme border.radiusSizes preset shorthand when available (WP 6.9+).
+ *
+ * @param string $edges 'soft' | 'sharp' | 'default'.
+ * @return string Empty string means no radius attribute; otherwise CSS or var:preset|border-radius|{slug}.
+ */
+function aldus_theme_border_radius_for_edges( string $edges ): string {
+	if ( 'sharp' === $edges ) {
+		return '0';
+	}
+	if ( 'soft' !== $edges ) {
+		return '';
+	}
+
+	$settings = wp_get_global_settings( array( 'border', 'radiusSizes' ) );
+	$presets  = array();
+	if ( is_array( $settings ) ) {
+		$presets = $settings['theme'] ?? $settings['default'] ?? array();
+	}
+
+	if ( ! empty( $presets ) ) {
+		$slug = '';
+		foreach ( $presets as $p ) {
+			if ( ! is_array( $p ) ) {
+				continue;
+			}
+			$s = (string) ( $p['slug'] ?? '' );
+			if ( in_array( $s, array( 'md', 'medium', 'default' ), true ) ) {
+				$slug = $s;
+				break;
+			}
+		}
+		if ( $slug === '' ) {
+			$mid = (int) floor( count( $presets ) / 2 );
+			$mid = max( 0, min( $mid, count( $presets ) - 1 ) );
+			$p   = $presets[ $mid ];
+			$slug = is_array( $p ) ? (string) ( $p['slug'] ?? '' ) : '';
+		}
+		if ( $slug !== '' ) {
+			return 'var:preset|border-radius|' . $slug;
+		}
+	}
+
+	return '8px';
+}
+
+/**
+ * Optional line-height from theme settings.custom (lineHeight.body / lineHeight.heading).
+ *
+ * @param string $role 'body' | 'heading'.
+ */
+function aldus_theme_custom_line_height( string $role ): string {
+	$custom = wp_get_global_settings( array( 'custom' ) );
+	if ( ! is_array( $custom ) ) {
+		return '';
+	}
+	$lh = $custom['lineHeight'] ?? array();
+	if ( ! is_array( $lh ) ) {
+		return '';
+	}
+	$val = $lh[ $role ] ?? '';
+	return is_string( $val ) && $val !== '' ? $val : '';
+}
+
+/**
+ * Optional outer spacing token from settings.custom.spacing.outer (string or preset-like value).
+ */
+function aldus_theme_custom_spacing_outer(): string {
+	$custom = wp_get_global_settings( array( 'custom' ) );
+	if ( ! is_array( $custom ) ) {
+		return '';
+	}
+	$spacing = $custom['spacing'] ?? array();
+	if ( ! is_array( $spacing ) ) {
+		return '';
+	}
+	$outer = $spacing['outer'] ?? '';
+	if ( ! is_string( $outer ) || $outer === '' ) {
+		return '';
+	}
+	if ( preg_match( '/^var:preset\|spacing\|[a-z0-9-]+$/i', $outer ) ) {
+		return $outer;
+	}
+	return $outer;
 }
 
 /**
@@ -1047,6 +1270,8 @@ function aldus_flush_theme_cache(): void {
 	wp_cache_delete( 'aldus_content_size_' . $v, 'aldus' );
 	wp_cache_delete( 'aldus_wide_size_' . $v, 'aldus' );
 	wp_cache_delete( 'aldus_spacing_map_' . $v, 'aldus' );
+	wp_cache_delete( 'aldus_spacing_map_ps_' . $v, 'aldus' );
+	wp_cache_delete( 'aldus_aspect_ratios_' . $v, 'aldus' );
 	wp_cache_delete( 'aldus_spacer_scale_' . $v, 'aldus' );
 	wp_cache_delete( 'aldus_appearance_tools_' . $v, 'aldus' );
 }

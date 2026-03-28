@@ -67,7 +67,6 @@ function aldus_register_telemetry_route(): void {
 		)
 	);
 }
-add_action( 'rest_api_init', 'aldus_register_telemetry_route' );
 
 /**
  * Handles POST /aldus/v1/telemetry.

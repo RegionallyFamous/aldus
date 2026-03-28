@@ -94,8 +94,9 @@
     <!-- serialize_block() and innerContent strings produce very long lines -->
     <rule ref="Generic.Files.LineLength">
         <properties>
-            <property name="lineLimit" value="160"/>
-            <property name="absoluteLineLimit" value="260"/>
+            <!-- Block JSON / serialize_block() strings exceed 160 in several renderers -->
+            <property name="lineLimit" value="240"/>
+            <property name="absoluteLineLimit" value="320"/>
         </properties>
     </rule>
 

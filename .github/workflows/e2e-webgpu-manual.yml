@@ -1,0 +1,22 @@
+# WebGPU + full in-browser generation are intentionally out of default CI.
+# This workflow exists as a documented entry point for manual runs on hardware
+# that supports WebGPU and caching the ~200 MB model (e.g. self-hosted runner).
+#
+# It does not run automated WebGPU tests yet — see CONTRIBUTING.md
+# "Optional: WebGPU / full Make it happen E2E".
+
+name: E2E WebGPU (manual placeholder)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  instructions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Document WebGPU E2E scope
+        run: |
+          echo "Default Aldus E2E (ci.yml) uses pack preview + REST — no WebLLM download."
+          echo "For full generation smoke: use a local WebGPU browser with wp-env, or add"
+          echo "a @webgpu Playwright spec and run it on self-hosted / workflow_dispatch."
+          echo "See CONTRIBUTING.md — Optional: WebGPU / full Make it happen E2E."

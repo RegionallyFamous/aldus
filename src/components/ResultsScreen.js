@@ -9,6 +9,7 @@ import {
 	useRef,
 	useMemo,
 	useEffect,
+	useLayoutEffect,
 } from '@wordpress/element';
 import {
 	Button,
@@ -39,6 +40,21 @@ import { ACTIVE_PERSONALITIES } from '../data/personalities.js';
 import { LAYOUT_TAGLINES } from '../data/ui-strings.js';
 import { LayoutWireframe } from './LayoutWireframe.js';
 import { safeIcon } from '../utils/safeIcon';
+
+/**
+ * @param {Array}  items       Layout entries in visual order.
+ * @param {number} columnCount Measured column count from the CSS grid.
+ * @return {Array<Array>} Layout rows for `role="row"` wrappers.
+ */
+function chunkIntoRows( items, columnCount ) {
+	const cols = Math.max( 1, columnCount );
+	/** @type {Array<Array>} */
+	const rows = [];
+	for ( let i = 0; i < items.length; i += cols ) {
+		rows.push( items.slice( i, i + cols ) );
+	}
+	return rows;
+}
 
 export function ResultsScreen( {
 	layouts,
@@ -210,6 +226,38 @@ export function ResultsScreen( {
 			...filtered.filter( ( l ) => ! favSet.has( l.label ) ),
 		];
 	}, [ layouts, filterText, favorites ] );
+
+	const [ gridColumnCount, setGridColumnCount ] = useState( 2 );
+
+	const measureGridColumns = useCallback( () => {
+		const root = gridRef.current;
+		if ( ! root ) {
+			return;
+		}
+		const card = root.querySelector( '.aldus-card[role="gridcell"]' );
+		if ( ! card ) {
+			return;
+		}
+		const w = root.offsetWidth;
+		const cw = card.offsetWidth || 1;
+		const next = Math.max( 1, Math.round( w / cw ) );
+		setGridColumnCount( ( prev ) => ( prev === next ? prev : next ) );
+	}, [] );
+
+	useLayoutEffect( () => {
+		measureGridColumns();
+		const root = gridRef.current;
+		if ( ! root || typeof ResizeObserver === 'undefined' ) {
+			return undefined;
+		}
+		const ro = new ResizeObserver( () => {
+			measureGridColumns();
+		} );
+		ro.observe( root );
+		return () => {
+			ro.disconnect();
+		};
+	}, [ measureGridColumns, visibleLayouts.length, isCompact ] );
 
 	return (
 		<>
@@ -428,58 +476,101 @@ export function ResultsScreen( {
 					onKeyDown={ handleGridKeyDown }
 				>
 					{ visibleLayouts.length > 0 ? (
-						visibleLayouts.map( ( layout, index ) => (
-							<LayoutCard
-								key={ layout.label }
-								layout={ layout }
-								index={ index }
-								isCompact={ isCompact }
-								onChoose={ () => chooseLayout( layout.label ) }
-								onReroll={
-									onReroll
-										? () => onReroll( layout.label )
-										: null
-								}
-								isRerolling={ rerollingLabel === layout.label }
-								hasRerollError={
-									!! rerollErrors?.[ layout.label ]
-								}
-								justRerolled={
-									justRerolledLabel === layout.label
-								}
-								isBestMatch={ bestMatchSet.has( layout.label ) }
-								isRecommended={ recommendedSet.has(
-									layout.label
-								) }
-								isFavorited={ favorites.includes(
-									layout.label
-								) }
-								onToggleFavorite={ () =>
-									toggleFavorite( layout.label )
-								}
-								onTryWithContent={
-									onTryWithContent
-										? () => onTryWithContent( layout.label )
-										: null
-								}
-								onCompare={
-									beforeBlocks.length > 0
-										? () => {
-												setCompareLayout( layout );
-												setShowBefore( false );
-										  }
-										: null
-								}
-								items={ items }
-								tabIndex={ index === focusedCardIndex ? 0 : -1 }
-								onFocus={ () => setFocusedCardIndex( index ) }
-								onRequestLayoutDescription={
-									isPreview
-										? null
-										: onRequestLayoutDescription
-								}
-							/>
-						) )
+						chunkIntoRows( visibleLayouts, gridColumnCount ).map(
+							( rowLayouts, rowIndex ) => (
+								<div
+									key={ `aldus-grid-row-${ rowIndex }` }
+									role="row"
+									className="aldus-grid__row"
+								>
+									{ rowLayouts.map( ( layout, colIndex ) => {
+										const index =
+											rowIndex * gridColumnCount +
+											colIndex;
+										return (
+											<LayoutCard
+												key={ layout.label }
+												layout={ layout }
+												index={ index }
+												isCompact={ isCompact }
+												onChoose={ () =>
+													chooseLayout( layout.label )
+												}
+												onReroll={
+													onReroll
+														? () =>
+																onReroll(
+																	layout.label
+																)
+														: null
+												}
+												isRerolling={
+													rerollingLabel ===
+													layout.label
+												}
+												hasRerollError={
+													!! rerollErrors?.[
+														layout.label
+													]
+												}
+												justRerolled={
+													justRerolledLabel ===
+													layout.label
+												}
+												isBestMatch={ bestMatchSet.has(
+													layout.label
+												) }
+												isRecommended={ recommendedSet.has(
+													layout.label
+												) }
+												isFavorited={ favorites.includes(
+													layout.label
+												) }
+												onToggleFavorite={ () =>
+													toggleFavorite(
+														layout.label
+													)
+												}
+												onTryWithContent={
+													onTryWithContent
+														? () =>
+																onTryWithContent(
+																	layout.label
+																)
+														: null
+												}
+												onCompare={
+													beforeBlocks.length > 0
+														? () => {
+																setCompareLayout(
+																	layout
+																);
+																setShowBefore(
+																	false
+																);
+														  }
+														: null
+												}
+												items={ items }
+												tabIndex={
+													index === focusedCardIndex
+														? 0
+														: -1
+												}
+												onFocus={ () =>
+													setFocusedCardIndex( index )
+												}
+												onRequestLayoutDescription={
+													isPreview
+														? null
+														: onRequestLayoutDescription
+												}
+											/>
+										);
+									} ) }
+								</div>
+							)
+						)
 					) : (
 						<p className="aldus-results-filter-empty">
 							{ __(
@@ -592,6 +683,23 @@ export function LayoutCard( {
 		onRequestLayoutDescription( layout );
 	}, [ layout, onRequestLayoutDescription, tokensSig ] );
 
+	const pointerDescTimerRef = useRef( null );
+	const clearPointerDescTimer = useCallback( () => {
+		if ( pointerDescTimerRef.current ) {
+			clearTimeout( pointerDescTimerRef.current );
+			pointerDescTimerRef.current = null;
+		}
+	}, [] );
+	const onCardPointerEnter = useCallback( () => {
+		clearPointerDescTimer();
+		pointerDescTimerRef.current = setTimeout( () => {
+			pointerDescTimerRef.current = null;
+			tryRequestLayoutDescription();
+		}, 200 );
+	}, [ clearPointerDescTimer, tryRequestLayoutDescription ] );
+
+	useEffect( () => () => clearPointerDescTimer(), [ clearPointerDescTimer ] );
+
 	useEffect( () => {
 		if ( isExpanded ) {
 			tryRequestLayoutDescription();
@@ -637,7 +745,8 @@ export function LayoutCard( {
 					.join( ' ' ) }
 				role="gridcell"
 				tabIndex={ tabIndex }
-				onPointerEnter={ tryRequestLayoutDescription }
+				onPointerEnter={ onCardPointerEnter }
+				onPointerLeave={ clearPointerDescTimer }
 				onFocus={ ( event ) => {
 					onFocus?.( event );
 					tryRequestLayoutDescription();

@@ -36,10 +36,11 @@
     "scripts": {
         "phpcs": "phpcs",
         "phpcbf": "phpcbf",
-        "phpstan": "phpstan analyse --memory-limit=512M",
+        "phpstan": "phpstan analyse --memory-limit=1024M",
         "test": "phpunit",
         "test:unit": "phpunit --testsuite unit",
-        "test:integration": "phpunit -c phpunit-integration.xml.dist"
+        "test:integration": "phpunit -c phpunit-integration.xml.dist",
+        "test:php:wxr": "phpunit -c phpunit-integration.xml.dist --filter WxrImportedPostsValidationTest"
     },
     "config": {
         "allow-plugins": {

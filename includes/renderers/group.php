@@ -33,10 +33,20 @@ function aldus_block_group(
 ): string {
 	$align = $full_width ? 'full' : '';
 
+	$pad_top    = aldus_theme_spacing( 'lg' );
+	$pad_bottom = aldus_theme_spacing( 'lg' );
+	if ( $full_width ) {
+		$outer = aldus_theme_custom_spacing_outer();
+		if ( $outer !== '' ) {
+			$pad_top    = $outer;
+			$pad_bottom = $outer;
+		}
+	}
+
 	$spacing = array(
 		'padding' => array(
-			'top'    => aldus_theme_spacing( 'lg' ),
-			'bottom' => aldus_theme_spacing( 'lg' ),
+			'top'    => $pad_top,
+			'bottom' => $pad_bottom,
 		),
 	);
 	if ( $block_gap ) {
@@ -102,8 +112,8 @@ function aldus_block_group(
 		return '';
 	}
 
-	$pad       = aldus_theme_spacing( 'lg' );
-	$style_str = "padding-top:{$pad};padding-bottom:{$pad}";
+	$pad       = $pad_top;
+	$style_str = "padding-top:{$pad};padding-bottom:{$pad_bottom}";
 	if ( $radius !== '' ) {
 		$style_str = "border-radius:{$radius};{$style_str}";
 	}

@@ -82,7 +82,7 @@ function aldus_render_admin_page(): void {
 			</h1>
 			<p>
 				<?php
-				// phpcs:ignore Generic.Files.LineLength.MaxExceeded
+				// phpcs:ignore Generic.Files.LineLength -- Long marketing copy; single literal required for i18n.
 				esc_html_e( 'The block editor has everything a great page needs. What\'s missing is the design instinct — which blocks to combine, in what order, with what mood. You bring the words. Aldus shows you every way they could look. Pick the one that fits.', 'aldus' );
 				?>
 			</p>
@@ -206,7 +206,7 @@ function aldus_render_admin_page(): void {
 			</p>
 			<p class="aldus-welcome-origin">
 				<?php
-				// phpcs:ignore Generic.Files.LineLength.MaxExceeded
+				// phpcs:ignore Generic.Files.LineLength -- Long marketing copy; single literal required for i18n.
 				esc_html_e( 'Aldus is free, open source, and named after Aldus Manutius — the 15th-century Venetian printer who invented italic type, pioneered the pocket-sized book, and defined what a printed page should look like.', 'aldus' );
 				?>
 			</p>

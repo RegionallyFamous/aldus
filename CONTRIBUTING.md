@@ -59,9 +59,35 @@ npm run test:php:unit
 # PHP integration tests (requires wp-env or a real WP install — see bin/install-wp-tests.sh)
 npm run test:php:integration
 
+# WXR fixture regression (subset of integration — validates tests/fixtures/wxr/aldus-test-content.xml)
+npm run test:php:wxr
+
 # Playwright E2E tests (requires wp-env running)
 npm run test:e2e
 ```
+
+### Visual regression and Aldus quality E2E
+
+`tests/e2e/visual-regression.spec.js` stores pixel baselines for the login page, admin dashboard, and the Aldus block empty building screen. (The 16-card pack preview grid is not pixel-tested here — card taglines and line-wrap make element height fluctuate between runs; that path is covered by `pack-preview.spec.js` and `aldus-quality.spec.js`.) After intentional UI changes, regenerate the Chromium snapshots with wp-env running:
+
+```bash
+npx playwright test tests/e2e/visual-regression.spec.js --project=chromium --update-snapshots
+```
+
+Commit the updated PNG files under `tests/e2e/visual-regression.spec.js-snapshots/`.
+
+`tests/e2e/aldus-quality.spec.js` runs axe-core on Chromium (scoped to serious/critical issues tied to the editor canvas or Aldus markup) and asserts that primary guidance text and controls stay present.
+
+### Optional: WebGPU / full “Make it happen” E2E
+
+Pull-request CI **does not** run the in-browser WebLLM path (~200 MB model, WebGPU). E2E instead covers **REST**, **pack preview** (PHP `/assemble`), accessibility, and mobile. That keeps CI fast and deterministic.
+
+To manually smoke-test **Make it happen** (full generation):
+
+1. `npm run env:start`
+2. Use a **WebGPU-capable** browser (e.g. current Chrome/Edge), open the block editor, insert Aldus, add content, and run generation.
+
+GitHub-hosted runners are not a reliable place for WebGPU + model cache. If you add a `@webgpu`-tagged Playwright spec later, run it from a **self-hosted** runner or **workflow_dispatch** workflow on suitable hardware—not on the default PR `ci.yml` job.
 
 Lint checks:
 

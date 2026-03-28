@@ -12,6 +12,36 @@
 
 'use strict';
 
+const path = require( 'path' );
+
+/** Session from auth.setup.js — same path as playwright.config.js */
+const E2E_AUTH_FILE = path.join( __dirname, '.auth.json' );
+
+/**
+ * Browser context using the saved login session (project storageState).
+ * Use this whenever tests call `browser.newPage()` in beforeAll; the default
+ * browser context does not inherit Playwright project `storageState`.
+ *
+ * @param {import('@playwright/test').Browser} browser
+ */
+async function newLoggedInContext( browser ) {
+	const baseURL = process.env.WP_BASE_URL ?? 'http://localhost:8888';
+	return browser.newContext( {
+		storageState: E2E_AUTH_FILE,
+		baseURL,
+	} );
+}
+
+/**
+ * @param {import('@playwright/test').Browser} browser
+ * @returns {Promise<{ context: import('@playwright/test').BrowserContext, page: import('@playwright/test').Page }>}
+ */
+async function newLoggedInPage( browser ) {
+	const context = await newLoggedInContext( browser );
+	const page = await context.newPage();
+	return { context, page };
+}
+
 /**
  * Returns a Playwright FrameLocator scoped to the editor canvas iframe.
  *
@@ -20,6 +50,25 @@
  */
 function getEditorFrame( page ) {
 	return page.frameLocator( 'iframe[name="editor-canvas"]' );
+}
+
+/**
+ * Waits until the post block editor chrome is visible.
+ *
+ * WordPress 6.x–6.9+ Gutenberg has used different roots: `.edit-post-layout`,
+ * `.editor-editor-interface`, and the interface skeleton body. Match any so
+ * E2E stays stable across core upgrades.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {number} [timeout=45000]
+ */
+async function waitForPostEditorShell( page, timeout = 45000 ) {
+	await page
+		.locator(
+			'.edit-post-layout, .editor-editor-interface, .interface-interface-skeleton__body'
+		)
+		.first()
+		.waitFor( { state: 'visible', timeout } );
 }
 
 /**
@@ -32,8 +81,7 @@ function getEditorFrame( page ) {
 async function openNewPost( page ) {
 	await page.goto( '/wp-admin/post-new.php' );
 
-	// The editor shell (toolbar, sidebar) is on the main page.
-	await page.waitForSelector( '.edit-post-layout', { timeout: 30000 } );
+	await waitForPostEditorShell( page );
 
 	// Dismiss Welcome Guide if it appears (renders in the main page).
 	const welcomeClose = page.getByRole( 'button', { name: 'Close' } ).first();
@@ -51,15 +99,57 @@ async function openNewPost( page ) {
 }
 
 /**
+ * Inserts the Aldus block via the block inserter (main page UI).
+ *
+ * Preconditions: `page` is on the post editor with the canvas iframe ready
+ * (e.g. after `openNewPost()`).
+ *
+ * @param {import('@playwright/test').Page} page
+ * @return {Promise<void>}
+ */
+async function insertAldusBlock( page ) {
+	const inserterBtn = page
+		.getByRole( 'button', { name: /block inserter/i } )
+		.first();
+	await inserterBtn.click();
+
+	const searchInput = page.getByPlaceholder( /search/i ).first();
+	await searchInput.fill( 'Aldus' );
+
+	const aldusOption = page
+		.getByRole( 'option' )
+		.filter( { hasText: /^aldus$/i } )
+		.first();
+	await aldusOption.waitFor( { timeout: 10000 } );
+	await aldusOption.click();
+
+	if ( await inserterBtn.isVisible( { timeout: 1000 } ).catch( () => false ) ) {
+		await inserterBtn.click();
+	}
+
+	const frame = getEditorFrame( page );
+	await frame
+		.locator( '.wp-block-aldus-layout-generator' )
+		.waitFor( { timeout: 20000 } );
+}
+
+/**
  * Attaches console-error and page-error monitors to the given page so tests
  * can assert that no unexpected errors occurred.
  *
  * Known-safe messages (e.g. WebLLM GPUBuffer AbortError) are filtered out.
  *
  * @param {import('@playwright/test').Page} page Playwright Page instance.
+ * @param {Object}   [options]
+ * @param {boolean}  [options.allowBlockValidation=true] When false, console
+ *                 messages matching Block validation / block validation failed
+ *                 are treated as errors (stricter — use in specs that should not
+ *                 trigger save/parse mismatches).
  * @return {{ getErrors: () => string[] }} Call `getErrors()` to retrieve captured errors.
  */
-function attachConsoleMonitor( page ) {
+function attachConsoleMonitor( page, options = {} ) {
+	const allowBlockValidation = options.allowBlockValidation !== false;
+
 	/** @type {string[]} */
 	const errors = [];
 
@@ -69,12 +159,6 @@ function attachConsoleMonitor( page ) {
 		// Gutenberg dev-mode warnings that are not plugin bugs.
 		/This is usually an indicator/i,
 		/Interactivity API/i,
-		// Block validation mismatches are expected: the PHP assemble endpoint
-		// adds server-side directives (data-wp-interactive, scroll-reveal
-		// styles) that differ from client-side save() output.  WordPress
-		// recovers transparently; these are not Aldus plugin bugs.
-		/Block validation/i,
-		/block validation failed/i,
 		// React 18 + WordPress SlotFill compatibility: registering a Fill
 		// (InspectorControls) can trigger a SlotFillProvider state update
 		// while a parent component is still rendering.  This is a known
@@ -82,6 +166,15 @@ function attachConsoleMonitor( page ) {
 		/Cannot update a component.*while rendering a different component/i,
 		/setstate-in-render/i,
 	];
+
+	if ( allowBlockValidation ) {
+		// Block validation mismatches are expected after PHP assemble output
+		// differs from client save(); WordPress recovers — see pack-preview spec.
+		SAFE_PATTERNS.push(
+			/Block validation/i,
+			/block validation failed/i
+		);
+	}
 
 	const isSafe = ( msg ) =>
 		SAFE_PATTERNS.some( ( re ) => re.test( msg ) );
@@ -103,4 +196,12 @@ function attachConsoleMonitor( page ) {
 	};
 }
 
-module.exports = { getEditorFrame, openNewPost, attachConsoleMonitor };
+module.exports = {
+	getEditorFrame,
+	waitForPostEditorShell,
+	newLoggedInContext,
+	newLoggedInPage,
+	openNewPost,
+	insertAldusBlock,
+	attachConsoleMonitor,
+};

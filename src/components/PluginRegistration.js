@@ -12,10 +12,13 @@
 
 import { registerPlugin } from '@wordpress/plugins';
 import { PluginDocumentSettingPanel } from '@wordpress/editor';
-import { useSelect, useDispatch } from '@wordpress/data';
+import { useSelect, useDispatch, dispatch } from '@wordpress/data';
+import { createBlock } from '@wordpress/blocks';
 import { __ } from '@wordpress/i18n';
 import { Button } from '@wordpress/components';
-import { useState, useEffect } from '@wordpress/element';
+import { useState, useEffect, useCallback } from '@wordpress/element';
+import { collectItemsFromEditorBlocks } from '../lib/extract-helpers.js';
+import { validateSavedItems } from '../hooks/useAldusItems.js';
 
 const ALDUS_BLOCK_NAME = 'aldus/layout-generator';
 
@@ -80,24 +83,75 @@ function AldusDocumentPanel() {
 		return select( 'core/block-editor' ).getBlocks();
 	}, [] );
 
-	const { selectBlock } = useDispatch( 'core/block-editor' );
+	const { insertBlocks, selectBlock, updateBlockAttributes } =
+		useDispatch( 'core/block-editor' );
 	const engineStatus = useEngineStatus();
 
 	const aldusBlock = findAldusBlock( blocks );
-	if ( ! aldusBlock ) {
-		return null;
-	}
 
-	const styleNote = aldusBlock.attributes?.styleNote ?? '';
+	const styleNote = aldusBlock?.attributes?.styleNote ?? '';
 	const insertedPersonality =
-		aldusBlock.attributes?.insertedPersonality ?? '';
+		aldusBlock?.attributes?.insertedPersonality ?? '';
 	const hasItems =
-		( aldusBlock.attributes?.items?.length ?? 0 ) > 0 ||
-		( aldusBlock.attributes?.savedItems?.length ?? 0 ) > 0;
+		( aldusBlock?.attributes?.items?.length ?? 0 ) > 0 ||
+		( aldusBlock?.attributes?.savedItems?.length ?? 0 ) > 0;
 
-	function handleFocusBlock() {
+	const handleFocusBlock = useCallback( () => {
+		if ( aldusBlock ) {
+			selectBlock( aldusBlock.clientId );
+		}
+	}, [ aldusBlock, selectBlock ] );
+
+	const showNoImportableNotice = useCallback( () => {
+		dispatch( 'core/notices' ).createNotice(
+			'info',
+			__(
+				'No importable content found. Add headings, paragraphs, images, or other supported blocks on the page, then try again.',
+				'aldus'
+			),
+			{ type: 'snackbar', isDismissible: true }
+		);
+	}, [] );
+
+	const handleAddAldusAndImport = useCallback( () => {
+		const collected = collectItemsFromEditorBlocks( blocks );
+		const validated = validateSavedItems( collected );
+		if ( validated.length === 0 ) {
+			showNoImportableNotice();
+			return;
+		}
+		const newBlock = createBlock( ALDUS_BLOCK_NAME, {
+			savedItems: validated,
+		} );
+		insertBlocks( [ newBlock ], undefined, undefined, true );
+		selectBlock( newBlock.clientId );
+	}, [ blocks, insertBlocks, selectBlock, showNoImportableNotice ] );
+
+	const handleAppendImportFromPage = useCallback( () => {
+		if ( ! aldusBlock ) {
+			return;
+		}
+		const collected = collectItemsFromEditorBlocks( blocks );
+		const validated = validateSavedItems( collected );
+		if ( validated.length === 0 ) {
+			showNoImportableNotice();
+			return;
+		}
+		const existing = validateSavedItems(
+			aldusBlock.attributes?.savedItems
+		);
+		const merged = validateSavedItems( [ ...existing, ...validated ] );
+		updateBlockAttributes( aldusBlock.clientId, {
+			savedItems: merged,
+		} );
 		selectBlock( aldusBlock.clientId );
-	}
+	}, [
+		aldusBlock,
+		blocks,
+		selectBlock,
+		updateBlockAttributes,
+		showNoImportableNotice,
+	] );
 
 	return (
 		<PluginDocumentSettingPanel
@@ -116,21 +170,51 @@ function AldusDocumentPanel() {
 					</span>
 				</div>
 
-				{ insertedPersonality && (
+				{ ! aldusBlock && (
+					<>
+						<Button
+							variant="primary"
+							className="aldus-doc-panel__add-import-btn"
+							onClick={ handleAddAldusAndImport }
+							__next40pxDefaultSize
+						>
+							{ __( 'Add Aldus & import page content', 'aldus' ) }
+						</Button>
+						<p className="aldus-doc-panel__hint">
+							{ __(
+								'Inserts an Aldus block and pulls in headings, paragraphs, and other supported blocks from this post.',
+								'aldus'
+							) }
+						</p>
+					</>
+				) }
+
+				{ aldusBlock && insertedPersonality && (
 					<p className="aldus-doc-panel__field">
 						<strong>{ __( 'Active style:', 'aldus' ) }</strong>{ ' ' }
 						{ insertedPersonality }
 					</p>
 				) }
 
-				{ styleNote && (
+				{ aldusBlock && styleNote && (
 					<p className="aldus-doc-panel__field">
 						<strong>{ __( 'Style note:', 'aldus' ) }</strong>{ ' ' }
 						{ styleNote }
 					</p>
 				) }
 
-				{ hasItems && (
+				{ aldusBlock && (
+					<Button
+						variant="secondary"
+						className="aldus-doc-panel__import-append-btn"
+						onClick={ handleAppendImportFromPage }
+						__next40pxDefaultSize
+					>
+						{ __( 'Import more from page', 'aldus' ) }
+					</Button>
+				) }
+
+				{ aldusBlock && hasItems && (
 					<Button
 						variant="secondary"
 						size="small"
@@ -141,10 +225,10 @@ function AldusDocumentPanel() {
 					</Button>
 				) }
 
-				{ ! hasItems && (
+				{ aldusBlock && ! hasItems && (
 					<p className="aldus-doc-panel__hint">
 						{ __(
-							'Add content to the Aldus block to get started.',
+							'Use Import more from page to pull post content in, or add items inside the block.',
 							'aldus'
 						) }
 					</p>

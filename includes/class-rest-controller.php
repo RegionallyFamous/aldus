@@ -399,16 +399,6 @@ class Aldus_REST_Controller extends WP_REST_Controller {
 }
 
 /**
- * Bootstraps the REST controller.
- *
- * Hooked to rest_api_init. Instantiates Aldus_REST_Controller and
- * calls register_routes() so all endpoints are registered with WordPress.
- */
-function aldus_register_rest_routes(): void {
-	Aldus_REST_Controller::init();
-}
-
-/**
  * Standalone per-user rate limiter callable from any REST handler.
  *
  * Uses the same fixed-window algorithm as the class method so all Aldus

@@ -30,7 +30,12 @@
 'use strict';
 
 const { test, expect } = require( '@playwright/test' );
-const { getEditorFrame, attachConsoleMonitor } = require( './helpers' );
+const {
+	getEditorFrame,
+	attachConsoleMonitor,
+	waitForPostEditorShell,
+	newLoggedInPage,
+} = require( './helpers' );
 
 test.describe.configure( { mode: 'serial' } );
 
@@ -41,6 +46,9 @@ test.setTimeout( 150000 );
 /** @type {import('@playwright/test').Page} */
 let page;
 
+/** @type {import('@playwright/test').BrowserContext} */
+let pageContext;
+
 /** @type {import('@playwright/test').FrameLocator} */
 let frame;
 
@@ -48,13 +56,14 @@ let frame;
 let monitor;
 
 test.beforeAll( async ( { browser } ) => {
-	page = await browser.newPage();
+	const created = await newLoggedInPage( browser );
+	page = created.page;
+	pageContext = created.context;
 	monitor = attachConsoleMonitor( page );
 
 	await page.goto( '/wp-admin/post-new.php' );
 
-	// Wait for the editor shell on the main page.
-	await page.waitForSelector( '.edit-post-layout', { timeout: 30000 } );
+	await waitForPostEditorShell( page );
 
 	// Dismiss Welcome Guide if it appears.
 	const close = page.getByRole( 'button', { name: 'Close' } ).first();
@@ -99,7 +108,7 @@ test.beforeAll( async ( { browser } ) => {
 } );
 
 test.afterAll( async () => {
-	await page.close();
+	await pageContext.close();
 } );
 
 // ---------------------------------------------------------------------------

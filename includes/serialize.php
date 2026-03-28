@@ -28,6 +28,14 @@ function aldus_serialize_heading( string $text, int $level, array $extra_attrs =
 	// WordPress core only accepts heading levels 1–6; clamp to prevent invalid block output.
 	$level = max( 1, min( 6, $level ) );
 	$attrs = array_merge( array( 'level' => $level ), $extra_attrs );
+	$lh = aldus_theme_custom_line_height( 'heading' );
+	if ( $lh !== '' ) {
+		$style      = $attrs['style'] ?? array();
+		$typography = $style['typography'] ?? array();
+		$typography['lineHeight'] = $lh;
+		$style['typography']      = $typography;
+		$attrs['style']           = $style;
+	}
 	if ( $item_id ) {
 		$attrs['metadata'] = array(
 			'bindings' => array(
@@ -61,6 +69,12 @@ function aldus_serialize_heading( string $text, int $level, array $extra_attrs =
  */
 function aldus_serialize_paragraph( string $text, bool $drop_cap = false, string $item_id = '' ): string {
 	$attrs = $drop_cap ? array( 'dropCap' => true ) : array();
+	$lh    = aldus_theme_custom_line_height( 'body' );
+	if ( $lh !== '' ) {
+		$attrs['style'] = array(
+			'typography' => array( 'lineHeight' => $lh ),
+		);
+	}
 	if ( $item_id ) {
 		$attrs['metadata'] = array(
 			'bindings' => array(

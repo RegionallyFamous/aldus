@@ -28,7 +28,6 @@ function aldus_register_health_route(): void {
 		)
 	);
 }
-add_action( 'rest_api_init', 'aldus_register_health_route' );
 
 /**
  * Handles GET /aldus/v1/health.

@@ -27,12 +27,12 @@ function aldus_block_image( Aldus_Content_Distributor $dist, string $align, stri
 		$attrs['id'] = $media_id;
 	}
 
-	// Lock aspect ratio so layouts are predictable regardless of input image dimensions.
+	// Lock aspect ratio using theme presets when registered (WP 6.6+).
 	if ( 'wide' === $align ) {
-		$attrs['aspectRatio'] = '16/9';
+		$attrs['aspectRatio'] = aldus_pick_aspect_ratio( 'wide' );
 		$attrs['scale']       = 'cover';
 	} elseif ( 'full' === $align ) {
-		$attrs['aspectRatio'] = '3/2';
+		$attrs['aspectRatio'] = aldus_pick_aspect_ratio( 'standard' );
 		$attrs['scale']       = 'cover';
 	}
 

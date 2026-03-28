@@ -1,11 +1,8 @@
 <?php
 declare(strict_types=1);
 /**
- * Core API handlers — analytics and public personality registry.
- *
- * Assembly, config, health, block registration, and admin hooks have been
- * extracted into dedicated files (api-assemble.php, api-config.php,
- * api-health.php, block-register.php, admin-hooks.php).
+ * Core API handlers — analytics (record-use). Personality registration lives in
+ * api-personality.php so it can load without the REST/assemble dependency chain.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -64,47 +61,4 @@ function aldus_handle_record_use( WP_REST_Request $request ): WP_REST_Response|W
 			'count'   => $new_count,
 		)
 	);
-}
-
-// ---------------------------------------------------------------------------
-// Public API — register_aldus_personality()
-// ---------------------------------------------------------------------------
-
-/** @var array<string, array{label: string, prompt: string}> */
-$aldus_registered_personalities = array();
-
-/**
- * Register a custom personality from a theme or plugin.
- *
- * The registered personality appears in the Aldus editor alongside the
- * built-in sixteen. Call this function on or after the `init` hook.
- *
- * @param string $slug            Unique machine-readable identifier.
- * @param string $label           Human-readable name shown in the editor UI.
- * @param string $prompt_fragment One-sentence style description appended to
- *                                the LLM prompt for this personality.
- */
-function aldus_register_personality( string $slug, string $label, string $prompt_fragment ): void {
-	global $aldus_registered_personalities;
-
-	$safe_slug = sanitize_key( $slug );
-	if ( '' === $safe_slug ) {
-		_doing_it_wrong( __FUNCTION__, 'Personality slug must be a non-empty string.', '1.6.0' );
-		return;
-	}
-
-	$aldus_registered_personalities[ $safe_slug ] = array(
-		'label'  => sanitize_text_field( $label ),
-		'prompt' => sanitize_text_field( $prompt_fragment ),
-	);
-}
-
-/**
- * Returns all personalities registered via register_aldus_personality().
- *
- * @return array<string, array{label: string, prompt: string}>
- */
-function aldus_get_registered_personalities(): array {
-	global $aldus_registered_personalities;
-	return (array) $aldus_registered_personalities;
 }

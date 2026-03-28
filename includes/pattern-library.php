@@ -31,17 +31,54 @@ function aldus_register_pattern_library(): void {
 		if ( empty( $def['slug'] ) || empty( $def['content'] ) ) {
 			continue;
 		}
-		register_block_pattern(
-			'aldus/' . $def['slug'],
-			array(
-				'title'       => $def['title'],
-				'description' => $def['description'] ?? '',
-				'keywords'    => $def['keywords'] ?? array(),
-				'categories'  => array( 'aldus', $def['category'] ?? 'text' ),
-				'content'     => $def['content'],
-			)
+		$args = array(
+			'title'       => $def['title'],
+			'description' => $def['description'] ?? '',
+			'keywords'    => $def['keywords'] ?? array(),
+			'categories'  => array( 'aldus', $def['category'] ?? 'text' ),
+			'content'     => $def['content'],
 		);
+		if ( ! empty( $def['blockTypes'] ) && is_array( $def['blockTypes'] ) ) {
+			$args['blockTypes'] = $def['blockTypes'];
+		}
+		register_block_pattern( 'aldus/' . $def['slug'], $args );
 	}
+}
+
+/**
+ * JSON for a block delimiter attributes object.
+ *
+ * @param array<string, mixed> $attrs
+ */
+function aldus_pattern_json_attrs( array $attrs ): string {
+	$j = wp_json_encode( $attrs );
+	return false !== $j ? $j : '{}';
+}
+
+/**
+ * Picks a theme font size preset slug for pattern markup (fluid themes).
+ *
+ * @param string $intent hero|display|subhead|lede|kicker|label
+ */
+function aldus_pattern_font_slug( string $intent ): string {
+	$sizes = aldus_get_theme_font_sizes();
+	$n     = count( $sizes );
+	if ( 0 === $n ) {
+		return match ( $intent ) {
+			'hero', 'display' => 'xx-large',
+			'subhead', 'lede' => 'large',
+			'kicker', 'label' => 'small',
+			default => 'large',
+		};
+	}
+	$idx = match ( $intent ) {
+		'hero', 'display' => $n - 1,
+		'subhead', 'lede' => max( 0, $n - 2 ),
+		'kicker', 'label' => 0,
+		default => min( 2, $n - 1 ),
+	};
+	$idx = max( 0, min( $idx, $n - 1 ) );
+	return (string) ( $sizes[ $idx ]['slug'] ?? 'large' );
 }
 
 /**
@@ -58,6 +95,7 @@ function aldus_get_pattern_definitions(): array {
 			'description' => __( 'A dark full-bleed cover with a headline and CTA.', 'aldus' ),
 			'keywords'    => array( 'hero', 'cover', 'dark', 'landing' ),
 			'category'    => 'aldus',
+			'blockTypes'  => array( 'core/cover', 'core/group' ),
 			'content'     => aldus_pattern_hero_dark_cover(),
 		),
 		array(
@@ -66,6 +104,7 @@ function aldus_get_pattern_definitions(): array {
 			'description' => __( 'A split hero with text on the left and an image on the right.', 'aldus' ),
 			'keywords'    => array( 'hero', 'split', 'cover', 'two-column' ),
 			'category'    => 'aldus',
+			'blockTypes'  => array( 'core/media-text', 'core/group', 'core/cover' ),
 			'content'     => aldus_pattern_hero_light_split(),
 		),
 		array(
@@ -74,6 +113,7 @@ function aldus_get_pattern_definitions(): array {
 			'description' => __( 'A clean, minimal centered headline section.', 'aldus' ),
 			'keywords'    => array( 'hero', 'minimal', 'headline', 'centered' ),
 			'category'    => 'aldus',
+			'blockTypes'  => array( 'core/group', 'core/heading', 'core/spacer' ),
 			'content'     => aldus_pattern_hero_minimal_headline(),
 		),
 
@@ -84,6 +124,7 @@ function aldus_get_pattern_definitions(): array {
 			'description' => __( 'A kicker, headline, and opening paragraph with drop cap.', 'aldus' ),
 			'keywords'    => array( 'article', 'intro', 'dropcap', 'editorial' ),
 			'category'    => 'aldus',
+			'blockTypes'  => array( 'core/paragraph', 'core/heading', 'core/group' ),
 			'content'     => aldus_pattern_content_article_intro(),
 		),
 		array(
@@ -92,6 +133,7 @@ function aldus_get_pattern_definitions(): array {
 			'description' => __( 'Two paragraphs flanking a wide pullquote.', 'aldus' ),
 			'keywords'    => array( 'feature', 'pullquote', 'article', 'magazine' ),
 			'category'    => 'aldus',
+			'blockTypes'  => array( 'core/pullquote', 'core/paragraph' ),
 			'content'     => aldus_pattern_content_feature_pull(),
 		),
 		array(
@@ -100,6 +142,7 @@ function aldus_get_pattern_definitions(): array {
 			'description' => __( 'A headline above a 50/50 split paragraph block.', 'aldus' ),
 			'keywords'    => array( 'two-column', 'text', 'columns', 'magazine' ),
 			'category'    => 'aldus',
+			'blockTypes'  => array( 'core/columns', 'core/group', 'core/heading' ),
 			'content'     => aldus_pattern_content_two_column_text(),
 		),
 		array(
@@ -108,6 +151,7 @@ function aldus_get_pattern_definitions(): array {
 			'description' => __( 'A full-width accent-color band with a headline and button.', 'aldus' ),
 			'keywords'    => array( 'cta', 'button', 'action', 'band', 'landing' ),
 			'category'    => 'aldus',
+			'blockTypes'  => array( 'core/group', 'core/buttons', 'core/button' ),
 			'content'     => aldus_pattern_content_cta_section(),
 		),
 
@@ -118,6 +162,7 @@ function aldus_get_pattern_definitions(): array {
 			'description' => __( 'A media-text block with the image on the left.', 'aldus' ),
 			'keywords'    => array( 'image', 'media', 'feature', 'two-column' ),
 			'category'    => 'aldus',
+			'blockTypes'  => array( 'core/media-text', 'core/image' ),
 			'content'     => aldus_pattern_media_image_text_left(),
 		),
 		array(
@@ -126,6 +171,7 @@ function aldus_get_pattern_definitions(): array {
 			'description' => __( 'A media-text block with the image on the right.', 'aldus' ),
 			'keywords'    => array( 'image', 'media', 'feature', 'two-column' ),
 			'category'    => 'aldus',
+			'blockTypes'  => array( 'core/media-text', 'core/image' ),
 			'content'     => aldus_pattern_media_image_text_right(),
 		),
 		array(
@@ -134,6 +180,7 @@ function aldus_get_pattern_definitions(): array {
 			'description' => __( 'A full-width aligned image with a centered caption.', 'aldus' ),
 			'keywords'    => array( 'image', 'full-width', 'caption', 'photo' ),
 			'category'    => 'aldus',
+			'blockTypes'  => array( 'core/image' ),
 			'content'     => aldus_pattern_media_full_width_image(),
 		),
 		array(
@@ -142,6 +189,7 @@ function aldus_get_pattern_definitions(): array {
 			'description' => __( 'A 3-column image gallery for portfolio or feature pages.', 'aldus' ),
 			'keywords'    => array( 'gallery', 'photos', 'grid', 'portfolio' ),
 			'category'    => 'aldus',
+			'blockTypes'  => array( 'core/gallery', 'core/image' ),
 			'content'     => aldus_pattern_media_gallery_three_column(),
 		),
 
@@ -152,6 +200,7 @@ function aldus_get_pattern_definitions(): array {
 			'description' => __( 'An oversized display heading with a subheading and spacer.', 'aldus' ),
 			'keywords'    => array( 'display', 'headline', 'typography', 'opening' ),
 			'category'    => 'aldus',
+			'blockTypes'  => array( 'core/heading', 'core/spacer', 'core/group' ),
 			'content'     => aldus_pattern_typography_display_opening(),
 		),
 		array(
@@ -160,6 +209,7 @@ function aldus_get_pattern_definitions(): array {
 			'description' => __( 'A category kicker label above a large headline.', 'aldus' ),
 			'keywords'    => array( 'kicker', 'headline', 'category', 'label' ),
 			'category'    => 'aldus',
+			'blockTypes'  => array( 'core/paragraph', 'core/heading' ),
 			'content'     => aldus_pattern_typography_kicker_headline(),
 		),
 		array(
@@ -168,6 +218,7 @@ function aldus_get_pattern_definitions(): array {
 			'description' => __( 'A centered, full-solid pullquote for emphasis.', 'aldus' ),
 			'keywords'    => array( 'pullquote', 'quote', 'centered', 'emphasis' ),
 			'category'    => 'aldus',
+			'blockTypes'  => array( 'core/pullquote' ),
 			'content'     => aldus_pattern_typography_centered_pullquote(),
 		),
 
@@ -178,6 +229,7 @@ function aldus_get_pattern_definitions(): array {
 			'description' => __( 'A dark background group section for contrast and emphasis.', 'aldus' ),
 			'keywords'    => array( 'dark', 'section', 'contrast', 'group' ),
 			'category'    => 'aldus',
+			'blockTypes'  => array( 'core/group', 'core/spacer' ),
 			'content'     => aldus_pattern_structural_dark_section(),
 		),
 		array(
@@ -186,6 +238,7 @@ function aldus_get_pattern_definitions(): array {
 			'description' => __( 'Three equal columns with a heading and text in each.', 'aldus' ),
 			'keywords'    => array( 'features', 'three-column', 'grid', 'services' ),
 			'category'    => 'aldus',
+			'blockTypes'  => array( 'core/columns', 'core/column', 'core/group' ),
 			'content'     => aldus_pattern_structural_three_column_features(),
 		),
 		array(
@@ -194,6 +247,7 @@ function aldus_get_pattern_definitions(): array {
 			'description' => __( 'A visual break between sections using a separator and spacer.', 'aldus' ),
 			'keywords'    => array( 'separator', 'spacer', 'divider', 'break' ),
 			'category'    => 'aldus',
+			'blockTypes'  => array( 'core/separator', 'core/spacer' ),
 			'content'     => aldus_pattern_structural_separator_spacer(),
 		),
 	);
@@ -207,13 +261,33 @@ function aldus_get_pattern_definitions(): array {
  * @return string Block HTML.
  */
 function aldus_pattern_hero_dark_cover(): string {
+	if ( aldus_typography_is_fluid() ) {
+		$h_json = aldus_pattern_json_attrs(
+			array(
+				'textAlign' => 'center',
+				'level'     => 1,
+				'textColor' => 'base',
+				'fontSize'  => aldus_pattern_font_slug( 'hero' ),
+			)
+		);
+		$p_json = aldus_pattern_json_attrs(
+			array(
+				'align'     => 'center',
+				'textColor' => 'base',
+				'fontSize'  => aldus_pattern_font_slug( 'lede' ),
+			)
+		);
+	} else {
+		$h_json = '{"textAlign":"center","level":1,"textColor":"base","style":{"typography":{"fontSize":"clamp(2.5rem,6vw,5rem)"}}}';
+		$p_json = '{"align":"center","textColor":"base","style":{"typography":{"fontSize":"1.125rem"}}}';
+	}
 	return '<!-- wp:cover {"dimRatio":70,"overlayColor":"contrast","isDark":true,"align":"full"} -->'
 		. '<div class="wp-block-cover alignfull is-dark"><span aria-hidden="true" class="wp-block-cover__background has-contrast-background-color has-background-dim-70 has-background-dim"></span>'
 		. '<div class="wp-block-cover__inner-container">'
-		. '<!-- wp:heading {"textAlign":"center","level":1,"textColor":"base","style":{"typography":{"fontSize":"clamp(2.5rem,6vw,5rem)"}}} -->'
+		. '<!-- wp:heading ' . $h_json . ' -->'
 		. '<h1 class="wp-block-heading has-text-align-center has-base-color has-text-color">Your compelling headline here</h1>'
 		. '<!-- /wp:heading -->'
-		. '<!-- wp:paragraph {"align":"center","textColor":"base","style":{"typography":{"fontSize":"1.125rem"}}} -->'
+		. '<!-- wp:paragraph ' . $p_json . ' -->'
 		. '<p class="has-text-align-center has-base-color has-text-color">A short description that draws the reader in and sets the scene.</p>'
 		. '<!-- /wp:paragraph -->'
 		. '<!-- wp:buttons {"layout":{"type":"flex","justifyContent":"center"}} -->'
@@ -232,13 +306,16 @@ function aldus_pattern_hero_dark_cover(): string {
  * @return string Block HTML.
  */
 function aldus_pattern_hero_light_split(): string {
+	$p_json = aldus_typography_is_fluid()
+		? aldus_pattern_json_attrs( array( 'fontSize' => aldus_pattern_font_slug( 'lede' ) ) )
+		: '{"style":{"typography":{"fontSize":"1.125rem"}}}';
 	return '<!-- wp:media-text {"mediaPosition":"right","mediaWidth":50,"verticalAlignment":"center"} -->'
 		. '<div class="wp-block-media-text alignwide is-stacked-on-mobile has-media-on-the-right" style="grid-template-columns:1fr 50%">'
 		. '<div class="wp-block-media-text__content">'
 		. '<!-- wp:heading {"level":1} -->'
 		. '<h1 class="wp-block-heading">A bold headline for your hero section</h1>'
 		. '<!-- /wp:heading -->'
-		. '<!-- wp:paragraph {"style":{"typography":{"fontSize":"1.125rem"}}} -->'
+		. '<!-- wp:paragraph ' . $p_json . ' -->'
 		. '<p>Lead with the most important thing you want your visitor to know. One or two sentences.</p>'
 		. '<!-- /wp:paragraph -->'
 		. '<!-- wp:buttons -->'
@@ -259,13 +336,32 @@ function aldus_pattern_hero_light_split(): string {
  * @return string Block HTML.
  */
 function aldus_pattern_hero_minimal_headline(): string {
+	if ( aldus_typography_is_fluid() ) {
+		$h_json = aldus_pattern_json_attrs(
+			array(
+				'textAlign' => 'center',
+				'level'     => 1,
+				'fontSize'  => aldus_pattern_font_slug( 'display' ),
+			)
+		);
+		$p_json = aldus_pattern_json_attrs(
+			array(
+				'align' => 'center',
+				'fontSize' => aldus_pattern_font_slug( 'lede' ),
+				'style' => array( 'color' => array( 'text' => '#6b7280' ) ),
+			)
+		);
+	} else {
+		$h_json = '{"textAlign":"center","level":1,"style":{"typography":{"fontSize":"clamp(2rem,5vw,4rem)"}}}';
+		$p_json = '{"align":"center","style":{"typography":{"fontSize":"1.125rem"},"color":{"text":"#6b7280"}}}';
+	}
 	return '<!-- wp:spacer {"height":"80px"} -->'
 		. '<div style="height:80px" aria-hidden="true" class="wp-block-spacer"></div>'
 		. '<!-- /wp:spacer -->'
-		. '<!-- wp:heading {"textAlign":"center","level":1,"style":{"typography":{"fontSize":"clamp(2rem,5vw,4rem)"}}} -->'
+		. '<!-- wp:heading ' . $h_json . ' -->'
 		. '<h1 class="wp-block-heading has-text-align-center">A clean, minimal headline</h1>'
 		. '<!-- /wp:heading -->'
-		. '<!-- wp:paragraph {"align":"center","style":{"typography":{"fontSize":"1.125rem"},"color":{"text":"#6b7280"}}} -->'
+		. '<!-- wp:paragraph ' . $p_json . ' -->'
 		. '<p class="has-text-align-center has-text-color">A short subheading or tagline that adds context without clutter.</p>'
 		. '<!-- /wp:paragraph -->'
 		. '<!-- wp:spacer {"height":"80px"} -->'
@@ -279,10 +375,35 @@ function aldus_pattern_hero_minimal_headline(): string {
  * @return string Block HTML.
  */
 function aldus_pattern_content_article_intro(): string {
-	return '<!-- wp:paragraph {"style":{"typography":{"fontSize":"0.75rem","fontStyle":"normal","fontWeight":"700","letterSpacing":"0.1em","textTransform":"uppercase"},"color":{"text":"#9ca3af"}}} -->'
+	if ( aldus_typography_is_fluid() ) {
+		$kick = aldus_pattern_json_attrs(
+			array(
+				'fontSize' => aldus_pattern_font_slug( 'kicker' ),
+				'style'    => array(
+					'typography' => array(
+						'fontStyle'     => 'normal',
+						'fontWeight'    => '700',
+						'letterSpacing' => '0.1em',
+						'textTransform' => 'uppercase',
+					),
+					'color'      => array( 'text' => '#9ca3af' ),
+				),
+			)
+		);
+		$h_json = aldus_pattern_json_attrs(
+			array(
+				'level'    => 1,
+				'fontSize' => aldus_pattern_font_slug( 'hero' ),
+			)
+		);
+	} else {
+		$kick = '{"style":{"typography":{"fontSize":"0.75rem","fontStyle":"normal","fontWeight":"700","letterSpacing":"0.1em","textTransform":"uppercase"},"color":{"text":"#9ca3af"}}}';
+		$h_json = '{"level":1,"style":{"typography":{"fontSize":"clamp(1.75rem,4vw,3rem)"}}}';
+	}
+	return '<!-- wp:paragraph ' . $kick . ' -->'
 		. '<p class="has-text-color" style="color:#9ca3af;font-size:0.75rem;font-style:normal;font-weight:700;letter-spacing:0.1em;text-transform:uppercase">Culture &amp; Ideas</p>'
 		. '<!-- /wp:paragraph -->'
-		. '<!-- wp:heading {"level":1,"style":{"typography":{"fontSize":"clamp(1.75rem,4vw,3rem)"}}} -->'
+		. '<!-- wp:heading ' . $h_json . ' -->'
 		. '<h1 class="wp-block-heading">The article headline goes here — make it count</h1>'
 		. '<!-- /wp:heading -->'
 		. '<!-- wp:paragraph {"dropCap":true} -->'
@@ -444,13 +565,47 @@ function aldus_pattern_media_gallery_three_column(): string {
  * @return string Block HTML.
  */
 function aldus_pattern_typography_display_opening(): string {
+	if ( aldus_typography_is_fluid() ) {
+		$h1 = aldus_pattern_json_attrs(
+			array(
+				'textAlign' => 'center',
+				'level'     => 1,
+				'fontSize'  => aldus_pattern_font_slug( 'display' ),
+				'style'     => array(
+					'typography' => array(
+						'lineHeight'    => '1',
+						'fontWeight'    => '900',
+						'letterSpacing' => '-0.03em',
+					),
+				),
+			)
+		);
+		$h2 = aldus_pattern_json_attrs(
+			array(
+				'textAlign' => 'center',
+				'level'     => 2,
+				'fontSize'  => aldus_pattern_font_slug( 'subhead' ),
+				'style'     => array(
+					'typography' => array(
+						'fontWeight'    => '400',
+						'letterSpacing' => '0.05em',
+						'textTransform' => 'uppercase',
+					),
+					'color'      => array( 'text' => '#9ca3af' ),
+				),
+			)
+		);
+	} else {
+		$h1 = '{"textAlign":"center","level":1,"style":{"typography":{"fontSize":"clamp(3rem,8vw,7rem)","lineHeight":"1","fontWeight":"900","letterSpacing":"-0.03em"}}}';
+		$h2 = '{"textAlign":"center","level":2,"style":{"typography":{"fontSize":"clamp(1rem,2.5vw,1.5rem)","fontWeight":"400","letterSpacing":"0.05em","textTransform":"uppercase"},"color":{"text":"#9ca3af"}}}';
+	}
 	return '<!-- wp:spacer {"height":"40px"} -->'
 		. '<div style="height:40px" aria-hidden="true" class="wp-block-spacer"></div>'
 		. '<!-- /wp:spacer -->'
-		. '<!-- wp:heading {"textAlign":"center","level":1,"style":{"typography":{"fontSize":"clamp(3rem,8vw,7rem)","lineHeight":"1","fontWeight":"900","letterSpacing":"-0.03em"}}} -->'
+		. '<!-- wp:heading ' . $h1 . ' -->'
 		. '<h1 class="wp-block-heading has-text-align-center">Display</h1>'
 		. '<!-- /wp:heading -->'
-		. '<!-- wp:heading {"textAlign":"center","level":2,"style":{"typography":{"fontSize":"clamp(1rem,2.5vw,1.5rem)","fontWeight":"400","letterSpacing":"0.05em","textTransform":"uppercase"},"color":{"text":"#9ca3af"}}} -->'
+		. '<!-- wp:heading ' . $h2 . ' -->'
 		. '<h2 class="wp-block-heading has-text-align-center has-text-color" style="color:#9ca3af;font-size:clamp(1rem,2.5vw,1.5rem);font-weight:400;letter-spacing:0.05em;text-transform:uppercase">Subheading in restrained contrast</h2>'
 		. '<!-- /wp:heading -->'
 		. '<!-- wp:spacer {"height":"40px"} -->'
@@ -464,10 +619,37 @@ function aldus_pattern_typography_display_opening(): string {
  * @return string Block HTML.
  */
 function aldus_pattern_typography_kicker_headline(): string {
-	return '<!-- wp:paragraph {"style":{"typography":{"fontSize":"0.75rem","fontWeight":"700","letterSpacing":"0.12em","textTransform":"uppercase"},"color":{"text":"#6b7280"}}} -->'
+	if ( aldus_typography_is_fluid() ) {
+		$p_json = aldus_pattern_json_attrs(
+			array(
+				'fontSize' => aldus_pattern_font_slug( 'kicker' ),
+				'style'    => array(
+					'typography' => array(
+						'fontWeight'    => '700',
+						'letterSpacing' => '0.12em',
+						'textTransform' => 'uppercase',
+					),
+					'color'      => array( 'text' => '#6b7280' ),
+				),
+			)
+		);
+		$h_json = aldus_pattern_json_attrs(
+			array(
+				'level'    => 1,
+				'fontSize' => aldus_pattern_font_slug( 'hero' ),
+				'style'    => array(
+					'typography' => array( 'lineHeight' => '1.1' ),
+				),
+			)
+		);
+	} else {
+		$p_json = '{"style":{"typography":{"fontSize":"0.75rem","fontWeight":"700","letterSpacing":"0.12em","textTransform":"uppercase"},"color":{"text":"#6b7280"}}}';
+		$h_json = '{"level":1,"style":{"typography":{"fontSize":"clamp(2rem,5vw,3.5rem)","lineHeight":"1.1"}}}';
+	}
+	return '<!-- wp:paragraph ' . $p_json . ' -->'
 		. '<p class="has-text-color" style="color:#6b7280;font-size:0.75rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase">Category · Topic</p>'
 		. '<!-- /wp:paragraph -->'
-		. '<!-- wp:heading {"level":1,"style":{"typography":{"fontSize":"clamp(2rem,5vw,3.5rem)","lineHeight":"1.1"}}} -->'
+		. '<!-- wp:heading ' . $h_json . ' -->'
 		. '<h1 class="wp-block-heading">The main headline follows the kicker and can run long</h1>'
 		. '<!-- /wp:heading -->';
 }

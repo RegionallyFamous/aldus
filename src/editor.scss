@@ -1056,6 +1056,15 @@
 	}
 }
 
+// ARIA grid rows — real DOM structure for axe (grid → row → gridcell); subgrid
+// keeps the same column tracks as the parent so layout matches a flat grid.
+.aldus-grid__row {
+	display: grid;
+	grid-column: 1 / -1;
+	grid-template-columns: subgrid;
+	gap: 8px;
+}
+
 // Re-roll completion pulse
 @media ( prefers-reduced-motion: no-preference ) {
 

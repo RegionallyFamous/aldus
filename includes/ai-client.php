@@ -25,8 +25,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-add_action( 'rest_api_init', 'aldus_register_ai_endpoint' );
-
 /**
  * Registers the /aldus/v1/ai-generate REST route.
  */

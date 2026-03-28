@@ -45,14 +45,17 @@ if ( '' === $aldus_content ) {
 	return;
 }
 
-$aldus_personality    = sanitize_html_class( $attributes['insertedPersonality'] ?? '' );
-$wrapper_attributes   = get_block_wrapper_attributes( array( 'class' => 'aldus-layout' ) );
+$aldus_personality = sanitize_html_class( $attributes['insertedPersonality'] ?? '' );
+$wrapper_extra     = array( 'class' => 'aldus-layout' );
+if ( $aldus_personality !== '' ) {
+	$wrapper_extra['data-personality'] = $aldus_personality;
+}
+$wrapper_attributes = get_block_wrapper_attributes( $wrapper_extra );
 
 printf(
-	'<div %s data-personality="%s">%s</div>',
+	'<div %s>%s</div>',
 	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns pre-escaped HTML attribute string.
 	$wrapper_attributes,
-	esc_attr( $aldus_personality ),
 	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $aldus_content is WP-rendered inner block HTML, already safe.
 	$aldus_content
 );

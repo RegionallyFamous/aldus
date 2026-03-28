@@ -28,6 +28,7 @@
 
 const { spawnSync } = require( 'child_process' );
 const { test, expect } = require( '@playwright/test' );
+const { newLoggedInPage } = require( './helpers' );
 
 // ---------------------------------------------------------------------------
 // Shared sample content — one item per recognised type so every anchor token
@@ -274,19 +275,21 @@ test.beforeAll( async ( { browser } ) => {
 		{ cwd: require( 'path' ).resolve( __dirname, '..', '..' ), env: process.env, shell: true }
 	);
 
-	const page = await browser.newPage();
-	await page.goto( '/wp-admin/' );
+	const { context, page } = await newLoggedInPage( browser );
+	try {
+		await page.goto( '/wp-admin/' );
 
-	// WordPress inlines wpApiSettings (including nonce) on admin pages.
-	wpNonce = await page.evaluate( () => {
-		return (
-			window.wpApiSettings?.nonce ||
-			window.wp?.apiFetch?.nonceMiddleware?.nonce ||
-			''
-		);
-	} );
-
-	await page.close();
+		// WordPress inlines wpApiSettings (including nonce) on admin pages.
+		wpNonce = await page.evaluate( () => {
+			return (
+				window.wpApiSettings?.nonce ||
+				window.wp?.apiFetch?.nonceMiddleware?.nonce ||
+				''
+			);
+		} );
+	} finally {
+		await context.close();
+	}
 } );
 
 // ---------------------------------------------------------------------------

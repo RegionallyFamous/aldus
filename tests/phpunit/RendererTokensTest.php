@@ -164,10 +164,6 @@ class RendererTokensTest extends TestCase {
 			array( 'manifest' => self::$manifest )
 		);
 
-		if ( '' === $result ) {
-			$this->markTestSkipped( "Token '{$token}' produced empty output (no content to consume)." );
-		}
-
 		// '<!-- wp:' matches only opening tags; '<!-- /wp:' matches only closers.
 		// Both patterns are disjoint (slash distinguishes them).
 		$openers = substr_count( $result, '<!-- wp:' );
@@ -230,10 +226,6 @@ class RendererTokensTest extends TestCase {
 	 * @dataProvider all_tokens_provider
 	 */
 	public function content_tokens_produce_non_empty_output( string $token ): void {
-		if ( in_array( $token, self::known_possibly_empty_tokens(), true ) ) {
-			$this->markTestSkipped( "Token '{$token}' is known to sometimes produce empty output." );
-		}
-
 		$result = aldus_render_block_token(
 			$token,
 			$this->fresh_dist(),
@@ -243,6 +235,13 @@ class RendererTokensTest extends TestCase {
 			0,
 			array( 'manifest' => self::$manifest )
 		);
+
+		$this->assertIsString( $result, "Token '{$token}' did not return a string" );
+
+		if ( in_array( $token, self::known_possibly_empty_tokens(), true ) ) {
+			// These tokens may consume all matching items and render nothing; still a valid string.
+			return;
+		}
 
 		$this->assertNotEmpty(
 			$result,

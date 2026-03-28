@@ -19,11 +19,20 @@
 'use strict';
 
 const { test, expect } = require( '@playwright/test' );
+const {
+	getEditorFrame,
+	openNewPost,
+	insertAldusBlock,
+} = require( './helpers' );
 
 // Maximum diff allowed per snapshot. macOS vs Linux Chromium differ in font
 // metrics and subpixel AA; the admin dashboard full-page shot can land around
 // 5 % differing pixels, so keep a modest margin above that.
 const MAX_DIFF_PIXELS_RATIO = 0.085;
+
+// Aldus block UI: slightly more tolerance than full-page admin (gradients,
+// focus rings, and concurrent card previews vary a bit between environments).
+const ALDUS_BLOCK_MAX_DIFF_PIXEL_RATIO = 0.12;
 
 // ---------------------------------------------------------------------------
 // WP admin login page
@@ -111,4 +120,24 @@ test.describe( 'Visual regression — pre-flight API checks', () => {
 		expect( body ).toHaveProperty( 'personalities' );
 		expect( Array.isArray( body.personalities ) ).toBe( true );
 	} );
+} );
+
+// ---------------------------------------------------------------------------
+// Aldus block (editor canvas iframe)
+// ---------------------------------------------------------------------------
+
+test.describe( 'Visual regression — Aldus block', () => {
+	test( 'building screen matches snapshot', async ( { page } ) => {
+		await openNewPost( page );
+		await insertAldusBlock( page );
+
+		const frame = getEditorFrame( page );
+		const block = frame.locator( '.wp-block-aldus-layout-generator' );
+
+		await expect( block ).toHaveScreenshot( 'aldus-block-building.png', {
+			maxDiffPixelRatio: ALDUS_BLOCK_MAX_DIFF_PIXEL_RATIO,
+			animations: 'disabled',
+		} );
+	} );
+
 } );

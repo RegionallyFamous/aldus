@@ -6,7 +6,7 @@ namespace Aldus\Tests;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for the public personality registration API in includes/api.php.
+ * Tests for the public personality registration API in includes/api-personality.php.
  *
  * Covers aldus_register_personality(), aldus_get_registered_personalities(),
  * and the _doing_it_wrong guard on empty slugs.

@@ -20,7 +20,7 @@ import {
 	TabPanel,
 } from '@wordpress/components';
 import { BlockPreview } from '@wordpress/block-editor';
-import { useSelect } from '@wordpress/data';
+import { useSelect, dispatch } from '@wordpress/data';
 import apiFetch from '@wordpress/api-fetch';
 import { parse as parseBlocks } from '@wordpress/blocks';
 import { __, sprintf, _n } from '@wordpress/i18n';
@@ -40,6 +40,7 @@ import { PACK_META } from '../sample-data/index.js';
 
 const DEFAULT_PACK_INDEX = 0;
 import { uid } from '../lib/uid.js';
+import { collectItemsFromEditorBlocks } from '../lib/extract-helpers.js';
 import { safeIcon } from '../utils/safeIcon';
 import { ContentItem } from './ContentItem.js';
 import { StyleNoteField, SavedSessions } from './SavedSessions.js';
@@ -116,99 +117,27 @@ export function BuildingScreen( {
 	}, [] );
 
 	const importFromEditor = useCallback( () => {
-		const newItems = [];
-
-		const walk = ( blocks ) => {
-			for ( const block of blocks ) {
-				const name = block.name ?? '';
-				const attrs = block.attributes ?? {};
-				const inner = block.innerContent ?? [];
-				const text = inner
-					.filter( Boolean )
-					.join( '' )
-					.replace( /<[^>]*>/g, ' ' )
-					.replace( /\s+/g, ' ' )
-					.trim();
-
-				if ( name === 'core/heading' && text ) {
-					newItems.push( {
-						type:
-							( attrs.level ?? 2 ) <= 1
-								? 'headline'
-								: 'subheading',
-						content: text,
-					} );
-				} else if ( name === 'core/paragraph' && text ) {
-					newItems.push( { type: 'paragraph', content: text } );
-				} else if (
-					name === 'core/image' &&
-					( attrs.url || attrs.src )
-				) {
-					newItems.push( {
-						type: 'image',
-						content: attrs.alt ?? '',
-						url: attrs.url ?? attrs.src ?? '',
-					} );
-				} else if (
-					name === 'core/quote' ||
-					name === 'core/pullquote'
-				) {
-					const qText = ( block.innerBlocks ?? [] )
-						.flatMap( ( b ) => b.innerContent ?? [] )
-						.filter( Boolean )
-						.join( '' )
-						.replace( /<[^>]*>/g, ' ' )
-						.replace( /\s+/g, ' ' )
-						.trim();
-					if ( qText ) {
-						newItems.push( { type: 'quote', content: qText } );
-					}
-				} else if ( name === 'core/list' ) {
-					const listText = ( block.innerBlocks ?? [] )
-						.flatMap( ( b ) => b.innerContent ?? [] )
-						.filter( Boolean )
-						.join( '\n' )
-						.replace( /<[^>]*>/g, '' )
-						.replace( /\s+/g, ' ' )
-						.trim();
-					if ( listText ) {
-						newItems.push( { type: 'list', content: listText } );
-					}
-				} else if ( name === 'core/buttons' ) {
-					const btnText = ( block.innerBlocks ?? [] )
-						.flatMap( ( b ) => b.innerContent ?? [] )
-						.filter( Boolean )
-						.join( '' )
-						.replace( /<[^>]*>/g, '' )
-						.replace( /\s+/g, ' ' )
-						.trim();
-					if ( btnText ) {
-						newItems.push( {
-							type: 'cta',
-							content: btnText,
-							url:
-								block.innerBlocks?.[ 0 ]?.attributes?.url ??
-								'#',
-						} );
-					}
-				} else {
-					walk( block.innerBlocks ?? [] );
-				}
-			}
-		};
-
-		walk( editorBlocks );
-
-		if ( newItems.length > 0 ) {
-			setItems( ( prev ) => [
-				...prev,
-				...newItems.map( ( i ) => ( {
-					id: uid(),
-					url: '',
-					...i,
-				} ) ),
-			] );
+		const collected = collectItemsFromEditorBlocks( editorBlocks );
+		if ( collected.length === 0 ) {
+			dispatch( 'core/notices' ).createNotice(
+				'info',
+				__(
+					'No importable content found. Add headings, paragraphs, images, or other supported blocks outside Aldus, then try again.',
+					'aldus'
+				),
+				{ type: 'snackbar', isDismissible: true }
+			);
+			return;
 		}
+		setItems( ( prev ) => [
+			...prev,
+			...collected.map( ( i ) => ( {
+				...i,
+				id: uid(),
+				url: i.url ?? '',
+				content: i.content ?? '',
+			} ) ),
+		] );
 	}, [ editorBlocks, setItems ] );
 
 	// Clear the removal timer if BuildingScreen unmounts mid-animation.
@@ -748,7 +677,7 @@ function EmptyState( {
 function AddContentPopover( { onAdd, isInline = false } ) {
 	const [ isOpen, setIsOpen ] = useState( false );
 	const [ showSecondary, setShowSecondary ] = useState( false );
-	const wrapRef = useRef( null );
+	const [ anchorEl, setAnchorEl ] = useState( null );
 
 	const renderTypeList = ( types, isSecondaryGroup = false ) =>
 		types.map( ( t ) => (
@@ -776,7 +705,7 @@ function AddContentPopover( { onAdd, isInline = false } ) {
 			className={ `aldus-add-wrap${
 				isInline ? ' aldus-add-wrap--inline' : ''
 			}` }
-			ref={ wrapRef }
+			ref={ setAnchorEl }
 		>
 			<Button
 				__next40pxDefaultSize
@@ -796,7 +725,7 @@ function AddContentPopover( { onAdd, isInline = false } ) {
 			</Button>
 			{ isOpen && (
 				<Popover
-					anchor={ wrapRef.current }
+					anchor={ anchorEl }
 					placement="bottom-start"
 					onClose={ () => {
 						setIsOpen( false );

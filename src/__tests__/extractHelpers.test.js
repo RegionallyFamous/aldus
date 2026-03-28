@@ -10,6 +10,7 @@
 import {
 	extractPlainText,
 	extractItemFromBlock,
+	collectItemsFromEditorBlocks,
 } from '../lib/extract-helpers.js';
 
 // ---------------------------------------------------------------------------
@@ -316,5 +317,78 @@ describe( 'extractItemFromBlock()', () => {
 		const result = extractItemFromBlock( block );
 		expect( typeof result[ 0 ].id ).toBe( 'string' );
 		expect( result[ 0 ].id.length ).toBeGreaterThan( 0 );
+	} );
+} );
+
+// ---------------------------------------------------------------------------
+// collectItemsFromEditorBlocks()
+// ---------------------------------------------------------------------------
+
+describe( 'collectItemsFromEditorBlocks()', () => {
+	it( 'collects paragraphs using attributes.content', () => {
+		const blocks = [
+			{
+				name: 'core/paragraph',
+				attributes: { content: 'Body copy' },
+				innerBlocks: [],
+			},
+		];
+		const out = collectItemsFromEditorBlocks( blocks );
+		expect(
+			out.some(
+				( i ) => i.type === 'paragraph' && i.content === 'Body copy'
+			)
+		).toBe( true );
+	} );
+
+	it( 'skips aldus/layout-generator', () => {
+		const blocks = [
+			{
+				name: 'aldus/layout-generator',
+				attributes: { savedItems: [] },
+				innerBlocks: [],
+			},
+			{
+				name: 'core/paragraph',
+				attributes: { content: 'Keep me' },
+				innerBlocks: [],
+			},
+		];
+		expect( collectItemsFromEditorBlocks( blocks ) ).toHaveLength( 1 );
+	} );
+
+	it( 'walks core/group innerBlocks', () => {
+		const blocks = [
+			{
+				name: 'core/group',
+				attributes: {},
+				innerBlocks: [
+					{
+						name: 'core/heading',
+						attributes: { content: 'T', level: 2 },
+						innerBlocks: [],
+					},
+				],
+			},
+		];
+		const out = collectItemsFromEditorBlocks( blocks );
+		expect(
+			out.some( ( i ) => i.type === 'subheading' && i.content === 'T' )
+		).toBe( true );
+	} );
+
+	it( 'drops empty paragraph payloads', () => {
+		const blocks = [
+			{
+				name: 'core/paragraph',
+				attributes: { content: '' },
+				innerBlocks: [],
+			},
+		];
+		expect( collectItemsFromEditorBlocks( blocks ) ).toHaveLength( 0 );
+	} );
+
+	it( 'returns empty array for non-array input', () => {
+		expect( collectItemsFromEditorBlocks( null ) ).toEqual( [] );
 	} );
 } );

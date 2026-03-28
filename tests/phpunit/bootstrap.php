@@ -21,6 +21,9 @@ if ( ! defined( 'ALDUS_PATH' ) ) {
 if ( ! defined( 'ALDUS_URL' ) ) {
 	define( 'ALDUS_URL', 'http://localhost/' );
 }
+if ( ! defined( 'ALDUS_BUILD_HASH' ) ) {
+	define( 'ALDUS_BUILD_HASH', 'phpunit' );
+}
 // ALDUS_MAX_CONTENT_LENGTH is defined as a constant in includes/api.php.
 // Do not redefine it here to avoid the "Constant already defined" warning.
 
@@ -423,6 +426,7 @@ if ( ! class_exists( 'WP_Block_Styles_Registry' ) ) {
 // Load the files under test — mirrors the require chain in aldus_init().
 // Foundation
 require_once ALDUS_PATH . 'includes/sanitize.php';
+require_once ALDUS_PATH . 'includes/api-personality.php';
 require_once ALDUS_PATH . 'includes/tokens.php';
 require_once ALDUS_PATH . 'includes/theme.php';
 require_once ALDUS_PATH . 'includes/class-content-distributor.php';
@@ -445,3 +449,4 @@ require_once ALDUS_PATH . 'includes/render-router.php';
 // API layer
 require_once ALDUS_PATH . 'includes/class-rest-controller.php';
 require_once ALDUS_PATH . 'includes/api.php';
+require_once ALDUS_PATH . 'includes/api-assemble.php';

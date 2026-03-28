@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Plugin Name:       Aldus — Layout Explorer
  * Plugin URI:        https://github.com/RegionallyFamous/aldus
  * Description:       You write it. Aldus designs it. Layout styles for your content — pick the one that fits, and it becomes real WordPress blocks.
- * Version:           1.27.0
+ * Version:           1.27.1
  * Requires at least: 6.4
  * Requires PHP:      8.0
  * Author:            Regionally Famous
@@ -21,13 +21,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-defined( 'ALDUS_VERSION' ) || define( 'ALDUS_VERSION', '1.27.0' );
+defined( 'ALDUS_VERSION' ) || define( 'ALDUS_VERSION', '1.27.1' );
 defined( 'ALDUS_PATH' ) || define( 'ALDUS_PATH', plugin_dir_path( __FILE__ ) );
 defined( 'ALDUS_URL' ) || define( 'ALDUS_URL', plugin_dir_url( __FILE__ ) );
 // Injected by the build script (bin/inject-build-hash.js) from the webpack
 // content hash.  An empty string is safe: the cache key falls back to version
 // + request params, which is correct for manual/dev builds.
-defined( 'ALDUS_BUILD_HASH' ) || define( 'ALDUS_BUILD_HASH', 'e16acddafb833522a4db' );
+defined( 'ALDUS_BUILD_HASH' ) || define( 'ALDUS_BUILD_HASH', '9d5c44909366d5137431' );
 
 register_activation_hook( __FILE__, 'aldus_activate' );
 register_deactivation_hook( __FILE__, 'aldus_deactivate' );
@@ -63,6 +63,45 @@ function aldus_deactivate(): void {
 add_action( 'plugins_loaded', 'aldus_init' );
 
 /**
+ * Loads REST-only PHP: tokens, serializers, API routes, and the REST controller
+ * class. Idempotent; safe to call from assembly stack and route registration.
+ */
+function aldus_require_rest_core_stack(): void {
+	static $loaded = false;
+	if ( $loaded ) {
+		return;
+	}
+	$loaded = true;
+
+	require_once ALDUS_PATH . 'includes/tokens.php';
+	require_once ALDUS_PATH . 'includes/personality.php';
+	require_once ALDUS_PATH . 'includes/block-html.php';
+	require_once ALDUS_PATH . 'includes/serialize.php';
+	require_once ALDUS_PATH . 'includes/styles.php';
+	require_once ALDUS_PATH . 'includes/api.php';
+	require_once ALDUS_PATH . 'includes/api-config.php';
+	require_once ALDUS_PATH . 'includes/api-health.php';
+	require_once ALDUS_PATH . 'includes/api-telemetry.php';
+	require_once ALDUS_PATH . 'includes/ai-client.php';
+	require_once ALDUS_PATH . 'includes/class-rest-controller.php';
+}
+
+/**
+ * Registers all Aldus REST routes (config, health, telemetry, AI, assemble).
+ *
+ * Hooked to rest_api_init after the assembly stack loads. Pulls in the REST
+ * core stack on first call so front-end-only requests never parse these files.
+ */
+function aldus_register_rest_routes(): void {
+	aldus_require_rest_core_stack();
+	aldus_register_config_route();
+	aldus_register_health_route();
+	aldus_register_telemetry_route();
+	aldus_register_ai_endpoint();
+	Aldus_REST_Controller::init();
+}
+
+/**
  * Loads token renderers, content distributor, and the /assemble handler.
  *
  * Not needed for ordinary front-end HTML views (the Aldus block SSR only wraps
@@ -76,6 +115,8 @@ function aldus_load_assembly_stack(): void {
 		return;
 	}
 	$loaded = true;
+
+	aldus_require_rest_core_stack();
 
 	require_once ALDUS_PATH . 'includes/class-content-distributor.php';
 	require_once ALDUS_PATH . 'includes/renderers/cover.php';
@@ -100,32 +141,23 @@ add_action( 'rest_api_init', 'aldus_load_assembly_stack', 1 );
  *   Foundation → Configuration → REST controller (assembly stack loads on rest_api_init) → Admin
  */
 function aldus_init(): void {
-	// Core dependencies — always loaded on every request.
+	// Front-end and editor shell: bindings, theme.json merge, block registration.
 	require_once ALDUS_PATH . 'includes/sanitize.php';
-	require_once ALDUS_PATH . 'includes/tokens.php';
 	require_once ALDUS_PATH . 'includes/theme.php';
-	require_once ALDUS_PATH . 'includes/personality.php';
-	require_once ALDUS_PATH . 'includes/block-html.php';
-	require_once ALDUS_PATH . 'includes/serialize.php';
-	require_once ALDUS_PATH . 'includes/styles.php';
+	require_once ALDUS_PATH . 'includes/api-personality.php';
 	require_once ALDUS_PATH . 'includes/bindings.php';
-	require_once ALDUS_PATH . 'includes/class-rest-controller.php';
-	require_once ALDUS_PATH . 'includes/api.php';
-	require_once ALDUS_PATH . 'includes/api-config.php';
-	require_once ALDUS_PATH . 'includes/api-health.php';
-	require_once ALDUS_PATH . 'includes/api-telemetry.php';
 	require_once ALDUS_PATH . 'includes/block-register.php';
-	require_once ALDUS_PATH . 'includes/admin-hooks.php';
-	require_once ALDUS_PATH . 'includes/ai-client.php';
 
-	// Warn about deprecated filter usage (defined in api.php).
-	aldus_check_deprecated_filters();
-
-	// Tier 3 — admin only: block patterns and the admin welcome/settings page.
+	// Admin / block editor: category filter, plugin links, patterns, settings UI.
 	if ( is_admin() ) {
+		require_once ALDUS_PATH . 'includes/admin-hooks.php';
+		// Pattern HTML uses aldus_cover_inner_classes() and other helpers from
+		// block-html.php; that file is otherwise loaded with the REST stack only.
+		require_once ALDUS_PATH . 'includes/block-html.php';
 		require_once ALDUS_PATH . 'includes/patterns.php';
 		require_once ALDUS_PATH . 'includes/pattern-library.php';
 		require_once ALDUS_PATH . 'includes/admin-page.php';
+		aldus_check_deprecated_filters();
 	}
 
 	// Load text domain at priority 1 so it is available before register_block_type()
@@ -138,7 +170,7 @@ function aldus_init(): void {
 		1
 	);
 	add_action( 'init', 'aldus_register_block' );
-	add_action( 'rest_api_init', 'aldus_register_rest_routes' );
+	add_action( 'rest_api_init', 'aldus_register_rest_routes', 2 );
 
 	// Flush cached theme data whenever the active theme or Customizer settings change.
 	add_action( 'switch_theme', 'aldus_flush_theme_cache' );

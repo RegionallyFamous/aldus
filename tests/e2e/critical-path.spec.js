@@ -23,7 +23,11 @@
 'use strict';
 
 const { test, expect } = require( '@playwright/test' );
-const { getEditorFrame } = require( './helpers' );
+const {
+	getEditorFrame,
+	waitForPostEditorShell,
+	newLoggedInPage,
+} = require( './helpers' );
 
 // ---------------------------------------------------------------------------
 // 1. REST API smoke test
@@ -67,18 +71,20 @@ test.describe.configure( { mode: 'serial' } );
 /** @type {import('@playwright/test').Page} */
 let editorPage;
 
+/** @type {import('@playwright/test').BrowserContext} */
+let editorContext;
+
 /** @type {import('@playwright/test').FrameLocator} */
 let editorFrame;
 
 test.describe( 'Aldus inspector controls', () => {
 	test.beforeAll( async ( { browser } ) => {
-		editorPage = await browser.newPage();
+		const created = await newLoggedInPage( browser );
+		editorPage = created.page;
+		editorContext = created.context;
 		await editorPage.goto( '/wp-admin/post-new.php' );
 
-		// Wait for the editor shell on the main page.
-		await editorPage.waitForSelector( '.edit-post-layout', {
-			timeout: 30000,
-		} );
+		await waitForPostEditorShell( editorPage );
 
 		// Dismiss Welcome Guide if present (renders on main page).
 		const close = editorPage
@@ -137,7 +143,7 @@ test.describe( 'Aldus inspector controls', () => {
 	} );
 
 	test.afterAll( async () => {
-		await editorPage.close();
+		await editorContext.close();
 	} );
 
 	test( 'Aldus block is present in the editor', async () => {

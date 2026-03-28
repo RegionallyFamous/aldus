@@ -1,0 +1,795 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0"
+	xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:wp="http://wordpress.org/export/1.2/"
+>
+<channel>
+	<title>Aldus Test Content</title>
+	<link>http://localhost</link>
+	<description>Comprehensive test content for Aldus layout generation</description>
+	<language>en-US</language>
+	<wp:wxr_version>1.2</wp:wxr_version>
+	<wp:base_site_url>http://localhost</wp:base_site_url>
+	<wp:base_blog_url>http://localhost</wp:base_blog_url>
+
+	<wp:author>
+		<wp:author_id>1</wp:author_id>
+		<wp:author_login><![CDATA[admin]]></wp:author_login>
+		<wp:author_email><![CDATA[admin@example.com]]></wp:author_email>
+		<wp:author_display_name><![CDATA[Test Admin]]></wp:author_display_name>
+	</wp:author>
+
+	<wp:category>
+		<wp:term_id>2</wp:term_id>
+		<wp:category_nicename><![CDATA[aldus-tests]]></wp:category_nicename>
+		<wp:category_parent></wp:category_parent>
+		<wp:cat_name><![CDATA[Aldus Tests]]></wp:cat_name>
+	</wp:category>
+
+	<!-- ================================================================== -->
+	<!-- CATEGORY: MINIMAL INPUTS                                           -->
+	<!-- Test: What happens with the bare minimum content?                   -->
+	<!-- ================================================================== -->
+
+	<item>
+		<title>TEST 01 — Headline Only</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">The Only Thing on This Page</h1>
+<!-- /wp:heading -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[Single headline. No other content. Tests minimum viable input for every layout style.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<item>
+		<title>TEST 02 — Single Paragraph Only</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:paragraph -->
+<p>Just one paragraph with no headline, no image, no CTA. This is the absolute minimum text content someone might have. It's three sentences long, which is enough for a paragraph block but not enough for most editorial layouts to feel complete.</p>
+<!-- /wp:paragraph -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[Single paragraph, no headline. Tests content-type fallbacks when there's no headline to anchor a Cover or H1 token.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<item>
+		<title>TEST 03 — Image Only (No Text)</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:image {"sizeSlug":"large"} -->
+<figure class="wp-block-image size-large"><img src="https://picsum.photos/1200/800" alt="Test image with no accompanying text"/></figure>
+<!-- /wp:image -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[Single image, no text at all. Tests whether layout styles handle image-only content gracefully.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<item>
+		<title>TEST 04 — CTA Button Only</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:buttons -->
+<div class="wp-block-buttons"><!-- wp:button -->
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="https://example.com">Sign Up Free</a></div>
+<!-- /wp:button --></div>
+<!-- /wp:buttons -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[Just a CTA button. No headline, no paragraph, no image. Tests the buttons:cta token in isolation.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<!-- ================================================================== -->
+	<!-- CATEGORY: STANDARD COMBINATIONS                                     -->
+	<!-- Test: Common real-world content patterns                            -->
+	<!-- ================================================================== -->
+
+	<item>
+		<title>TEST 05 — Classic Blog Post (H1 + 2P + Image)</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">Why We Stopped Using Spreadsheets for Everything</h1>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>For three years, our entire operations ran on a single Google Sheet with 47 tabs. It started as a quick hack during the company's first week and gradually became the nervous system of every department. Marketing tracked campaigns in it. Sales logged leads. Finance reconciled invoices against a tab called "money stuff" that nobody fully understood.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:image {"sizeSlug":"large"} -->
+<figure class="wp-block-image size-large"><img src="https://picsum.photos/1200/800?random=5" alt="A messy desk covered in printed spreadsheets"/></figure>
+<!-- /wp:image -->
+
+<!-- wp:paragraph -->
+<p>The breaking point came on a Tuesday in March. Someone accidentally sorted Column B without selecting the rest of the row. Three months of revenue data shifted by one cell. We didn't notice for two weeks. By the time we caught it, the quarterly board deck had already been sent. That was the week we started looking at actual tools.</p>
+<!-- /wp:paragraph -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[Standard blog post structure. The most common pattern — should work well with all 16 styles.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<item>
+		<title>TEST 06 — Landing Page (H1 + H2 + P + Image + CTA)</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">Build Something People Actually Use</h1>
+<!-- /wp:heading -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">From first idea to first customer in one tool</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Most tools promise to save you time. This one promises to save you from building the wrong thing. Start with what your users need, prototype it in hours, and ship it before the enthusiasm wears off. No more six-month roadmaps that nobody follows.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:image {"sizeSlug":"large"} -->
+<figure class="wp-block-image size-large"><img src="https://picsum.photos/1200/800?random=6" alt="Product dashboard screenshot"/></figure>
+<!-- /wp:image -->
+
+<!-- wp:buttons -->
+<div class="wp-block-buttons"><!-- wp:button -->
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="https://example.com/start">Start building — free</a></div>
+<!-- /wp:button --></div>
+<!-- /wp:buttons -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[Classic SaaS landing page. Tests the full hero → features → CTA funnel that Broadside/Overture/Dispatch excel at.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<item>
+		<title>TEST 07 — Feature Story (H1 + Quote + 2P + Image)</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">The Train That Goes Nowhere on Purpose</h1>
+<!-- /wp:heading -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><p>The destination was never the point. The point was the four hours between departure and arrival where nobody could reach us.</p></blockquote>
+<!-- /wp:quote -->
+
+<!-- wp:paragraph -->
+<p>The overnight train from Belgrade to Bar has been running since 1976. It crosses 435 bridges and passes through 254 tunnels. It is never on time. Nobody who rides it cares. The route carves through the Dinaric Alps with a recklessness that modern infrastructure planners would never approve.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:image {"sizeSlug":"large"} -->
+<figure class="wp-block-image size-large"><img src="https://picsum.photos/1200/800?random=7" alt="A train crossing a stone viaduct in the mountains"/></figure>
+<!-- /wp:image -->
+
+<!-- wp:paragraph -->
+<p>We rode it three times in two weeks. Each time the landscape revealed something the previous trip had hidden — a gorge that only catches light at sunset, a village that appears for exactly forty seconds between two tunnels, a river that changes colour depending on whether it rained in Bosnia that morning.</p>
+<!-- /wp:paragraph -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[Editorial feature story. Tests quote-anchored styles like Folio, Tribune, and Ledger.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<item>
+		<title>TEST 08 — Product Pitch (H1 + P + List + CTA)</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">Your Data. Your Rules. No Exceptions.</h1>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>We built this because every alternative required trusting someone who had a financial incentive to read your files. We removed the incentive. What's left is a tool that does its job and minds its own business.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><li>End-to-end encryption on every file, every time</li><li>Zero-knowledge architecture — we can't see your data</li><li>Open-source clients you can audit yourself</li><li>Works offline after the first sync</li></ul>
+<!-- /wp:list -->
+
+<!-- wp:buttons -->
+<div class="wp-block-buttons"><!-- wp:button -->
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="#">Try it free — no credit card</a></div>
+<!-- /wp:button --></div>
+<!-- /wp:buttons -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[Product pitch with a feature list. Tests the list token and CTA-focused styles.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<!-- ================================================================== -->
+	<!-- CATEGORY: CONTENT-TYPE SPECIFIC                                     -->
+	<!-- Test: Each content type that unlocks specific tokens                -->
+	<!-- ================================================================== -->
+
+	<item>
+		<title>TEST 09 — Gallery Content (H1 + P + Gallery + CTA)</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">Selected Work, 2023–2025</h1>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>A collection of projects from the last two years — brand identities, editorial layouts, and the occasional thing that started as a napkin sketch and ended up on a billboard.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:gallery {"columns":3,"linkTo":"none"} -->
+<figure class="wp-block-gallery has-nested-images columns-3 is-cropped"><!-- wp:image {"sizeSlug":"large"} -->
+<figure class="wp-block-image size-large"><img src="https://picsum.photos/800/600?random=9a" alt="Project 1"/></figure>
+<!-- /wp:image -->
+
+<!-- wp:image {"sizeSlug":"large"} -->
+<figure class="wp-block-image size-large"><img src="https://picsum.photos/800/600?random=9b" alt="Project 2"/></figure>
+<!-- /wp:image -->
+
+<!-- wp:image {"sizeSlug":"large"} -->
+<figure class="wp-block-image size-large"><img src="https://picsum.photos/800/600?random=9c" alt="Project 3"/></figure>
+<!-- /wp:image -->
+
+<!-- wp:image {"sizeSlug":"large"} -->
+<figure class="wp-block-image size-large"><img src="https://picsum.photos/800/600?random=9d" alt="Project 4"/></figure>
+<!-- /wp:image --></figure>
+<!-- /wp:gallery -->
+
+<!-- wp:buttons -->
+<div class="wp-block-buttons"><!-- wp:button -->
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="#">Get in touch</a></div>
+<!-- /wp:button --></div>
+<!-- /wp:buttons -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[Portfolio with gallery. Tests Mosaic and Prism styles which require gallery content.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<item>
+		<title>TEST 10 — Video Content (H1 + P + Video + CTA)</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">Watch the Full Keynote</h1>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Our founder's 18-minute talk from the main stage at Config 2025 — covering how we went from a weekend hack to a product used by 40,000 teams. No slides, no script, just the story.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:embed {"url":"https://www.youtube.com/watch?v=dQw4w9WgXcQ","type":"video","providerNameSlug":"youtube"} -->
+<figure class="wp-block-embed is-type-video is-provider-youtube"><div class="wp-block-embed__wrapper">
+https://www.youtube.com/watch?v=dQw4w9WgXcQ
+</div></figure>
+<!-- /wp:embed -->
+
+<!-- wp:buttons -->
+<div class="wp-block-buttons"><!-- wp:button -->
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="#">Start your free trial</a></div>
+<!-- /wp:button --></div>
+<!-- /wp:buttons -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[Video embed content. Tests the video:hero and video:section tokens.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<item>
+		<title>TEST 11 — Table Content (H1 + Table + P + CTA)</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">How We Stack Up</h1>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table class="has-fixed-layout"><thead><tr><th>Feature</th><th>Us</th><th>Them</th></tr></thead><tbody><tr><td>Price</td><td>$9/mo</td><td>$29/mo</td></tr><tr><td>Storage</td><td>Unlimited</td><td>10 GB</td></tr><tr><td>Support</td><td>Human</td><td>Chatbot</td></tr><tr><td>API access</td><td>Included</td><td>Enterprise only</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>We could have made this table longer. We didn't need to.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:buttons -->
+<div class="wp-block-buttons"><!-- wp:button -->
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="#">Switch today</a></div>
+<!-- /wp:button --></div>
+<!-- /wp:buttons -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[Comparison table content. Tests the table:data token.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<!-- ================================================================== -->
+	<!-- CATEGORY: TEXT-HEAVY / TEXT-ONLY                                     -->
+	<!-- Test: Layouts with no images, heavy paragraph content               -->
+	<!-- ================================================================== -->
+
+	<item>
+		<title>TEST 12 — Long-Form Essay (H1 + H2 + 4P + Quote)</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">The Case Against Best Practices</h1>
+<!-- /wp:heading -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">Why copying what worked for someone else rarely works for you</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Every industry has its received wisdom — the strategies that everyone agrees are correct, the processes that every consultancy recommends, the metrics that every board deck includes. These are best practices, and they are the single most reliable way to end up exactly where everyone else is.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>The problem with best practices is not that they're wrong. Most of them are perfectly sensible recommendations based on real data from real companies. The problem is that by the time something becomes a "best practice," it's already priced in. Every competitor has read the same case study, attended the same conference talk, and implemented the same playbook. The advantage has been competed away.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><p>The companies that win don't follow best practices. They create the practices that everyone else will call "best" three years later.</p></blockquote>
+<!-- /wp:quote -->
+
+<!-- wp:paragraph -->
+<p>Consider hiring. The best practice for tech companies is to hire from top universities, run algorithmic coding interviews, and look for candidates with experience at other prestigious companies. This is a perfectly reasonable approach that produces perfectly reasonable results. It also produces teams that look, think, and approach problems in perfectly identical ways.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>The companies that built something genuinely different — Basecamp, Notion, Linear, Figma — all hired in ways that the best-practice crowd would consider eccentric. They looked for taste over credentials, judgment over experience, and curiosity over domain expertise. They were not following a playbook. They were writing one.</p>
+<!-- /wp:paragraph -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[Long text-heavy essay. No images. Tests Folio, Codex, Ledger, Solstice and other text-first styles.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<!-- ================================================================== -->
+	<!-- CATEGORY: MAXIMUM CONTENT                                           -->
+	<!-- Test: Large numbers of items, every content type at once             -->
+	<!-- ================================================================== -->
+
+	<item>
+		<title>TEST 13 — Kitchen Sink (Every Content Type)</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">Everything at Once: A Stress Test</h1>
+<!-- /wp:heading -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">Every content type Aldus supports, in one post</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>This post contains exactly one of every content type that Aldus can handle. It exists to verify that the content distributor doesn't crash, that token pruning handles a full manifest, and that no renderer throws when it encounters an unexpectedly rich content set.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><p>If you can lay this out cleanly, you can lay out anything.</p></blockquote>
+<!-- /wp:quote -->
+
+<!-- wp:image {"sizeSlug":"large"} -->
+<figure class="wp-block-image size-large"><img src="https://picsum.photos/1200/800?random=13" alt="A complex layout sketch on a whiteboard"/></figure>
+<!-- /wp:image -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><li>First feature: it works</li><li>Second feature: it works reliably</li><li>Third feature: it works on shared hosting</li><li>Fourth feature: it doesn't require Node.js on the server</li></ul>
+<!-- /wp:list -->
+
+<!-- wp:buttons -->
+<div class="wp-block-buttons"><!-- wp:button -->
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="https://example.com">Primary call to action</a></div>
+<!-- /wp:button --></div>
+<!-- /wp:buttons -->
+
+<!-- wp:embed {"url":"https://www.youtube.com/watch?v=dQw4w9WgXcQ","type":"video","providerNameSlug":"youtube"} -->
+<figure class="wp-block-embed is-type-video is-provider-youtube"><div class="wp-block-embed__wrapper">
+https://www.youtube.com/watch?v=dQw4w9WgXcQ
+</div></figure>
+<!-- /wp:embed -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table class="has-fixed-layout"><thead><tr><th>Metric</th><th>Before</th><th>After</th></tr></thead><tbody><tr><td>Page load</td><td>4.2s</td><td>1.1s</td></tr><tr><td>Bounce rate</td><td>67%</td><td>34%</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:gallery {"columns":2,"linkTo":"none"} -->
+<figure class="wp-block-gallery has-nested-images columns-2 is-cropped"><!-- wp:image {"sizeSlug":"large"} -->
+<figure class="wp-block-image size-large"><img src="https://picsum.photos/800/600?random=13a" alt="Gallery image 1"/></figure>
+<!-- /wp:image -->
+
+<!-- wp:image {"sizeSlug":"large"} -->
+<figure class="wp-block-image size-large"><img src="https://picsum.photos/800/600?random=13b" alt="Gallery image 2"/></figure>
+<!-- /wp:image --></figure>
+<!-- /wp:gallery -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">A Tertiary Heading for Good Measure</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>And a closing paragraph to round things out. This content set has a headline, a subheading, two paragraphs, a quote, an image, a list, a CTA, a video, a table, a gallery, and an H3. That's 12 distinct content items across 10 types. Every layout style should produce something from this.</p>
+<!-- /wp:paragraph -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[Every content type in one post. Maximum coverage for the content distributor and token pruner.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<item>
+		<title>TEST 14 — Many Paragraphs (H1 + 8P)</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">Eight Paragraphs Walk into a Layout</h1>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Paragraph one. This tests what happens when the content distributor has far more paragraphs than any single layout can consume. Some will be placed in columns. Some will fill group sections. Some may be dropped entirely by styles that don't have room for them.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Paragraph two. On a quiet Tuesday in the middle of a year that felt like it would never end, a small team in a small office made a decision that turned out to be the only one that mattered.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Paragraph three. The third paragraph is where most readers decide whether they're staying or leaving. If you've made it this far in a test post, you're either very thorough or very bored. Either way, thank you.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Paragraph four. This is the deep middle — the part of the essay where the argument either solidifies or collapses. In layout terms, this paragraph will probably end up in a column or a group section, far from the headline that introduced it.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Paragraph five. We are now past the halfway point. The content distributor has to decide: does this paragraph go into the next available slot, or does it get held for a section that better matches its length?</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Paragraph six. Six paragraphs is more than most blog posts have. This is feature-article territory. The layout should start to feel dense — like a magazine spread that rewards scrolling.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Paragraph seven. By now, styles with limited paragraph slots (Dispatch, Nocturne) should be reusing or truncating. Styles with deep slots (Folio, Ledger, Codex) should still be placing comfortably.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Paragraph eight. The final paragraph. If the layout placed all eight, it's probably text-heavy. If it placed four and dropped four, it made a design choice. Both are valid. What's not valid is crashing, showing empty blocks, or leaving a paragraph orphaned outside any section.</p>
+<!-- /wp:paragraph -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[8 paragraphs with no images. Tests content overflow handling and distributor exhaustion.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<!-- ================================================================== -->
+	<!-- CATEGORY: EDGE CASES AND BOUNDARY VALUES                            -->
+	<!-- Test: Unicode, emoji, HTML entities, extreme lengths                 -->
+	<!-- ================================================================== -->
+
+	<item>
+		<title>TEST 15 — Unicode and Emoji Content</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">日本語のテスト — 🌸 Cherry Blossom Edition</h1>
+<!-- /wp:heading -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">Ünïcödé Ëvérÿwhéré — Ñoño Señor</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>This paragraph contains every kind of Unicode edge case: emoji sequences 👨‍👩‍👧‍👦🏳️‍🌈, CJK characters 你好世界, Cyrillic Привет мир, Arabic مرحبا بالعالم, right-to-left text עברית, mathematical symbols ∑∏∫∂√∞, currency symbols ¥€£₹₿, and special punctuation «»‹›—–…""''.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><p>「人生は短い。だからコーヒーは良いものを飲め。」— 架空の日本人</p></blockquote>
+<!-- /wp:quote -->
+
+<!-- wp:paragraph -->
+<p>The real test here is whether esc_html() handles 4-byte UTF-8 sequences (emoji) correctly, whether the LLM prompt doesn't corrupt when it sees CJK characters in the content manifest, and whether the block markup round-trips through serialize_block() without mangling any characters.</p>
+<!-- /wp:paragraph -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[Unicode stress test: CJK, RTL, emoji, mathematical symbols, currency. Tests esc_html, serialize_block, and LLM prompt construction with non-ASCII content.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<item>
+		<title>TEST 16 — Very Long Headline and Very Long Paragraph</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">This Is an Extremely Long Headline That Just Keeps Going and Going Because Sometimes People Write Headlines That Are Really More Like Sentences and They Don't Know When to Stop Which Creates Problems for Layout Systems That Assume Headlines Are Short</h1>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>This paragraph is deliberately very long to test how the renderers handle text overflow. It contains well over 200 words in a single block. The content distributor will try to place this in whatever paragraph slot is available, but some layout tokens — particularly those inside columns or media-text blocks — have limited vertical space. When a paragraph this long lands in a two-column layout, it can push the column height far beyond what the designer intended. When it lands in a group section with a dark background, the amount of white-on-dark text can become hard to read. When it lands next to an image in a media-text block, the text side becomes dramatically taller than the image side, creating an awkward visual imbalance. The question is not whether this looks good — it probably won't, in most styles. The question is whether it renders correctly, whether the block validates, and whether the user can edit it afterward without issues. A good layout system handles ugly content gracefully. A bad one crashes, truncates silently, or produces blocks that fail validation. This paragraph exists to find out which category Aldus falls into. If you're reading this in a rendered layout and it looks fine, congratulations. If you're reading this because the layout broke, now you know why. This is the 200-word stress test. Every layout generator needs one. Here's yours.</p>
+<!-- /wp:paragraph -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[Extreme lengths: a ~40 word headline and a ~200 word paragraph. Tests overflow in Cover headlines, column paragraphs, and media-text text sides.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<item>
+		<title>TEST 17 — Very Short Content (Terse)</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">No.</h1>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Done.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><p>—</p></blockquote>
+<!-- /wp:quote -->
+
+<!-- wp:buttons -->
+<div class="wp-block-buttons"><!-- wp:button -->
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="#">OK</a></div>
+<!-- /wp:button --></div>
+<!-- /wp:buttons -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[Extremely terse content. 1-2 word headline, 1-word paragraph, single-character quote, 2-character CTA. Tests minimum display widths and empty-content guards.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<item>
+		<title>TEST 18 — HTML Entities and Special Characters</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">O'Brien &amp; Associates — "The 10× Company"</h1>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>This content tests HTML entity handling: &amp;amp; should render as &amp;, &amp;lt; as &lt;, &amp;gt; as &gt;. Curly quotes "like these" and apostrophes in names like O'Malley shouldn't break serialize_block(). Angle brackets in text — like "revenue grew 3&lt;4x year over year" — must not be interpreted as HTML tags. Backslashes in paths like C:\Users\Admin\Desktop should survive the round-trip. And the em dash — the writer's best friend — should never become &amp;mdash; in the output.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><p>"It's not about the money," she said — then immediately asked about the money.</p></blockquote>
+<!-- /wp:quote -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[HTML entities, curly quotes, apostrophes, angle brackets in text, backslashes, em dashes. Tests sanitization and escaping round-trips.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<!-- ================================================================== -->
+	<!-- CATEGORY: STYLE-SPECIFIC CONTENT                                    -->
+	<!-- Test: Content optimized for specific personality strengths           -->
+	<!-- ================================================================== -->
+
+	<item>
+		<title>TEST 19 — Image-Heavy (3 Images + H1 + P)</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">Three Rooms, Three Moods</h1>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Each room was designed to evoke a different time of day. The east suite catches the first light. The library holds the afternoon. The rooftop terrace owns the evening.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:image {"sizeSlug":"large"} -->
+<figure class="wp-block-image size-large"><img src="https://picsum.photos/1200/800?random=19a" alt="Morning light in the east suite"/></figure>
+<!-- /wp:image -->
+
+<!-- wp:image {"sizeSlug":"large"} -->
+<figure class="wp-block-image size-large"><img src="https://picsum.photos/1200/800?random=19b" alt="The afternoon library"/></figure>
+<!-- /wp:image -->
+
+<!-- wp:image {"sizeSlug":"large"} -->
+<figure class="wp-block-image size-large"><img src="https://picsum.photos/1200/800?random=19c" alt="Rooftop terrace at dusk"/></figure>
+<!-- /wp:image -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[Multiple images with minimal text. Tests image distribution across Cover, Media-Text, and standalone Image tokens. Good for Nocturne, Broadside, Dusk.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<item>
+		<title>TEST 20 — Quote-Heavy (H1 + 3 Quotes + P)</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">What They Said About Us</h1>
+<!-- /wp:heading -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><p>The best tool I've used in ten years. And I've used every tool.</p><cite>— Sarah Chen, VP Engineering at Meridian</cite></blockquote>
+<!-- /wp:quote -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><p>We switched in January. By March, our entire workflow had changed. By June, we couldn't imagine going back.</p><cite>— Marcus Webb, Head of Product at Loom</cite></blockquote>
+<!-- /wp:quote -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><p>Simple. Fast. Doesn't get in the way. That's all I wanted.</p><cite>— Ana Kowalski, Freelance Designer</cite></blockquote>
+<!-- /wp:quote -->
+
+<!-- wp:paragraph -->
+<p>These aren't cherry-picked. They're the three most recent. We asked 200 customers for one sentence about their experience. These were the first three that came back.</p>
+<!-- /wp:paragraph -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[Three quotes with attributions. Tests pullquote-heavy styles like Tribune, Folio, and quote:attributed tokens.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<item>
+		<title>TEST 21 — Multiple CTAs (H1 + P + 3 Buttons)</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">Three Ways to Get Started</h1>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Pick the path that matches your pace. Every option includes the full platform — the only difference is how much hand-holding you want along the way.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:buttons -->
+<div class="wp-block-buttons"><!-- wp:button -->
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="#">Start free</a></div>
+<!-- /wp:button -->
+
+<!-- wp:button -->
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="#">Book a demo</a></div>
+<!-- /wp:button -->
+
+<!-- wp:button -->
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="#">Talk to sales</a></div>
+<!-- /wp:button --></div>
+<!-- /wp:buttons -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[Multiple CTA buttons. Tests whether the distributor places multiple buttons correctly and whether the buttons:cta token handles more than one.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<!-- ================================================================== -->
+	<!-- CATEGORY: REAL-WORLD SCENARIOS                                       -->
+	<!-- Test: Content that matches what actual users will bring              -->
+	<!-- ================================================================== -->
+
+	<item>
+		<title>TEST 22 — Nonprofit Fundraiser</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">Every Meal Matters</h1>
+<!-- /wp:heading -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">Join 2,400 families who never worry about dinner anymore</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Last year we served 312,000 meals across 14 counties. This year our waiting list grew by 40%. The need is real, it's growing, and it's in your neighbourhood. A $25 donation feeds a family of four for a week. A $100 donation covers a month. A recurring gift of any amount means we can plan ahead instead of scrambling.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:image {"sizeSlug":"large"} -->
+<figure class="wp-block-image size-large"><img src="https://picsum.photos/1200/800?random=22" alt="Volunteers packing meal boxes in a warehouse"/></figure>
+<!-- /wp:image -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><p>When the boxes arrive on Thursday, my kids cheer. That's not an exaggeration. They literally cheer.</p><cite>— Maria, mother of three, Cedar Rapids</cite></blockquote>
+<!-- /wp:quote -->
+
+<!-- wp:buttons -->
+<div class="wp-block-buttons"><!-- wp:button -->
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="https://example.com/donate">Donate Now</a></div>
+<!-- /wp:button --></div>
+<!-- /wp:buttons -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[Nonprofit fundraiser page. Tests the emotional/narrative content mix that Hearth pack was designed for.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<item>
+		<title>TEST 23 — Restaurant / Food Business</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">Farm to Fork in Under 40 Miles</h1>
+<!-- /wp:heading -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">Seasonal. Local. No compromises.</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Every ingredient on our menu comes from within 40 miles of this kitchen. Not because it's trendy — because it tastes better. When the tomatoes are picked at 6 AM and on your plate by noon, you can taste the difference. We change the menu every Thursday based on what the farms have ready. If the corn isn't perfect, there's no corn. Simple as that.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:image {"sizeSlug":"large"} -->
+<figure class="wp-block-image size-large"><img src="https://picsum.photos/1200/800?random=23" alt="A rustic wooden table with farm-fresh dishes"/></figure>
+<!-- /wp:image -->
+
+<!-- wp:list -->
+<ul class="wp-block-list"><li>Thursday: New menu drops</li><li>Friday–Saturday: Full dinner service, 5–10 PM</li><li>Sunday: Brunch, 10 AM–2 PM</li><li>Monday–Wednesday: Closed (we're at the farms)</li></ul>
+<!-- /wp:list -->
+
+<!-- wp:buttons -->
+<div class="wp-block-buttons"><!-- wp:button -->
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="#">Reserve a table</a></div>
+<!-- /wp:button --></div>
+<!-- /wp:buttons -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[Restaurant page. Matches the Grove pack theme. Tests warm editorial content with a schedule list.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<item>
+		<title>TEST 24 — Developer Documentation</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">Getting Started with the API</h1>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Before you can make your first request, you need an API key. This takes about two minutes and only needs to happen once. Your key authenticates every request and determines your rate limits.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:code -->
+<pre class="wp-block-code"><code>curl -X POST https://api.example.com/v1/auth \
+  -H "Content-Type: application/json" \
+  -d '{"email": "you@example.com"}'</code></pre>
+<!-- /wp:code -->
+
+<!-- wp:paragraph -->
+<p>The response includes a token field. Copy it — you'll use it as the Authorization header in every subsequent request. Tokens expire after 24 hours, so store the refresh token securely and use it to generate new access tokens without re-authenticating.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Rate Limits</h3>
+<!-- /wp:heading -->
+
+<!-- wp:table -->
+<figure class="wp-block-table"><table class="has-fixed-layout"><thead><tr><th>Plan</th><th>Requests/min</th><th>Daily cap</th></tr></thead><tbody><tr><td>Free</td><td>10</td><td>1,000</td></tr><tr><td>Pro</td><td>100</td><td>50,000</td></tr><tr><td>Enterprise</td><td>Unlimited</td><td>Unlimited</td></tr></tbody></table></figure>
+<!-- /wp:table -->
+
+<!-- wp:paragraph -->
+<p>Exceeding your rate limit returns HTTP 429 with a Retry-After header. The SDK handles this automatically with exponential backoff.</p>
+<!-- /wp:paragraph -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[Technical documentation with code block and table. Tests the code content type and structured data layout.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<category domain="category" nicename="aldus-tests"><![CDATA[Aldus Tests]]></category>
+	</item>
+
+	<!-- ================================================================== -->
+	<!-- CATEGORY: PAGES (not posts)                                         -->
+	<!-- Test: Aldus on pages, not just posts                                -->
+	<!-- ================================================================== -->
+
+	<item>
+		<title>TEST 25 — About Page (Page, Not Post)</title>
+		<dc:creator><![CDATA[admin]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">About Us</h1>
+<!-- /wp:heading -->
+
+<!-- wp:heading -->
+<h2 class="wp-block-heading">We started with a question nobody wanted to answer</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>In 2019, three friends who'd spent a decade building products for other companies asked themselves the obvious question: why are we still doing this for other people? The answer was fear. The antidote was a shared Google Doc titled "Things We'd Build If We Weren't Afraid." That doc became this company.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:image {"sizeSlug":"large"} -->
+<figure class="wp-block-image size-large"><img src="https://picsum.photos/1200/800?random=25" alt="The founding team in a coffee shop"/></figure>
+<!-- /wp:image -->
+
+<!-- wp:paragraph -->
+<p>Today we're 28 people across 6 time zones. We don't have an office. We don't have a dress code. We don't have a mission statement that was written by committee. We have one rule: build things that make you proud to show your friends.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><p>We're not trying to change the world. We're trying to make one corner of it work a little better.</p></blockquote>
+<!-- /wp:quote -->
+
+<!-- wp:buttons -->
+<div class="wp-block-buttons"><!-- wp:button -->
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="#">Join the team</a></div>
+<!-- /wp:button --></div>
+<!-- /wp:buttons -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[About page on a WordPress Page (not Post). Tests that Aldus works on the page post type with correct meta registration.]]></excerpt:encoded>
+		<wp:post_type><![CDATA[page]]></wp:post_type>
+		<wp:status><![CDATA[draft]]></wp:status>
+	</item>
+
+</channel>
+</rss>

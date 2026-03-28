@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Registers the GET /aldus/v1/config endpoint.
  *
- * Called from aldus_register_rest_routes() via the rest_api_init hook.
+ * Invoked from aldus_register_rest_routes() on rest_api_init.
  */
 function aldus_register_config_route(): void {
 	register_rest_route(
@@ -41,7 +41,6 @@ function aldus_register_config_route(): void {
 		)
 	);
 }
-add_action( 'rest_api_init', 'aldus_register_config_route' );
 
 /**
  * Handles GET /aldus/v1/config.

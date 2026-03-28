@@ -14,9 +14,8 @@ use PHPUnit\Framework\TestCase;
  * that Aldus produces. If they do, the editor's block validator will flag every
  * inserted block as invalid.
  *
- * The full REST-level integration test (test_full_dispatch_layout_passes_validation)
- * is guarded behind a WordPress availability check and marked @group integration
- * so it is skipped in pure-unit CI runs.
+ * The full Dispatch layout validation test calls aldus_handle_assemble() directly
+ * (same handler as POST /aldus/v1/assemble) so it runs in the stubbed bootstrap.
  */
 class BlockMarkupTest extends TestCase {
 
@@ -186,22 +185,13 @@ class BlockMarkupTest extends TestCase {
 	}
 
 	// -----------------------------------------------------------------------
-	// Integration test (requires WordPress — skipped in unit CI)
+	// Full assemble handler (aldus_handle_assemble — no HTTP stack required)
 	// -----------------------------------------------------------------------
 
 	/**
 	 * A full assembled Dispatch layout must pass validation.
-	 *
-	 * Skipped when WordPress's rest_do_request() function is not available
-	 * (i.e. in pure-unit test runs without a WP install).
-	 *
-	 * @group integration
 	 */
 	public function test_full_dispatch_layout_passes_validation(): void {
-		if ( ! function_exists( 'rest_do_request' ) ) {
-			$this->markTestSkipped( 'rest_do_request() not available — run this test against a full WordPress install.' );
-		}
-
 		$request = new \WP_REST_Request( 'POST', '/aldus/v1/assemble' );
 		$request->set_body_params( array(
 			'personality' => 'Dispatch',
@@ -212,8 +202,9 @@ class BlockMarkupTest extends TestCase {
 			),
 		) );
 
-		$response = rest_do_request( $request );
-		$data     = $response->get_data();
+		$response = aldus_handle_assemble( $request );
+		$this->assertInstanceOf( \WP_REST_Response::class, $response, 'Assemble must return WP_REST_Response' );
+		$data = $response->get_data();
 
 		$this->assertArrayHasKey( 'blocks', $data, 'Response must contain blocks markup' );
 		$markup = (string) $data['blocks'];
