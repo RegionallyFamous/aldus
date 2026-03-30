@@ -86,7 +86,7 @@ jobs:
         run: npm run test:js -- --coverage
 
       - name: Upload JS coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         with:
           files: coverage/lcov.info
           flags: jest
@@ -146,7 +146,7 @@ jobs:
         continue-on-error: true  # Coverage reporting is best-effort; failures here do not block the build.
 
       - name: Upload PHP coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         with:
           files: coverage/php-clover.xml
           flags: phpunit
