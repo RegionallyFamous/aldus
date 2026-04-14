@@ -29,7 +29,6 @@ parameters:
     # Suppress deprecated parameter warnings that replace the old boolean flags.
     ignoreErrors:
         - message: '#on left side of \?\? always exists and is not nullable#'
-        - message: '#aldus_pick_large_font expects#'
         - message: "#Offset 'mediaId' does not exist on array#"
         # ALDUS_URL and ALDUS_PATH are defined at global scope in aldus.php but PHPStan
         # loses track of them when scanning includes/ independently.
