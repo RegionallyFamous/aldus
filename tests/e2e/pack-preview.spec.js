@@ -59,7 +59,10 @@ test.beforeAll( async ( { browser } ) => {
 	const created = await newLoggedInPage( browser );
 	page = created.page;
 	pageContext = created.context;
-	monitor = attachConsoleMonitor( page );
+	// Block validation mismatches are expected in the pack preview flow: the
+	// PHP assembler produces markup that may differ from the block's JS save()
+	// output (e.g. inline styles, class ordering). WordPress recovers silently.
+	monitor = attachConsoleMonitor( page, { allowBlockValidation: true } );
 
 	await page.goto( '/wp-admin/post-new.php' );
 
