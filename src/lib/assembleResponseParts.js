@@ -3,7 +3,7 @@
  * Prefer keeping the server `blocks` string over re-serializing from `blocks_tree`.
  *
  * @param {Object|null|undefined} r
- * @return {{ tree: Array, serverMarkup: string, serverMarkupNonEmpty: boolean }}
+ * @return {{ tree: Array, serverMarkup: string, serverMarkupNonEmpty: boolean }} Parsed assemble response parts.
  */
 export function getAssembleResponseParts( r ) {
 	const tree = Array.isArray( r?.blocks_tree ) ? r.blocks_tree : [];

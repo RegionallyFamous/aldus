@@ -10,7 +10,7 @@ import { getAssembleResponseParts } from './assembleResponseParts.js';
 
 /**
  * @param {{ blocks?: string, blocks_tree?: Array }} payload
- * @return {import('@wordpress/blocks').WPBlock[]}
+ * @return {import('@wordpress/blocks').WPBlock[]} Array of parsed WP block objects.
  */
 export function blocksFromAssemblePayload( payload ) {
 	if ( ! payload || typeof payload !== 'object' ) {

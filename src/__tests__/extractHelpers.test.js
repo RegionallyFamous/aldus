@@ -509,6 +509,249 @@ describe( 'extractItemFromBlock()', () => {
 		expect( typeof result[ 0 ].id ).toBe( 'string' );
 		expect( result[ 0 ].id.length ).toBeGreaterThan( 0 );
 	} );
+
+	// -----------------------------------------------------------------------
+	// core/pullquote
+	// -----------------------------------------------------------------------
+
+	it( 'maps core/pullquote with text to quote type', () => {
+		const result = extractItemFromBlock( {
+			name: 'core/pullquote',
+			attributes: { value: 'A wise saying' },
+			innerBlocks: [],
+		} );
+		expect( result[ 0 ].type ).toBe( 'quote' );
+		expect( result[ 0 ].content ).toBe( 'A wise saying' );
+	} );
+
+	it( 'returns empty array for core/pullquote with no text', () => {
+		expect(
+			extractItemFromBlock( {
+				name: 'core/pullquote',
+				attributes: { value: '' },
+				innerBlocks: [],
+			} )
+		).toHaveLength( 0 );
+	} );
+
+	// -----------------------------------------------------------------------
+	// core/quote — empty fallthrough
+	// -----------------------------------------------------------------------
+
+	it( 'returns empty array for core/quote with no content or inner paragraphs', () => {
+		expect(
+			extractItemFromBlock( {
+				name: 'core/quote',
+				attributes: { value: '' },
+				innerBlocks: [],
+			} )
+		).toHaveLength( 0 );
+	} );
+
+	// -----------------------------------------------------------------------
+	// core/buttons — no inner button
+	// -----------------------------------------------------------------------
+
+	it( 'returns empty array for core/buttons with no inner button', () => {
+		expect(
+			extractItemFromBlock( {
+				name: 'core/buttons',
+				attributes: {},
+				innerBlocks: [],
+			} )
+		).toHaveLength( 0 );
+	} );
+
+	// -----------------------------------------------------------------------
+	// core/video — missing src/url
+	// -----------------------------------------------------------------------
+
+	it( 'returns empty array for core/video with no src or url', () => {
+		expect(
+			extractItemFromBlock( {
+				name: 'core/video',
+				attributes: {},
+				innerBlocks: [],
+			} )
+		).toHaveLength( 0 );
+	} );
+
+	// -----------------------------------------------------------------------
+	// core/file — text fallback and empty
+	// -----------------------------------------------------------------------
+
+	it( 'maps core/file using text attribute when fileName is absent', () => {
+		const result = extractItemFromBlock( {
+			name: 'core/file',
+			attributes: { href: 'https://example.com/f.pdf', text: 'Download' },
+			innerBlocks: [],
+		} );
+		expect( result[ 0 ].type ).toBe( 'cta' );
+		expect( result[ 0 ].content ).toBe( 'Download' );
+	} );
+
+	it( 'returns empty array for core/file with no href or label', () => {
+		expect(
+			extractItemFromBlock( {
+				name: 'core/file',
+				attributes: {},
+				innerBlocks: [],
+			} )
+		).toHaveLength( 0 );
+	} );
+
+	// -----------------------------------------------------------------------
+	// core/html — empty content
+	// -----------------------------------------------------------------------
+
+	it( 'returns empty array for core/html with empty content', () => {
+		expect(
+			extractItemFromBlock( {
+				name: 'core/html',
+				attributes: { content: '' },
+				innerBlocks: [],
+			} )
+		).toHaveLength( 0 );
+	} );
+
+	// -----------------------------------------------------------------------
+	// core/table — empty
+	// -----------------------------------------------------------------------
+
+	it( 'returns empty array for core/table with no cell text', () => {
+		expect(
+			extractItemFromBlock( {
+				name: 'core/table',
+				attributes: { head: [], body: [] },
+				innerBlocks: [],
+			} )
+		).toHaveLength( 0 );
+	} );
+
+	// -----------------------------------------------------------------------
+	// core/gallery — empty
+	// -----------------------------------------------------------------------
+
+	it( 'returns empty array for core/gallery with no image URLs', () => {
+		expect(
+			extractItemFromBlock( {
+				name: 'core/gallery',
+				attributes: {},
+				innerBlocks: [],
+			} )
+		).toHaveLength( 0 );
+	} );
+
+	// -----------------------------------------------------------------------
+	// core/details — empty
+	// -----------------------------------------------------------------------
+
+	it( 'returns empty array for core/details with no inner content', () => {
+		expect(
+			extractItemFromBlock( {
+				name: 'core/details',
+				attributes: {},
+				innerBlocks: [],
+			} )
+		).toHaveLength( 0 );
+	} );
+
+	// -----------------------------------------------------------------------
+	// core/verse
+	// -----------------------------------------------------------------------
+
+	it( 'maps core/verse with content to quote type', () => {
+		const result = extractItemFromBlock( {
+			name: 'core/verse',
+			attributes: { content: 'Roses are red' },
+			innerBlocks: [],
+		} );
+		expect( result[ 0 ].type ).toBe( 'quote' );
+		expect( result[ 0 ].content ).toBe( 'Roses are red' );
+	} );
+
+	it( 'returns empty array for core/verse with empty content', () => {
+		expect(
+			extractItemFromBlock( {
+				name: 'core/verse',
+				attributes: { content: '' },
+				innerBlocks: [],
+			} )
+		).toHaveLength( 0 );
+	} );
+
+	// -----------------------------------------------------------------------
+	// core/code / core/preformatted
+	// -----------------------------------------------------------------------
+
+	it( 'maps core/code with content to code type', () => {
+		const result = extractItemFromBlock( {
+			name: 'core/code',
+			attributes: { content: 'const x = 1;' },
+			innerBlocks: [],
+		} );
+		expect( result[ 0 ].type ).toBe( 'code' );
+		expect( result[ 0 ].content ).toBe( 'const x = 1;' );
+	} );
+
+	it( 'returns empty array for core/code with empty content', () => {
+		expect(
+			extractItemFromBlock( {
+				name: 'core/code',
+				attributes: { content: '' },
+				innerBlocks: [],
+			} )
+		).toHaveLength( 0 );
+	} );
+
+	it( 'maps core/preformatted to code type', () => {
+		const result = extractItemFromBlock( {
+			name: 'core/preformatted',
+			attributes: { content: 'pre text' },
+			innerBlocks: [],
+		} );
+		expect( result[ 0 ].type ).toBe( 'code' );
+	} );
+
+	// -----------------------------------------------------------------------
+	// core/separator
+	// -----------------------------------------------------------------------
+
+	it( 'returns empty array for core/separator', () => {
+		expect(
+			extractItemFromBlock( {
+				name: 'core/separator',
+				attributes: {},
+				innerBlocks: [],
+			} )
+		).toHaveLength( 0 );
+	} );
+
+	// -----------------------------------------------------------------------
+	// core/columns
+	// -----------------------------------------------------------------------
+
+	it( 'flattens core/columns inner column blocks', () => {
+		const result = extractItemFromBlock( {
+			name: 'core/columns',
+			attributes: {},
+			innerBlocks: [
+				{
+					name: 'core/column',
+					attributes: {},
+					innerBlocks: [
+						{
+							name: 'core/paragraph',
+							attributes: { content: 'Col text' },
+							innerBlocks: [],
+						},
+					],
+				},
+			],
+		} );
+		expect( result[ 0 ].type ).toBe( 'paragraph' );
+		expect( result[ 0 ].content ).toBe( 'Col text' );
+	} );
 } );
 
 // ---------------------------------------------------------------------------
@@ -599,9 +842,9 @@ describe( 'collectItemsFromEditorBlocks()', () => {
 			},
 		];
 		const out = collectItemsFromEditorBlocks( blocks );
-		expect( out.some( ( i ) => i.type === 'video' && i.url.includes( 'maps' ) ) ).toBe(
-			true
-		);
+		expect(
+			out.some( ( i ) => i.type === 'video' && i.url.includes( 'maps' ) )
+		).toBe( true );
 	} );
 
 	it( 'drops empty paragraph payloads', () => {
@@ -617,5 +860,49 @@ describe( 'collectItemsFromEditorBlocks()', () => {
 
 	it( 'returns empty array for non-array input', () => {
 		expect( collectItemsFromEditorBlocks( null ) ).toEqual( [] );
+	} );
+
+	it( 'skips blocks with no name', () => {
+		const blocks = [
+			{ name: null, attributes: {}, innerBlocks: [] },
+			{
+				name: 'core/paragraph',
+				attributes: { content: 'Hello' },
+				innerBlocks: [],
+			},
+		];
+		const out = collectItemsFromEditorBlocks( blocks );
+		expect( out ).toHaveLength( 1 );
+		expect( out[ 0 ].content ).toBe( 'Hello' );
+	} );
+
+	it( 'recurses into innerBlocks of unknown block types', () => {
+		const blocks = [
+			{
+				name: 'core/unknown-wrapper',
+				attributes: {},
+				innerBlocks: [
+					{
+						name: 'core/paragraph',
+						attributes: { content: 'Nested' },
+						innerBlocks: [],
+					},
+				],
+			},
+		];
+		const out = collectItemsFromEditorBlocks( blocks );
+		expect( out.some( ( i ) => i.content === 'Nested' ) ).toBe( true );
+	} );
+
+	it( 'collects cta item that has a url but no content', () => {
+		const blocks = [
+			{
+				name: 'core/button',
+				attributes: { text: '', url: 'https://example.com/page' },
+				innerBlocks: [],
+			},
+		];
+		const out = collectItemsFromEditorBlocks( blocks );
+		expect( out.some( ( i ) => i.type === 'cta' ) ).toBe( true );
 	} );
 } );
