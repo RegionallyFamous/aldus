@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param string                    $token
  * @param Aldus_Content_Distributor $dist
  * @param list<array{slug:string,color:string}> $palette
- * @param list<array{slug:string}>  $font_sizes
+ * @param list<array{slug:string,size:string}>  $font_sizes
  * @param int                       $index        Position in the layout sequence.
  * @param int                       $layout_seed  Per-personality seed (0–N) for variant selection.
  * @param array                     $context      Optional art-direction context:
