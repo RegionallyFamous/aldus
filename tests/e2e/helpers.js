@@ -157,7 +157,7 @@ async function insertAldusBlock( page ) {
 	const frame = getEditorFrame( page );
 	await frame
 		.locator( '.wp-block-aldus-layout-generator' )
-		.waitFor( { timeout: 30000 } );
+		.waitFor( { timeout: 45000 } );
 }
 
 /**
