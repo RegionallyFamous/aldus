@@ -13,7 +13,7 @@ import { uid as generateId } from './uid.js';
  * Normalises a media URL (embed, video, audio) for storage.
  *
  * @param {string} raw Raw URL from block attributes.
- * @return {string}
+ * @return {string} Normalised URL string.
  */
 function normalizeMediaUrl( raw ) {
 	if ( typeof raw !== 'string' || ! raw.trim() ) {
@@ -165,10 +165,7 @@ export function extractItemFromBlock( block ) {
 		];
 	}
 	if ( block.name === 'core/video' || block.name === 'core/audio' ) {
-		const raw =
-			block.attributes?.src ??
-			block.attributes?.url ??
-			'';
+		const raw = block.attributes?.src ?? block.attributes?.url ?? '';
 		const url = normalizeMediaUrl( typeof raw === 'string' ? raw : '' );
 		if ( ! url ) {
 			return [];
@@ -188,12 +185,12 @@ export function extractItemFromBlock( block ) {
 				? block.attributes.href
 				: ''
 		);
-		const label =
-			typeof block.attributes?.fileName === 'string'
-				? block.attributes.fileName
-				: typeof block.attributes?.text === 'string'
-					? block.attributes.text
-					: '';
+		let label = '';
+		if ( typeof block.attributes?.fileName === 'string' ) {
+			label = block.attributes.fileName;
+		} else if ( typeof block.attributes?.text === 'string' ) {
+			label = block.attributes.text;
+		}
 		if ( ! href && ! label.trim() ) {
 			return [];
 		}
@@ -208,7 +205,9 @@ export function extractItemFromBlock( block ) {
 	}
 	if ( block.name === 'core/embed' ) {
 		const embedUrl = normalizeMediaUrl(
-			typeof block.attributes?.url === 'string' ? block.attributes.url : ''
+			typeof block.attributes?.url === 'string'
+				? block.attributes.url
+				: ''
 		);
 		if ( embedUrl && /^https?:\/\//i.test( embedUrl ) ) {
 			return [
@@ -386,10 +385,7 @@ function itemHasExtractablePayload( item ) {
 	}
 	if ( item.type === 'video' ) {
 		const u = String( item.url ?? '' ).trim();
-		return (
-			u.length > 0 ||
-			String( item.content ?? '' ).trim().length > 0
-		);
+		return u.length > 0 || String( item.content ?? '' ).trim().length > 0;
 	}
 	return String( item.content ?? '' ).trim().length > 0;
 }

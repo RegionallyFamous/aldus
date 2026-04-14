@@ -207,7 +207,7 @@ function aldus_block_inline_style_from_style_attr( array $style ): string {
 	if ( ! empty( $out['css'] ) ) {
 		$css = (string) $out['css'];
 	} elseif ( ! empty( $out['declarations'] ) && class_exists( 'WP_Style_Engine' ) ) {
-		$css = (string) WP_Style_Engine::compile_css( $out['declarations'], null );
+		$css = (string) WP_Style_Engine::compile_css( $out['declarations'], '' );
 	}
 	// aldus_validate_block_markup rule 9: saved style attrs omit the final semicolon.
 	return '' === $css ? '' : rtrim( $css, ';' );
