@@ -53,7 +53,7 @@
 		"@wordpress/scripts": "^31.8.0"
 	},
 	"dependencies": {
-		"@mlc-ai/web-llm": "^0.2.82",
+		"@mlc-ai/web-llm": "^0.2.83",
 		"@wordpress/interactivity": "^6.43.0"
 	},
 	"peerDependencies": {
